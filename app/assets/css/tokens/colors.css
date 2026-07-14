@@ -1,0 +1,165 @@
+/*
+ * ARCHITECTURE:
+ * 1. Brand Palette   → Raw named colors. NEVER used directly in components.
+ * 2. Semantic Tokens → Meaningful aliases. These are what components consume.
+ *
+ * All tokens defined inside @theme:
+ *  a) Become CSS custom properties: var(--color-primary)
+ *  b) Generate Tailwind utilities:  bg-primary, text-primary, border-primary
+ *
+ * =====================================================
+ */
+
+@theme {
+
+  /* ─────────────────────────────────────────────────
+     BRAND PALETTE — Raw color definitions
+     Never reference these directly in components.
+     They exist so semantic tokens have a readable source.
+  ───────────────────────────────────────────────── */
+
+  --brand-pearl-white:    #FDFCFB;
+  --brand-porcelain:      #F5F0EB;
+  --brand-blush-rose:     #E8C4B8;
+  --brand-warm-cashmere:  #C49A8A;
+  --brand-ash:            #E2DBD5;
+  --brand-stone:          #8C7B72;
+  --brand-charcoal:       #2C2420;
+  --brand-forest-sage:    #6B8C7A;
+  --brand-amber-glow:     #C4956A;
+  --brand-dusty-rose-red: #B5625A;
+  --brand-powder-blue:    #7FA8B8;
+
+
+  /* ─────────────────────────────────────────────────
+     PRIMARY — The brand's main interactive color
+     Usage: CTA buttons, active states, key links
+  ───────────────────────────────────────────────── */
+
+  --color-primary:            #E8C4B8;
+  --color-primary-hover:      #D4A898;
+  --color-primary-active:     #C49A8A;
+  --color-primary-subtle:     #F4EAE6;
+  --color-primary-foreground: #2C2420;
+
+
+  /* ─────────────────────────────────────────────────
+     SECONDARY — Lower-priority interactive elements
+     Usage: secondary buttons, ghost buttons, cancel actions
+  ───────────────────────────────────────────────── */
+
+  --color-secondary:            #8C7B72;
+  --color-secondary-hover:      #7A6A62;
+  --color-secondary-active:     #6B5C54;
+  --color-secondary-subtle:     #F0EBE8;
+  --color-secondary-foreground: #FDFCFB;
+
+
+  /* ─────────────────────────────────────────────────
+     ACCENT — Decorative, never interactive
+     Usage: icons, decorative lines, typographic highlights,
+     section markers — never has a hover/active state
+  ───────────────────────────────────────────────── */
+
+  --color-accent:            #C49A8A;
+  --color-accent-foreground: #2C2420;
+
+
+  /* ─────────────────────────────────────────────────
+     BACKGROUNDS — The layering system
+     Each layer sits slightly above the previous.
+     background → surface → card
+  ───────────────────────────────────────────────── */
+
+  --color-background:   #FDFCFB;
+  --color-surface:      #F5F0EB;
+  --color-card:         #FFFFFF;
+  --color-card-hover:   #FDFCFB;
+  --color-overlay:      rgb(44 36 32 / 45%);
+
+
+  /* ─────────────────────────────────────────────────
+     BORDERS & DIVIDERS
+     Borders contain elements. Dividers separate content.
+  ───────────────────────────────────────────────── */
+
+  --color-border:        #E2DBD5;
+  --color-border-strong: #C8BDB6;
+  --color-divider:       #EDE8E3;
+
+
+  /* ─────────────────────────────────────────────────
+     TEXT — The typographic hierarchy
+  ───────────────────────────────────────────────── */
+
+  --color-text-primary:   #2C2420;
+  --color-text-secondary: #5A4A42;
+  --color-text-muted:     #8C7B72;
+  --color-text-on-primary:#2C2420;
+  --color-text-on-dark:   #FDFCFB;
+  --color-text-link:      #C49A8A;
+  --color-text-link-hover:#A67D6D;
+
+
+  /* ─────────────────────────────────────────────────
+     FOCUS & INTERACTION STATES
+  ───────────────────────────────────────────────── */
+
+  --color-focus-ring:      #E8C4B8;
+  --color-focus-ring-dark: #C49A8A;
+
+
+  /* ─────────────────────────────────────────────────
+     DISABLED STATES
+     Disabled elements must be legible but clearly inactive.
+  ───────────────────────────────────────────────── */
+
+  --color-disabled-bg:     #EDE8E3;
+  --color-disabled-text:   #B0A49E;
+  --color-disabled-border: #D8D1CB;
+
+
+  /* ─────────────────────────────────────────────────
+     SUCCESS
+     Muted sage green — "clean result", not "win"
+  ───────────────────────────────────────────────── */
+
+  --color-success:            #6B8C7A;
+  --color-success-subtle:     #EBF2EE;
+  --color-success-foreground: #2C2420;
+  --color-success-border:     #B8D4C5;
+
+
+  /* ─────────────────────────────────────────────────
+     WARNING
+     Warm amber — considered, not alarming
+  ───────────────────────────────────────────────── */
+
+  --color-warning:            #C4956A;
+  --color-warning-subtle:     #F6EDE1;
+  --color-warning-foreground: #2C2420;
+  --color-warning-border:     #E8C9A0;
+
+
+  /* ─────────────────────────────────────────────────
+     DANGER
+     Dusty rose-red — brand-coherent, not fire-engine
+  ───────────────────────────────────────────────── */
+
+  --color-danger:            #B5625A;
+  --color-danger-subtle:     #F5E6E5;
+  --color-danger-foreground: #FDFCFB;
+  --color-danger-border:     #DCA8A4;
+
+
+  /* ─────────────────────────────────────────────────
+     INFO
+     Desaturated powder blue — the "lab" in the brand
+  ───────────────────────────────────────────────── */
+
+  --color-info:            #7FA8B8;
+  --color-info-subtle:     #E8F0F5;
+  --color-info-foreground: #2C2420;
+  --color-info-border:     #B8D4E2;
+
+}

@@ -1,2 +1,41 @@
+/* Entry point — this is the ONLY css file referenced in nuxt.config.ts */
+
 @import "tailwindcss";
-@import "@nuxt/ui";
+
+/* Design tokens — import order matters */
+@import "./tokens/colors.css";
+/* @import "./tokens/typography.css";
+@import "./tokens/radius.css";
+@import "./tokens/shadows.css";
+@import "./tokens/animations.css"; */
+
+/* Global base styles */
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-text-primary);
+    font-family: var(--font-body);
+  }
+
+  /* Focus ring — global keyboard navigation standard */
+  :focus-visible {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+
+  /* Remove default focus for mouse users */
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+}
