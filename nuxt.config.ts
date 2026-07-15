@@ -14,5 +14,13 @@ export default defineNuxtConfig({
   modules: [
     '@pinia/nuxt',
     '@nuxt/ui',
-  ]
+  ],
+  app: {
+    head: {
+      title: 'Shop Front',
+      link: [
+        { rel: 'stylesheet', href: 'https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css' }
+      ]
+    }
+  }
 })

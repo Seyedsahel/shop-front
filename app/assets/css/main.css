@@ -4,10 +4,10 @@
 
 /* Design tokens — import order matters */
 @import "./tokens/colors.css";
-/* @import "./tokens/typography.css";
-@import "./tokens/radius.css";
+@import "./tokens/base.css";
+/* @import "./tokens/radius.css";
 @import "./tokens/shadows.css";
-@import "./tokens/animations.css"; */
+@import "./tokens/animations.css";  */
 
 /* Global base styles */
 @layer base {
