@@ -48,12 +48,12 @@
      Usage: secondary buttons, ghost buttons, cancel actions
   ───────────────────────────────────────────────── */
 
-  --color-secondary:            #8C7B72;
+  --color-secondary:            #516355;
   --color-secondary-hover:      #7A6A62;
   --color-secondary-active:     #6B5C54;
   --color-secondary-subtle:     #F0EBE8;
   --color-secondary-foreground: #FDFCFB;
-
+/* #8C7B72 */
 
   /* ─────────────────────────────────────────────────
      ACCENT — Decorative, never interactive
@@ -96,7 +96,7 @@
   --color-text-secondary: #5A4A42;
   --color-text-muted:     #8C7B72;
   --color-text-on-primary:#2C2420;
-  --color-text-on-dark:   #FDFCFB;
+  --color-text-on-dark:   #dedddc;
   --color-text-link:      #C49A8A;
   --color-text-link-hover:#A67D6D;
 
@@ -149,7 +149,7 @@
   --color-danger:            #B5625A;
   --color-danger-subtle:     #F5E6E5;
   --color-danger-foreground: #FDFCFB;
-  --color-danger-border:     #DCA8A4;
+  --color-danger-border:     #be4432;
 
 
   /* ─────────────────────────────────────────────────
