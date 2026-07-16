@@ -54,7 +54,7 @@ const mobileOpen = ref(false);
 
         <!-- Hamburger — mobile only -->
         <UButton
-          class="md:hidden mt-1"
+          class="md:hidden mt-2 text-text-secondary hover:text-text-primary transition-colors"
           variant="ghost"
           size="lg"
           :icon="
