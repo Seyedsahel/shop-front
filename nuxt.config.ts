@@ -22,5 +22,9 @@ export default defineNuxtConfig({
         { rel: 'stylesheet', href: 'https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css' }
       ]
     }
+  },
+  runtimeConfig: {
+    backendUrl: '',
+    backendApiKey: '',
   }
 })
