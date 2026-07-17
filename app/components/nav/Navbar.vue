@@ -36,7 +36,7 @@ const mobileOpen = ref(false);
 
       <div class="flex items-center gap-4">
         <NuxtLink
-          to="/login"
+          to="/auth"
           class="flex items-center gap-1 text-sm text-text-secondary hover:text-text-primary transition-colors"
         >
           <span class="hidden sm:inline">ورود</span>
