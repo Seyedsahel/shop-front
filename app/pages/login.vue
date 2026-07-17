@@ -23,7 +23,7 @@ const handleLogin = () => {
 </script>
 
 <template>
-  <div class="flex flex-col justify-center items-center min-h-screen px-4">
+  <div class="flex flex-col justify-center items-center min-h-[calc(100vh-var(--spacing-navbar))] px-4">
     <div class="w-full max-w-sm sm:max-w-md px-6 sm:px-16 py-8 border border-border-strong rounded-2xl shadow-md">
       <NuxtLink to="/">
         <UIcon name="solar:arrow-right-broken" class="size-6 text-accent-foreground" />
