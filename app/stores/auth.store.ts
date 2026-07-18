@@ -1,4 +1,3 @@
-// stores/auth.store.ts
 type AuthStep = 'phone' | 'otp'
 
 export const useAuthStore = defineStore('auth', {
@@ -7,6 +6,8 @@ export const useAuthStore = defineStore('auth', {
     phone: '',
     isLoading: false,
     error: '' as string,
+    isAuthenticated: false,
+    user: null as User | null,
   }),
 
   actions: {
@@ -33,6 +34,7 @@ export const useAuthStore = defineStore('auth', {
           method: 'POST',
           body: { phone: this.phone, code }
         })
+        await this.fetchSession()
         // cookie is already set by the server response — nothing to store here
       } catch (e: any) {
         this.error = e.data?.message ?? 'کد وارد شده صحیح نیست.'
@@ -42,10 +44,14 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-
     goBackToPhone() {
       this.step = 'phone'
       this.error = ''
-    }
+    },
+    async fetchSession(){
+      const res = await $fetch<{ isAuthenticated: boolean, user?: User }>('/api/auth/me')
+      this.isAuthenticated = res.isAuthenticated
+      this.user = res.user ?? null
+    },
   }
 })

@@ -15,3 +15,9 @@ export interface VerifyOtpResponse {
 export interface BackendOtpVerifyResponse {
   token: string
 }
+
+export interface User {
+  id: string
+  name: string
+  phone: string
+}

@@ -2,12 +2,14 @@
 import MobileMenu from '~/components/nav/MobileMenu.vue'
 const navLinks = [
   { label: "خانه", href: "/" },
-  { label: "دریافت نوبت", href: "/booking" },
+  { label: "دریافت نوبت", href: "/" },
   { label: "مشاوره", href: "/consultation" },
-  { label: "محصولات", href: "/products" },
+  { label: "محصولات", href: "/" },
 ];
 
 const mobileOpen = ref(false);
+const authStore = useAuthStore()
+
 </script>
 
 <template>
@@ -36,6 +38,15 @@ const mobileOpen = ref(false);
 
       <div class="flex items-center gap-4">
         <NuxtLink
+          v-if="authStore.isAuthenticated"
+          to="/profile"
+          class="flex items-center gap-1 text-sm text-text-secondary hover:text-text-primary transition-colors"
+        >
+          <span class="hidden sm:inline">پروفایل</span>
+          <UIcon name="solar:user-rounded-broken" class="size-5" />
+        </NuxtLink>
+        <NuxtLink
+          v-else
           to="/auth"
           class="flex items-center gap-1 text-sm text-text-secondary hover:text-text-primary transition-colors"
         >
