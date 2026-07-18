@@ -18,6 +18,11 @@ export interface BackendOtpVerifyResponse {
 
 export interface User {
   id: string
-  name: string
+  name?: string
   phone: string
+}
+
+export interface SessionResponse {
+  isAuthenticated: boolean
+  user?: User
 }

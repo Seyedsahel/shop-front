@@ -1,11 +1,9 @@
-// server/api/auth/me.get.ts
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event): Promise<SessionResponse> => {
   const token = getCookie(event, 'auth_token')
   if (!token) return { isAuthenticated: false }
 
-  const config = useRuntimeConfig()
   try {
-    const user = await $fetch(`${config.backendUrl}/auth/me`, {
+    const user = await backendFetch<User>('/auth/me', {
       headers: { Authorization: `Bearer ${token}` }
     })
     return { isAuthenticated: true, user }
