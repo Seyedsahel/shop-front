@@ -18,7 +18,7 @@ defineExpose({ validate })
 
 <template>
   <div class="flex flex-col items-center gap-3 w-full">
-    <label for="phoneNumber" class="text-sm text-text-secondary self-start">
+    <label for="phoneNumber" class="text-sm text-text-secondary mb-3">
       لطفا شماره تلفن خود را وارد کنید.
     </label>
     <div class="border rounded-xl w-full py-2 px-4 transition-colors"

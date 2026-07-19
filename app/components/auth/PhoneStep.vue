@@ -14,6 +14,9 @@ const submit = async () => {
 
 <template>
   <div class="flex flex-col items-center gap-8">
+    <NuxtLink to="/" class="self-start">
+      <UIcon name="solar:arrow-right-broken" class="size-6 text-accent-foreground" />
+    </NuxtLink>
     <h1 class="text-text-primary text-lg sm:text-xl font-semibold">ثبت نام یا ورود</h1>
     <form class="w-full" @submit.prevent="submit" novalidate>
       <div class="flex flex-col items-center gap-3 w-full">
