@@ -1,7 +1,6 @@
 import {storyService} from "~/services/story.service"
 export const useStoryStore = defineStore('story', {
   state: () => ({
-    adminAvatarUrl: '',
     items: [] as StoryItem[],
     isLoading: false,
     seenIds: new Set<string>(),
@@ -11,7 +10,6 @@ export const useStoryStore = defineStore('story', {
       this.isLoading = true
       try {
         const res = await storyService.getStories()
-        this.adminAvatarUrl = res.adminAvatarUrl
         this.items = res.items
         this.loadSeenFromStorage()
       } finally {

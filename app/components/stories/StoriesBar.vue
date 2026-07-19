@@ -18,7 +18,7 @@ onMounted(() => {
         v-for="item in storyStore.items"
         :key="item.id"
         :item="item"
-        :avatar-url="storyStore.adminAvatarUrl"
+        :thumbnail-url="item.thumbnailUrl"
       />
     </div>
   </section>
