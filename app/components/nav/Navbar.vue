@@ -2,9 +2,9 @@
 import MobileMenu from '~/components/nav/MobileMenu.vue'
 const navLinks = [
   { label: "خانه", href: "/" },
-  { label: "دریافت نوبت", href: "/" },
+  { label: "دریافت نوبت", href: "/consultation" },
   { label: "مشاوره", href: "/consultation" },
-  { label: "محصولات", href: "/" },
+  { label: "محصولات", href: "/consultation" },
 ];
 
 const mobileOpen = ref(false);
@@ -20,7 +20,7 @@ const authStore = useAuthStore()
       class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between"
     >
       <NuxtLink to="/" class="text-text-primary font-semibold tracking-wide">
-        Fateme Beauty Lab
+        SHOP LOGO
       </NuxtLink>
 
       <!-- Desktop links -->
