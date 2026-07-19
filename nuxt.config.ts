@@ -26,5 +26,6 @@ export default defineNuxtConfig({
   runtimeConfig: {
     backendUrl: '',
     backendApiKey: '',
+    useMockData: true,
   }
 })
