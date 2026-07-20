@@ -1,34 +1,38 @@
-import {storyService} from "~/services/story.service"
-export const useStoryStore = defineStore('story', {
-  state: () => ({
-    items: [] as StoryItem[],
-    isLoading: false,
-    seenIds: new Set<string>(),
-  }),
-  actions: {
-    async fetchStories() {
-      this.isLoading = true
-      try {
-        const res = await storyService.getStories()
-        this.items = res.items
-        this.loadSeenFromStorage()
-      } finally {
-        this.isLoading = false
-      }
-    },
+export const useStoryStore = defineStore('story', () => {
+  const items = ref<StoryItem[]>([])
+  const isLoading = ref(false)
+  const seenIds = ref<Set<string>>(new Set())
 
-    loadSeenFromStorage() {
+  async function fetchStories() {
+    isLoading.value = true
+    try {
+      const res = await useApi().get<StoriesResponse>('/engagement/stories')
+      items.value = res.items
+      loadSeenFromStorage()
+    } catch (e) {
+      useAppToast().error(e instanceof ApiError ? e.message : 'خطا در دریافت استوری‌ها.')
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  function loadSeenFromStorage() {
+    if (import.meta.client) {
       const raw = localStorage.getItem('seen_stories')
-      this.seenIds = raw ? new Set(JSON.parse(raw)) : new Set()
-    },
+      seenIds.value = raw ? new Set(JSON.parse(raw)) : new Set()
+    }
+  }
 
-    markSeen(id: string) {
-      this.seenIds.add(id)
-      localStorage.setItem('seen_stories', JSON.stringify([...this.seenIds]))
-    },
+  function markSeen(id: string) {
+    seenIds.value.add(id)
+    if (import.meta.client) {
+      localStorage.setItem('seen_stories', JSON.stringify([...seenIds.value]))
+    }
+  }
 
-    isSeen(id: string) {
-      return this.seenIds.has(id)
-    },
-  },
+  function isSeen(id: string) {
+    return seenIds.value.has(id)
+  }
+
+  return { items, isLoading, seenIds, fetchStories, loadSeenFromStorage, markSeen, isSeen }
 })
