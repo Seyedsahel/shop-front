@@ -1,3 +1,5 @@
+// Loading -> API -> State -> Toast -> Loading=false
+
 export const useStoryStore = defineStore('story', () => {
   const items = ref<StoryItem[]>([])
   const isLoading = ref(false)

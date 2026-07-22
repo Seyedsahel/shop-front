@@ -13,7 +13,8 @@ const model = defineModel<string>({ required: true })
 const error = defineModel<string>('error', { default: '' })
 
 function runValidation() {
-  if (props.validate) error.value = props.validate(model.value)
+  if (props.validate)
+    error.value = props.validate(model.value)
 }
 
 defineExpose({ validate: runValidation })
