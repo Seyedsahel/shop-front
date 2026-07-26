@@ -14,7 +14,7 @@ function addToCart() {
 </script>
 
 <template>
-  <div class="flex flex-col rounded-2xl border border-border-strong bg-surface overflow-hidden">
+  <div class="flex h-full flex-col rounded-2xl border border-border-strong bg-surface overflow-hidden">
     <NuxtLink :to="`/products/${product.slug}`" class="relative block aspect-square bg-surface-hover">
       <img :src="product.imageUrl" :alt="product.name" class="size-full object-cover" />
 
@@ -26,7 +26,7 @@ function addToCart() {
       </UiBadge>
     </NuxtLink>
 
-    <div class="flex flex-col gap-2 p-3">
+    <div class="flex flex-1 flex-col gap-2 p-3">
       <NuxtLink :to="`/products/${product.slug}`" class="text-sm text-text-primary line-clamp-2">
         {{ product.name }}
       </NuxtLink>
@@ -41,8 +41,8 @@ function addToCart() {
       </div>
 
       <UButton
-        size="sm"
-        class="bg-secondary hover:bg-secondary/80 text-text-on-dark rounded-lg mt-1"
+        size="lg"
+        class="mt-auto bg-secondary hover:bg-secondary/80 text-text-on-dark rounded-lg"
         :disabled="!product.inStock || cartStore.isAdding"
         @click="addToCart"
       >

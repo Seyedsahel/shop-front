@@ -7,7 +7,7 @@ defineProps<{ variant?: 'accent' | 'danger' }>()
     class="text-xs font-medium px-2 py-0.5 rounded-full"
     :class="variant === 'danger'
       ? 'bg-danger-subtle text-danger-foreground'
-      : 'bg-accent-subtle text-accent-foreground'"
+      : 'bg-danger text-danger-foreground'"
   >
     <slot />
   </span>

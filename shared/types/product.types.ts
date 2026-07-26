@@ -13,3 +13,7 @@ export interface AddCartItemPayload {
   productId: string
   quantity: number
 }
+
+export interface ProductsResponse {
+    items: Product[]
+}

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import StoriesBar from '~/components/stories/StoriesBar.vue';
+import ProductGrid from '~/components/product/ProductGrid.vue';
 
 
 </script>
@@ -7,6 +8,7 @@ import StoriesBar from '~/components/stories/StoriesBar.vue';
 <template>
     <StoriesBar />
     <HomeHeroSection />
+    <ProductGrid category="home-product" title="محصولات ویژه" />
     <h1 class="text-3xl font-bold underline">
         Hello world!
     </h1>
