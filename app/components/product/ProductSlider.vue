@@ -38,7 +38,7 @@ function scrollByCard(direction: 1 | -1) {
       class="flex gap-4 overflow-x-auto snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] scrollbar-none"
     >
       <template v-if="productStore.isLoading">
-        <div v-for="n in 5" :key="n" class="w-40 sm:w-44 shrink-0 aspect-square rounded-2xl bg-surface-hover animate-pulse" />
+        <div v-for="n in 5" :key="n" class="w-40 bg-loading sm:w-44 shrink-0 aspect-square rounded-2xl bg-surface-hover animate-pulse" />
       </template>
 
       <div v-else v-for="product in products" :key="product.id" class="w-40 sm:w-44 shrink-0 snap-start">

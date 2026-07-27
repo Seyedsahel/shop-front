@@ -66,7 +66,7 @@ const clipStyle = computed(() =>
         :style="clipStyle"
       >
         <template v-if="productStore.isLoading">
-          <div v-for="n in 8" :key="n" class="aspect-square rounded-2xl bg-surface-hover animate-pulse" />
+          <div v-for="n in 8" :key="n" class="aspect-square bg-loading rounded-2xl bg-surface-hover animate-pulse" />
         </template>
 
         <ProductCard
