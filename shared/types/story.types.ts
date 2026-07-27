@@ -3,7 +3,7 @@ export interface StoryItem {
   title: string,
   thumbnailUrl: string,
   mediaUrl: string
-  createdAt: string
+  createdAt: number
 }
 
 export interface StoriesResponse {

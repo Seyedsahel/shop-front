@@ -6,6 +6,7 @@ export interface Product {
   category : string
   price: number
   compareAtPrice?: number
+  quantity : number
   inStock: boolean
 }
 
