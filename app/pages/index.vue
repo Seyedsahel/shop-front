@@ -10,6 +10,8 @@ import ProductGrid from '~/components/product/ProductGrid.vue';
     <HomeHeroSection />
     <ProductGrid category="home-product" title="محصولات ویژه" variant="compact" />
     <ProductSlider category="home-product" title="محصولات ویژه" variant="compact"  />
+    <BannerSlider />
+    <BannerDuoBanner />
     <h1 class="text-3xl font-bold underline">
         Hello world!
     </h1>
