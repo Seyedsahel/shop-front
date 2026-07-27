@@ -1,5 +1,9 @@
 <script setup lang="ts">
-const props = defineProps<{ category: string; title?: string }>()
+const props = defineProps<{ 
+  category: string;
+  title?: string
+  variant?: 'default' | 'compact'
+}>()
 const productStore = useProductStore()
 
 onMounted(() => {
@@ -22,7 +26,13 @@ const products = computed(() => productStore.byCategory[props.category] ?? [])
         <div v-for="n in 8" :key="n" class="aspect-square rounded-2xl bg-surface-hover animate-pulse" />
       </template>
 
-      <ProductCard v-else v-for="product in products" :key="product.id" :product="product" class="h-full" />
+      <ProductCard
+       v-else
+        v-for="product in products"
+         :key="product.id"
+          :product="product"
+          :variant="variant"
+           class="h-full" />
     </div>
   </section>
 </template>

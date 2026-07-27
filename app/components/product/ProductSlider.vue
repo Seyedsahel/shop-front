@@ -1,5 +1,9 @@
 <script setup lang="ts">
-const props = defineProps<{ category: string; title?: string }>()
+const props = defineProps<{ 
+  category: string;
+  title?: string
+  variant?: 'default' | 'compact'
+   }>()
 const productStore = useProductStore()
 
 onMounted(() => {
@@ -38,7 +42,10 @@ function scrollByCard(direction: 1 | -1) {
       </template>
 
       <div v-else v-for="product in products" :key="product.id" class="w-40 sm:w-44 shrink-0 snap-start">
-        <ProductCard :product="product" />
+        <ProductCard
+         :product="product"
+         :variant="variant"
+          />
       </div>
     </div>
     <button

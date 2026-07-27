@@ -8,8 +8,8 @@ import ProductGrid from '~/components/product/ProductGrid.vue';
 <template>
     <StoriesBar />
     <HomeHeroSection />
-    <ProductGrid category="home-product" title="محصولات ویژه" />
-    <ProductSlider category="home-product" title="محصولات ویژه" />
+    <ProductGrid category="home-product" title="محصولات ویژه" variant="compact" />
+    <ProductSlider category="home-product" title="محصولات ویژه" variant="compact"  />
     <h1 class="text-3xl font-bold underline">
         Hello world!
     </h1>

@@ -1,5 +1,9 @@
 <script setup lang="ts">
-const props = defineProps<{ product: Product }>()
+const props = defineProps<{ 
+  product: Product
+  variant?: 'default' | 'compact'
+ }>()
+
 const cartStore = useCartStore()
 
 const discountPercent = computed(() => {
@@ -41,6 +45,7 @@ function addToCart() {
       </div>
 
       <UButton
+        v-if="variant !== 'compact'"
         size="lg"
         class="mt-auto bg-secondary hover:bg-secondary/80 text-text-on-dark rounded-lg"
         :disabled="!product.inStock || cartStore.isAdding"
