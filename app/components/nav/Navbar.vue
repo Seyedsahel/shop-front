@@ -5,6 +5,7 @@ const navLinks = [
   { label: "دریافت نوبت", href: "/consultation" },
   { label: "مشاوره", href: "/consultation" },
   { label: "محصولات", href: "/consultation" },
+  { label: "وبلاگ", href: "/consultation" },
 ];
 
 const mobileOpen = ref(false);
