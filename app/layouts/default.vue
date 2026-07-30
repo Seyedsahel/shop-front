@@ -1,4 +1,5 @@
 <script setup lang="ts">
+
     useHead({
     htmlAttrs: { dir: 'rtl', lang: 'fa' }
     })
@@ -8,5 +9,7 @@
   <div>
     <NavNavbar />
     <slot />
+    <ConsultationFab/>
+  
   </div>
 </template>
