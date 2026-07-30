@@ -4,7 +4,7 @@ onMounted(() => bannerStore.fetchBanners())
 </script>
 
 <template>
-  <section class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+  <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
     <div class="flex flex-col sm:flex-row gap-4">
       <template v-if="bannerStore.isLoading">
         <div v-for="n in 2" :key="n" class="flex-1 bg-loading aspect-16/10 sm:aspect-4/2 rounded-2xl bg-surface-hover animate-pulse" />

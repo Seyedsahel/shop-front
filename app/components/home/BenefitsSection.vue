@@ -10,7 +10,7 @@ const benefits = [
 </script>
 
 <template>
-  <section class="max-w-dvw mx-auto px-4 sm:px-6 lg:px-16 py-10 border border-divider bg-surface rounded-2xl">
+  <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 border border-divider bg-surface rounded-2xl">
     <div class="flex justify-center items-center mb-7">
         <h2 class="text-lg sm:text-xl font-semibold text-accent-foreground text-end">
           چرا مارا انتخاب کنید؟

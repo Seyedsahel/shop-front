@@ -6,7 +6,7 @@ const posts = computed(() => blogStore.items.slice(0, 3))
 </script>
 
 <template>
-  <section class="max-w-dvw mx-auto px-4 sm:px-6 lg:px-32 py-10">
+  <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
     <div class="flex justify-center items-center mb-7">
         <h2 class="text-lg sm:text-xl font-semibold text-text-primary mb-6">از وبلاگ ما</h2>
     </div>
