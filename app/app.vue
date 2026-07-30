@@ -5,8 +5,8 @@ import { Toaster } from 'vue-sonner'
   <div>
     <NuxtRouteAnnouncer />
     <NuxtLayout>
+      <NuxtPage />
     </NuxtLayout>
-    <NuxtPage />
     <Toaster rich-colors position="top-left" dir="rtl" />
     
   </div>

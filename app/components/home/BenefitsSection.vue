@@ -19,7 +19,7 @@ const benefits = [
 
     <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">
     
-      <div v-for="item in benefits" class="flex items-center border border-accent bg-secondary-active text-text-on-dark hover: rounded-2xl py-6 px-8 gap-4">
+      <div v-for="item in benefits" class="flex items-center border border-accent bg-secondary-active text-text-on-dark transition-transform duration-300 hover:scale-105 rounded-2xl py-6 px-8 gap-4">
           <UIcon :name="item.icon" class="sm:size-12 size-7" />
         <div class="gap-1 flex flex-col justify-center">
             <span class="text-lg">{{ item.label }}</span>

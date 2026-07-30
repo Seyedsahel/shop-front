@@ -21,9 +21,5 @@ import BenefitsSection from '~/components/home/BenefitsSection.vue';
         <ConsultationSection/>
         <BlogGrid/>
         <BenefitsSection/>
-
-        <h1 class="text-3xl font-bold underline">
-            Hello world!
-        </h1>
     </div>
 </template>
