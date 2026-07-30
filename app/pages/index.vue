@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import StoriesBar from '~/components/stories/StoriesBar.vue';
 import ProductGrid from '~/components/product/ProductGrid.vue';
+import ConsultationSection from '~/components/home/ConsultationSection.vue';
 
 
 </script>
@@ -16,6 +17,7 @@ import ProductGrid from '~/components/product/ProductGrid.vue';
         <CategoryGrid />
         <BannerSlider />
         <BannerDuoBanner />
+        <ConsultationSection/>
         <BlogGrid/>
 
         <h1 class="text-3xl font-bold underline">
