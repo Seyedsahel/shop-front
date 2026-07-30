@@ -6,15 +6,20 @@ import ProductGrid from '~/components/product/ProductGrid.vue';
 </script>
 
 <template>
-    <StoriesBar />
+    <StoriesBar/>
     <HomeHeroSection />
-    <ProductGrid category="home-product" title="محصولات ویژه" variant="compact" />
-    <ProductSlider category="home-product" title="محصولات ویژه" variant="compact"  />
-    <BrandSlider />
-    <CategoryGrid />
-    <BannerSlider />
-    <BannerDuoBanner />
-    <h1 class="text-3xl font-bold underline">
-        Hello world!
-    </h1>
+    <div class="m-10">
+
+        <ProductGrid category="home-product" title="محصولات ویژه" variant="compact" />
+        <ProductSlider category="home-product" title="محصولات ویژه" variant="compact"  />
+        <BrandSlider />
+        <CategoryGrid />
+        <BannerSlider />
+        <BannerDuoBanner />
+        <BlogGrid/>
+
+        <h1 class="text-3xl font-bold underline">
+            Hello world!
+        </h1>
+    </div>
 </template>
