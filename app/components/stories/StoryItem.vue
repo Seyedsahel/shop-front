@@ -6,7 +6,7 @@ const seen = computed(() => storyStore.isSeen(props.item.id))
 
 const open = () => {
   storyStore.markSeen(props.item.id)
-  // navigate to full-screen story viewer, e.g. navigateTo(`/stories/${props.item.id}`)
+    navigateTo(`/stories/${props.item.id}`)
 }
 </script>
 
