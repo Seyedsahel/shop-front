@@ -24,7 +24,7 @@ defineExpose({ validate: runValidation })
   <div class="flex flex-col items-center gap-3 w-full">
     <label v-if="label" class="text-sm text-text-secondary self-start">{{ label }}</label>
     <div
-      class="border rounded-xl w-full py-2 px-4 transition-colors"
+      class="border rounded-xl w-full py-2 px-4 transition-colors bg-card"
       :class="error ? 'border-danger-border' : 'border-border-strong'"
     >
       <input
