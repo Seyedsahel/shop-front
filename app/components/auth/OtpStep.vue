@@ -15,7 +15,7 @@ const submit = async () => {
   if (codeError.value) return
   try {
     await authStore.verifyOtp(code.value)
-    await navigateTo('/')
+    await navigateTo(authStore.consumeReturnTo() ?? '/')
   } catch {
     // toast already fired inside the store
   }

@@ -34,10 +34,17 @@ export const useConsultationStore = defineStore('consultation', () => {
   }
 
   async function submit() {
+    const authStore = useAuthStore()
+    if (!authStore.isAuthenticated) {
+      authStore.requireAuth('/consultation')
+      return false
+    }
+
     if (!validate()) {
       useAppToast().error('لطفا به سوالات الزامی پاسخ دهید.')
       return false
     }
+
     isSubmitting.value = true
     try {
       const payload: SubmitConsultationPayload = {

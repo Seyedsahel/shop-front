@@ -4,6 +4,7 @@ export const useAuthStore = defineStore('auth', () => {
   const isLoading = ref(false)
   const isAuthenticated = ref(false)
   const user = ref<User | null>(null)
+  const returnTo = ref<string | null>(null)
 
   async function requestOtp(value: string) {
     isLoading.value = true
@@ -55,5 +56,17 @@ export const useAuthStore = defineStore('auth', () => {
     step.value = 'phone'
   }
 
-  return { step, phone, isLoading, isAuthenticated, user, requestOtp, verifyOtp, fetchSession, logout, goBackToPhone }
+  
+  function requireAuth(path: string) {
+    returnTo.value = path
+    navigateTo('/auth')
+  }
+
+  function consumeReturnTo(): string | null {
+    const target = returnTo.value
+    returnTo.value = null
+    return target
+  }
+
+  return { step, phone, isLoading, isAuthenticated, user, requestOtp, verifyOtp, fetchSession, logout, goBackToPhone, requireAuth, consumeReturnTo }
 })
