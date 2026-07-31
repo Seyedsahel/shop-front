@@ -4,7 +4,7 @@ const searchQuery = ref('')
 <template>
      <div class="w-full pt-6 sm:px-6 lg:px-8">
         <div class="w-full">
-          <div class="flex items-center gap-2 rounded-full bg-white/30 backdrop-blur-md border border-accent/30 px-4 py-2.5 shadow-md">
+          <div class="flex items-center gap-2 rounded-full bg-white/30 backdrop-blur-md border border-accent/30 py-2.5 px-4 sm:p-4 shadow-md">
             <UIcon name="solar:magnifer-linear" class="size-5 text-text-secondary shrink-0" />
             <input
               v-model="searchQuery"

@@ -14,7 +14,7 @@
     <div class="absolute inset-0 bg-black/25 backdrop-blur-[2px]" />
 
     <!-- Content -->
-    <div class="relative z-10 mx-auto flex w-full max-w-3xl flex-col items-center px-6 text-center">
+    <div class="relative z-10 mx-auto flex w-full max-w-5xl flex-col items-center px-6 text-center">
 
       <UiSearchBar />
 
