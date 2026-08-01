@@ -6,7 +6,8 @@ const route = useRoute()
 const storyStore = useStoryStore()
 
 onMounted(async () => {
-  if (!storyStore.items.length) await storyStore.fetchStories()
+  if (!storyStore.items.length)
+   await storyStore.fetchStories()
 })
 
 const currentIndex = computed(() =>
@@ -139,9 +140,11 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
     </div>
 
     <!-- Title bar -->
-    <div class="absolute top-7 inset-x-0 z-20 flex items-center justify-between px-4">
-        <h1 class="text-pearl-white font-medium text-sm">{{ current.title }}</h1>
-      <button class="text-pearl-white" @click="navigateTo('/')">
+    <div class="absolute top-7 inset-x-0 z-20 ">
+        <h1 class="text-accent-foreground font-medium text-sm text-center">
+          {{ current.title }}
+        </h1>
+      <button class="absolute top-1/2 inset-e-4 -translate-y-1/2 text-accent-foreground" @click="navigateTo('/')">
         <UIcon name="solar:close-circle-broken" class="size-6" />
       </button>
     </div>
