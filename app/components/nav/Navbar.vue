@@ -1,15 +1,18 @@
 <script setup lang="ts">
-import MobileMenu from '~/components/nav/MobileMenu.vue'
-const navLinks = [
-  { label: "خانه", href: "/" },
-  { label: "دریافت نوبت", href: "/consultation" },
-  { label: "مشاوره", href: "/consultation" },
-  { label: "محصولات", href: "/consultation" },
-  { label: "وبلاگ", href: "/consultation" },
-];
+  import MobileMenu from '~/components/nav/MobileMenu.vue'
+  const navLinks = [
+    { label: "خانه", href: "/" },
+    { label: "دریافت نوبت", href: "/consultation" },
+    { label: "مشاوره", href: "/consultation" },
+    { label: "محصولات", href: "/consultation" },
+    { label: "وبلاگ", href: "/consultation" },
+  ];
 
-const mobileOpen = ref(false);
-const authStore = useAuthStore()
+  const mobileOpen = ref(false);
+  const authStore = useAuthStore()
+
+  const cartStore = useCartStore()
+  onMounted(()=> cartStore.fetchCart())
 
 </script>
 
@@ -56,12 +59,13 @@ const authStore = useAuthStore()
         </NuxtLink>
         <NuxtLink 
           to="/cart"
-          class="flex items-center gap-1 text-sm text-text-secondary hover:text-text-primary transition-colors">
+          class="relative flex items-center gap-1 text-sm text-text-secondary hover:text-text-primary transition-colors">
           <span
             class="hidden sm:inline "
             >سبد خرید</span
           >
           <UIcon name="solar:cart-4-outline" class="size-5" />
+           <UiCounterBadge :count="cartStore.itemCount" />
         </NuxtLink>
 
         <!-- Hamburger — mobile only -->

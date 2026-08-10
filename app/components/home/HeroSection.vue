@@ -1,4 +1,5 @@
 <script setup lang="ts">
+const cartStore = useCartStore()
 </script>
 
 <template>
@@ -29,12 +30,13 @@
         مشاوره تخصصی، همه در یک مکان.
       </p>
 
-      <NuxtLink
-        to="/"
+      <button
+      type="button"
+      @click="cartStore.addItem('test-product-1')"
         class="mt-10 rounded-full bg-secondary px-6 py-3 sm:px-10 sm:py-3 sm:text-lg font-semibold text-text-on-dark transition hover:scale-105 hover:shadow-xl"
       >
         مشاهده محصولات
-      </NuxtLink>
+    </button>
 
     </div>
   </section>

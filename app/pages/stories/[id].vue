@@ -131,7 +131,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
         class="h-1 flex-1 rounded-full bg-pearl-white/30 overflow-hidden"
       >
         <div
-          class="h-full bg-pearl-white"
+          class="h-full bg-border-strong transition-all duration-100"
           :style="{
             width: i < currentIndex ? '100%' : i === currentIndex ? `${progress * 100}%` : '0%'
           }"
