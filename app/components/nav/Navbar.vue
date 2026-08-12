@@ -2,7 +2,6 @@
   import MobileMenu from '~/components/nav/MobileMenu.vue'
   const navLinks = [
     { label: "خانه", href: "/" },
-    { label: "دریافت نوبت", href: "/consultation" },
     { label: "مشاوره", href: "/consultation" },
     { label: "محصولات", href: "/consultation" },
     { label: "وبلاگ", href: "/consultation" },
