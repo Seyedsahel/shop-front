@@ -1,9 +1,8 @@
 <script setup lang="ts">
 const navLinks = [
   { label: 'خانه', to: '/' },
-  { label: 'دریافت نوبت', to: '/booking' },
   { label: 'مشاوره', to: '/consultation' },
-  { label: 'محصولات', to: '/products' },
+  { label: 'محصولات', to: '/blog' },
   { label: 'وبلاگ', to: '/blog' },
 ]
 
@@ -59,7 +58,7 @@ const scrollToTop = () => {
           rel="noopener noreferrer"
           class="flex items-center gap-2 text-xs text-text-secondary hover:text-text-primary transition-colors"
         >
-          <UIcon name="mdi:instagram" class="size-4 shrink-0" />
+          <!-- <UIcon name="mdi:instagram" class="size-4 shrink-0" /> -->
           <span>instagram id</span>
         </a>
       </div>

@@ -4,7 +4,7 @@
     { label: "خانه", href: "/" },
     { label: "مشاوره", href: "/consultation" },
     { label: "محصولات", href: "/consultation" },
-    { label: "وبلاگ", href: "/consultation" },
+    { label: "وبلاگ", href: "/blog" },
   ];
 
   const mobileOpen = ref(false);
