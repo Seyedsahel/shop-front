@@ -14,7 +14,7 @@ function submit() {
 </script>
 
 <template>
-  <form class="flex items-center gap-2 rounded-full border border-border-strong bg-surface px-4 py-2 w-full" @submit.prevent="submit">
+  <form class="flex items-center gap-2 rounded-full border border-border-strong bg-surface/60 px-4 py-2 w-full" @submit.prevent="submit">
     <UIcon name="solar:magnifer-linear" class="size-5 text-text-muted shrink-0" />
     <input
       ref="input"
