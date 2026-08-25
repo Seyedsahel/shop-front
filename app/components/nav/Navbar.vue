@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useWindowSize } from '@vueuse/core'
+
 const authStore = useAuthStore()
 const cartStore = useCartStore()
 onMounted(() => cartStore.fetchCart())
@@ -10,16 +12,24 @@ const navLinks = [
   { label: 'وبلاگ', href: '/blog' },
 ]
 
-const categoriesOpen = ref(false)
+const { width } = useWindowSize()
+const isDesktop = computed(() => width.value >= 768)
+
+const categoriesSidebarOpen = ref(false)
+const categoriesDropdownOpen = ref(false)
 const linksOpen = ref(false)
 const mobileSearchOpen = ref(false)
 
 // Desktop dropdown — closes on any click outside this wrapper (button + panel together)
 const categoriesWrapper = ref<HTMLElement>()
-useClickOutside(categoriesWrapper, () => { categoriesOpen.value = false })
+useClickOutside(categoriesWrapper, () => { categoriesDropdownOpen.value = false })
 
 function toggleCategories() {
-  categoriesOpen.value = !categoriesOpen.value
+  if (isDesktop.value) {
+    categoriesDropdownOpen.value = !categoriesDropdownOpen.value
+  } else{
+    categoriesSidebarOpen.value = true
+  }
 }
 </script>
 
@@ -37,7 +47,7 @@ function toggleCategories() {
       </div>
 
       <div class="flex items-center gap-3 shrink-0">
-        <button class="md:hidden text-text-secondary" @click="mobileSearchOpen = true">
+        <button class="md:hidden text-text-secondary mt-2" @click="mobileSearchOpen = true">
           <UIcon name="solar:magnifer-linear" class="size-5" />
         </button>
 
@@ -72,10 +82,10 @@ function toggleCategories() {
         </button>
 
         <div
-          v-if="categoriesOpen"
+          v-if="categoriesDropdownOpen"
           class="hidden md:block absolute top-full inset-s-0 mt-1 w-72 max-h-96 overflow-y-auto bg-surface border border-divider rounded-xl shadow-lg z-50"
         >
-          <NavCategoriesDropdown @close="categoriesOpen = false" />
+          <NavCategoriesDropdown @close="categoriesDropdownOpen = false" />
         </div>
       </div>
 
@@ -100,8 +110,8 @@ function toggleCategories() {
   </header>
 
   <!-- Mobile categories sidebar -->
-  <UiSidebar v-model="categoriesOpen" title="دسته‌بندی‌ها" class="md:hidden">
-    <NavCategoriesDropdown @close="categoriesOpen = false" />
+  <UiSidebar v-model="categoriesSidebarOpen" title="دسته‌بندی‌ها" class="md:hidden">
+    <NavCategoriesDropdown @close="categoriesSidebarOpen = false" />
   </UiSidebar>
 
   <!-- Mobile nav links sidebar -->
