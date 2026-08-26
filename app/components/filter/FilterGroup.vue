@@ -65,7 +65,7 @@ function toggleCheckboxOption(optionId: string) {
         type="range" :min="filter.min" :max="filter.max" :step="filter.step ?? 1"
         :value="(value as [number, number])?.[1] ?? filter.max"
         class="w-full"
-        @input="value = [filter.min, +($event.target as HTMLInputElement).value]"
+        @change="value = [filter.min, +($event.target as HTMLInputElement).value]"
       />
       <div class="flex justify-between text-xs text-text-muted">
         <span>{{ filter.min.toLocaleString('fa-IR') }}</span>

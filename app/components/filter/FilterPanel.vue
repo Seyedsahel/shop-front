@@ -20,7 +20,7 @@ defineEmits<{ apply: [] }>()
     </div>
 
     <template v-if="filterStore.isLoading">
-      <div v-for="n in 5" :key="n" class="h-12 my-2 rounded-lg bg-surface-hover animate-pulse" />
+      <div v-for="n in 5" :key="n" class="h-12 my-2 rounded-lg bg-loading animate-pulse" />
     </template>
 
     <FilterGroup v-else v-for="filter in filterStore.definitions" :key="filter.id" :filter="filter" />

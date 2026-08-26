@@ -9,6 +9,7 @@ export const mockFiltersResponse: FiltersResponse = {
       { id: 'pink', label: 'صورتی', hex: '#e78ba0' },
     ]},
     { id: 'price', label: 'محدوده قیمت', type: 'range', min: 0, max: 5000000, step: 50000 },
+    {id:'offer', label: 'پیشنهاد ویژه', type: 'toggle', description: 'کالاهای دارای تخفیف ویژه'},
     { id: 'seller-type', label: 'نوع فروشنده', type: 'radio', options: [
       { id: 'official', label: 'فروشنده رسمی' },
       { id: 'marketplace', label: 'سایر فروشندگان' },
