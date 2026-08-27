@@ -24,14 +24,20 @@ export const useFilterStore = defineStore('filter', () => {
   }
 
   function setValue(id: string, value: FilterValue) {
-    values[id] = value
-  }
+  values[id] = value
+  const productListStore = useProductListStore()
+  productListStore.setPage(1)
+  productListStore.refetch()
+}
 
-  function resetAll() {
-    for (const filter of definitions.value) {
-      values[filter.id] = filter.type === 'checkbox' ? [] : filter.type === 'toggle' ? false : null
-    }
+function resetAll() {
+  for (const filter of definitions.value) {
+    values[filter.id] = filter.type === 'checkbox' ? [] : filter.type === 'toggle' ? false : null
   }
+  const productListStore = useProductListStore()
+  productListStore.setPage(1)
+  productListStore.refetch()
+}
 
   const activeCount = computed(() =>
     Object.values(values).filter(v => v && (Array.isArray(v) ? v.length > 0 : true)).length

@@ -4,15 +4,21 @@ export const useProductListStore = defineStore('productList', () => {
   const page = ref(1)
   const pageSize = ref(12)
   const isLoading = ref(false)
+  const sort = ref('relevant')
 
-  async function fetchList(params: ProductListParams) {
+  let currentCategory: string | undefined
+  let currentBrand: string | undefined
+
+  async function refetch() {
     isLoading.value = true
     try {
+      const filterStore = useFilterStore()
       const query = new URLSearchParams()
-      query.set('category', params.category)
-      if (params.sort) query.set('sort', params.sort)
-      if (params.filters) query.set('filters', params.filters)
-      query.set('page', String(params.page ?? 1))
+      if (currentCategory) query.set('category', currentCategory)
+      if (currentBrand) query.set('brand', currentBrand)
+      query.set('sort', sort.value)
+      query.set('filters', JSON.stringify(filterStore.values))
+      query.set('page', String(page.value))
 
       const res = await useApi().get<ProductListResponse>(`/catalog/product-list?${query.toString()}`)
       items.value = res.items
@@ -26,5 +32,24 @@ export const useProductListStore = defineStore('productList', () => {
     }
   }
 
-  return { items, total, page, pageSize, isLoading, fetchList }
+  // Called once by the page, whenever category/brand changes
+  function fetchList(params: { category?: string; brand?: string }) {
+    currentCategory = params.category
+    currentBrand = params.brand
+    page.value = 1
+    refetch()
+  }
+
+  function setSort(id: string) {
+    sort.value = id
+    page.value = 1
+    refetch()
+  }
+
+  function setPage(p: number) {
+    page.value = p
+    refetch()
+  }
+
+  return { items, total, page, pageSize, isLoading, sort, fetchList, setSort, setPage, refetch }
 })

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ inheritAttrs: false })
 withDefaults(defineProps<{ title?: string; side?: 'start' | 'end' }>(), {
   side: 'start',
 })
@@ -21,7 +22,7 @@ const open = defineModel<boolean>({ required: true })
       <div
         v-if="open"
         class="fixed inset-y-0 z-101 w-72 max-w-[85vw] bg-surface shadow-xl flex flex-col"
-        :class="side === 'start' ? 'inset-s-0' : 'inset-e-0'"
+        :class="[side === 'start' ? 'inset-s-0' : 'inset-e-0',$attrs.class]"
       >
         <div class="flex items-center justify-between h-14 px-4 border-b border-divider shrink-0">
           <span v-if="title" class="text-sm font-semibold text-text-primary">{{ title }}</span>

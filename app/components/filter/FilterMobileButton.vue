@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ inheritAttrs: false })
 const filterStore = useFilterStore()
 const open = ref(false)
 </script>
@@ -7,6 +8,7 @@ const open = ref(false)
   <button
     class="lg:hidden flex items-center gap-2 w-full justify-center border border-border-strong rounded-xl py-2.5 text-sm text-text-primary"
     @click="open = true"
+    v-bind="$attrs"
   >
     <UIcon name="solar:tuning-2-broken" class="size-4" />
     فیلترها

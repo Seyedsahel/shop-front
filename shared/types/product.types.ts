@@ -8,6 +8,7 @@ export interface Product {
   compareAtPrice?: number
   quantity : number
   inStock: boolean
+  brand: string
 }
 
 export interface AddCartItemPayload {
@@ -21,7 +22,8 @@ export interface ProductsResponse {
 
 
 export interface ProductListParams {
-  category: string
+  category?: string
+  brand?: string
   sort?: string
   filters?: string   // JSON-encoded filter values, passed straight through in the query
   page?: number
