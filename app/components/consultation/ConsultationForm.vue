@@ -20,7 +20,7 @@ async function onSubmit() {
 
     <form class="flex flex-col gap-5" @submit.prevent="onSubmit" novalidate>
       <template v-if="consultationStore.isLoading">
-        <div v-for="n in 3" :key="n" class="h-12 rounded-xl bg-surface-hover animate-pulse" />
+        <div v-for="n in 3" :key="n" class="h-12 rounded-xl bg-loading animate-pulse" />
       </template>
 
       <UiInput
@@ -44,7 +44,7 @@ async function onSubmit() {
       <button
         type="submit"
         :disabled="consultationStore.isSubmitting"
-        class="w-full sm:w-auto self-start bg-secondary hover:bg-secondary/80 disabled:opacity-50 text-text-on-dark py-2 px-10 rounded-xl transition-colors"
+        class="w-full sm:w-auto self-start bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-foreground py-2 px-10 rounded-xl transition-colors"
       >
         {{ consultationStore.isSubmitting ? 'در حال ارسال...' : 'ارسال درخواست' }}
       </button>

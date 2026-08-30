@@ -14,7 +14,7 @@ async function submit() {
 </script>
 
 <template>
-  <div class="flex flex-col gap-5 border border-disabled-border rounded-2xl shadow-sm p-5">
+  <div class="flex flex-col gap-5 border border-border-strong rounded-2xl shadow-sm p-5">
     <h2 class="text-sm font-semibold text-text-primary">نظرات ({{ comments.length }})</h2>
 
     <form class="flex flex-col gap-3" @submit.prevent="submit">
@@ -22,7 +22,7 @@ async function submit() {
       <button
         type="submit"
         :disabled="commentStore.isSubmitting"
-        class="self-start bg-secondary hover:bg-secondary/80 disabled:opacity-50 text-text-on-dark py-2 px-8 rounded-xl transition-colors text-sm"
+        class="self-start bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-foreground py-2 px-8 rounded-xl transition-colors text-sm"
       >
         {{ commentStore.isSubmitting ? 'در حال ارسال...' : 'ثبت نظر' }}
       </button>

@@ -22,10 +22,10 @@ function addToCart() {
     <NuxtLink :to="`/products/${product.slug}`" class="relative block aspect-square bg-surface-hover">
       <img :src="product.imageUrl" :alt="product.name" class="size-full object-cover" />
 
-      <UiBadge v-if="discountPercent" variant="danger" class="absolute top-2 inset-s-2">
+      <UiBadge v-if="discountPercent" variant="discount" class="absolute top-2 inset-s-2">
         {{ discountPercent }}%-
       </UiBadge>
-      <UiBadge v-if="!product.inStock" class="absolute top-2 inset-e-2">
+      <UiBadge v-if="!product.inStock" variant="stock" class="absolute top-2 inset-e-2">
         ناموجود
       </UiBadge>
     </NuxtLink>
@@ -47,7 +47,7 @@ function addToCart() {
       <UButton
         v-if="variant !== 'compact'"
         size="lg"
-        class="mt-auto bg-secondary hover:bg-secondary/80 text-text-on-dark rounded-lg"
+        class="mt-auto bg-primary hover:bg-primary-hover text-primary-foreground rounded-lg"
         :disabled="!product.inStock || cartStore.isAdding"
         @click="addToCart"
       >

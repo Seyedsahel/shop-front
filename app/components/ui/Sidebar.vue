@@ -10,7 +10,7 @@ const open = defineModel<boolean>({ required: true })
 <template>
   <Teleport to="body">
     <Transition enter-active-class="transition duration-200" enter-from-class="opacity-0" leave-active-class="transition duration-150" leave-to-class="opacity-0">
-      <div v-if="open" class="fixed inset-0 z-100 bg-charcoal/50" @click="open = false" />
+      <div v-if="open" class="fixed inset-0 z-100 bg-overlay" @click="open = false" />
     </Transition>
 
     <Transition

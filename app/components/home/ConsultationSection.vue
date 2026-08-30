@@ -17,23 +17,23 @@
     <div class="relative z-10 mx-auto flex w-full max-w-3xl flex-col items-center px-6 text-center">
         
         <div class="flex flex-col items-center justify-center">
-            <UIcon name="solar:hand-heart-line-duotone" class="size-8 text-text-on-dark" />
-            <span class="text-sm sm:text-md text-text-on-dark/90">در کنار شماییم</span>
+            <UIcon name="solar:hand-heart-line-duotone" class="size-8 text-primary-foreground" />
+            <span class="text-sm sm:text-md text-primary-subtle/90">در کنار شماییم</span>
         </div>
 
-      <h1 class="mt-8 text-3xl md:text-6xl font-extrabold leading-tight text-text-on-dark">
+      <h1 class="mt-8 text-3xl md:text-6xl font-extrabold leading-tight text-primary-foreground">
         نیاز به راهنمایی دارید؟
         <br>
        مشاوره بگیرید.
       </h1>
 
-      <p class="mt-5 max-w-xl text-base leading-8 text-text-on-dark/90 md:text-lg">
+      <p class="mt-5 max-w-xl text-base leading-8 text-primary-subtle md:text-lg">
        توضیحات اختصاصی بسته به نیاز و مشکل شما توسط افراد متخصص.
       </p>
 
       <NuxtLink
         to="/"
-        class="mt-10 rounded-full bg-secondary px-6 py-3 sm:px-10 sm:py-3 sm:text-lg font-semibold text-text-on-dark transition hover:scale-105 hover:shadow-xl"
+        class="mt-10 rounded-full bg-primary px-6 py-3 sm:px-10 sm:py-3 sm:text-lg font-semibold text-primary-foreground transition hover:scale-105 hover:shadow-xl"
       >
        مشاوره
       </NuxtLink>

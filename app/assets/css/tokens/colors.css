@@ -36,11 +36,12 @@
      Usage: CTA buttons, active states, key links
   ───────────────────────────────────────────────── */
 
-  --color-primary:            #E8C4B8;
-  --color-primary-hover:      #D4A898;
-  --color-primary-active:     #C49A8A;
+  --color-primary:            #516355;
+  --color-primary-hover:      #3f4f43;
+  --color-primary-active:     #344239;
   --color-primary-subtle:     #F4EAE6;
-  --color-primary-foreground: #2C2420;
+  --color-primary-foreground: #FDFCFB;
+  --color-pearl-white:        #FDFCFB;
 
 
   /* ─────────────────────────────────────────────────
@@ -48,11 +49,11 @@
      Usage: secondary buttons, ghost buttons, cancel actions
   ───────────────────────────────────────────────── */
 
-  --color-secondary:            #516355;
-  --color-secondary-hover:      #7A6A62;
-  --color-secondary-active:     #6B5C54;
+  --color-secondary:            #E8C4B8;
+  --color-secondary-hover:      #D4A898;
+  --color-secondary-active:     #c49a8a;
   --color-secondary-subtle:     #F0EBE8;
-  --color-secondary-foreground: #FDFCFB;
+  --color-secondary-foreground: #2c2420;
 /* #8C7B72 */
 
   /* ─────────────────────────────────────────────────
@@ -61,7 +62,8 @@
      section markers — never has a hover/active state
   ───────────────────────────────────────────────── */
 
-  --color-accent:            #C49A8A;
+  --color-accent:            #a8a280;
+  --color-accent-subtle:     #b0ab92;
   --color-accent-foreground: #2C2420;
 
 
@@ -77,8 +79,14 @@
   --color-card-hover:   #FDFCFB;
   --color-overlay:      rgb(44 36 32 / 45%);
   --color-loading:      #d1cfcd;
-  --color-pearl-white: #FDFCFB;
 
+    /* ─────────────────────────────────────────────────
+    tiner
+  ───────────────────────────────────────────────── */
+
+   --color-timer-bg: var(--color-pearl-white);
+   --color-timer-text: var(--color-text-primary);
+   --color-timer-label: var(--color-text-secondary);
 
   /* ─────────────────────────────────────────────────
      BORDERS & DIVIDERS
@@ -110,6 +118,11 @@
   --color-focus-ring:      #E8C4B8;
   --color-focus-ring-dark: #C49A8A;
 
+  /* ─────────────────────────────────────────────────
+     offer — The "call to action" color for promotions
+  ───────────────────────────────────────────────── */
+   --color-offer-bg: #B5625A;           /* brand dusty-rose-red — warm, energetic */
+   --color-offer-foreground: #FDFCFB;   /* light text on it */
 
   /* ─────────────────────────────────────────────────
      DISABLED STATES

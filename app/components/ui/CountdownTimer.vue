@@ -13,9 +13,9 @@ const units = computed(() => [
 
 <template>
   <div class="flex items-center gap-2">
-    <div v-for="unit in units" :key="unit.label" class="flex flex-col items-center gap-1 bg-background/90 rounded-lg w-11 py-1.5">
-      <span class="text-sm font-bold text-charcoal tabular-nums">{{ String(unit.value).padStart(2, '0') }}</span>
-      <span class="text-[10px] text-text-secondary">{{ unit.label }}</span>
+    <div v-for="unit in units" :key="unit.label" class="flex flex-col items-center gap-1 bg-timer-bg rounded-lg w-11 py-1.5">
+      <span class="text-sm font-bold text-timer-text tabular-nums">{{ String(unit.value).padStart(2, '0') }}</span>
+      <span class="text-[10px] text-timer-label">{{ unit.label }}</span>
     </div>
   </div>
 </template>

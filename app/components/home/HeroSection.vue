@@ -33,7 +33,7 @@ const cartStore = useCartStore()
       <button
       type="button"
       @click="cartStore.addItem('test-product-1')"
-        class="mt-10 rounded-full bg-secondary px-6 py-3 sm:px-10 sm:py-3 sm:text-lg font-semibold text-text-on-dark transition hover:scale-105 hover:shadow-xl"
+        class="mt-10 rounded-full bg-primary px-6 py-3 sm:px-10 sm:py-3 sm:text-lg font-semibold text-primary-foreground transition hover:scale-105 hover:shadow-xl"
       >
         مشاهده محصولات
     </button>

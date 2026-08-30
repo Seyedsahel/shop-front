@@ -33,7 +33,7 @@ const formattedDate = computed(() =>
 
       <NuxtLink
         :to="`/blog/${post.slug}`"
-        class="mt-auto pt-5 text-sm font-medium text-accent hover:underline"
+        class="mt-auto pt-5 text-sm font-medium text-text-link hover:text-text-link-hover"
       >
         مشاهده بیشتر ←
       </NuxtLink>

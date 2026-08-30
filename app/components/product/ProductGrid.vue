@@ -66,7 +66,7 @@ const clipStyle = computed(() =>
         :style="clipStyle"
       >
         <template v-if="productStore.isLoading">
-          <div v-for="n in 8" :key="n" class="aspect-square bg-loading rounded-2xl bg-surface-hover animate-pulse" />
+          <div v-for="n in 8" :key="n" class="aspect-square bg-loading rounded-2xl animate-pulse" />
         </template>
 
         <ProductCard
@@ -84,9 +84,9 @@ const clipStyle = computed(() =>
         class="absolute inset-x-0 bottom-0 h-20 flex items-end justify-center pb-4 bg-linear-to-t from-surface via-surface/50 to-transparent backdrop-blur-sm rounded-b-md"
       >
         <UButton
-          :to="`/category/${category}`"
+          :to="`/products?category=${category}`"
           variant="soft"
-          class="bg-secondary hover:bg-secondary/80 text-text-on-dark px-6 py-2 rounded-xl"
+          class="bg-primary hover:bg-primary-hover text-primary-foreground px-6 py-2 rounded-xl"
         >
           مشاهده همه
         </UButton>

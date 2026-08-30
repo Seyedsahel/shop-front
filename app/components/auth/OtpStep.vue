@@ -25,7 +25,7 @@ const submit = async () => {
 <template>
   <div class="flex flex-col items-center gap-8">
     <button type="button" @click="authStore.goBackToPhone" class="self-start">
-      <UIcon name="solar:arrow-right-broken" class="size-6 text-accent-foreground" />
+      <UIcon name="solar:arrow-right-broken" class="size-6 text-text-primary" />
     </button>
     <h1 class="text-text-primary text-lg sm:text-xl font-semibold">کد تایید را وارد کنید</h1>
     <p class="text-sm text-text-secondary">کد به شماره {{ authStore.phone }} ارسال شد.</p>
@@ -42,7 +42,7 @@ const submit = async () => {
           :validate="validateCode"
         />
         <button type="submit" :disabled="authStore.isLoading"
-          class="w-full sm:w-auto bg-secondary hover:bg-secondary/80 disabled:opacity-50 border border-divider text-text-on-dark py-2 px-10 sm:px-20 rounded-xl transition-colors mt-2">
+          class="w-full sm:w-auto bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-foreground py-2 px-10 sm:px-20 rounded-xl transition-colors mt-2">
           {{ authStore.isLoading ? 'در حال بررسی...' : 'تایید' }}
         </button>
       </div>
