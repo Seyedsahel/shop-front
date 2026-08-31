@@ -30,7 +30,7 @@ const open = ref(false)
           <FilterPanel />
         </div>
         <div class="border-t border-divider p-4 shrink-0">
-          <button class="w-full bg-secondary hover:bg-secondary/80 text-text-on-dark py-2.5 rounded-xl text-sm font-medium" @click="open = false">
+          <button class="w-full bg-primary hover:bg-primary-hover text-primary-foreground py-2.5 rounded-xl text-sm font-medium" @click="open = false">
             اعمال فیلتر
           </button>
         </div>
