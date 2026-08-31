@@ -11,9 +11,15 @@
         </span>
         </div>
       <div class="font-light text-sm lg:text-lg text-accent">به دنبال محصولاتی با کیفیت از دل طبیعت هستید؟ ما در تلاشیم آنهارا به دست شما برسانیم</div>
-      <div class="flex flex-col sm:flex-row gap-4">
-        <button class="min-w-28 lg:w-40 text-sm sm:text-base px-1.5 py-1.5 rounded-2xl  bg-primary text-primary-foreground hover:bg-primary-hover">مشاهده محصولات</button>
-        <button class="min-w-28 lg:w-40 text-sm sm:text-base px-3.5 py-1.5 rounded-2xl  bg-secondary text-secondary-foreground hover:bg-secondary-hover">دریافت مشاوره </button>
+      <div class="flex flex-col sm:flex-row gap-4 text-center text-sm sm:text-base ">
+        <NuxtLink class="min-w-28 lg:w-50 px-1.5 py-2 rounded-xl  bg-primary text-primary-foreground hover:bg-primary-hover" 
+        to="/products">
+          مشاهده محصولات
+        </NuxtLink>
+        <NuxtLink class="min-w-28 lg:w-50 px-3.5 py-2 rounded-xl  bg-secondary text-secondary-foreground hover:bg-secondary-hover" 
+        to="/consultation">
+          دریافت مشاوره
+        </NuxtLink>
       </div>
     </div>
     <!-- pictures -->
@@ -62,7 +68,7 @@
     </div>
 
     <div
-      class="h-60 w-62.5 overflow-hidden rounded-full"
+      class="h-70 w-62.5 overflow-hidden rounded-full"
     >
       <img
         src="https://cdn.shopify.com/s/files/1/0513/2409/files/minimalskincare.jpg?v=1695229112"
