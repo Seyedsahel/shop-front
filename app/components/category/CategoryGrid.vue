@@ -22,7 +22,7 @@ onMounted(() => categoryStore.fetchCategories())
         v-else
         v-for="category in categoryStore.items"
         :key="category.id"
-        :to="`/category/${category.slug}`"
+        :to="`/products?category=${category.slug}`"
         class="flex flex-col items-center gap-2 group"
       >
         <div class="size-20 md:size-28 bg-accent rounded-full bg-surface-hover overflow-hidden flex items-center justify-center transition-transform group-hover:scale-105">

@@ -25,6 +25,18 @@ export const useProductListStore = defineStore('productList', () => {
       total.value = res.total
       page.value = res.page
       pageSize.value = res.pageSize
+    // Reflect current state in the URL — visibility + shareable link,
+    // but nothing reads this back on mount, so no watcher loop.
+    const router = useRouter()
+    router.replace({
+      query:{
+        category: currentCategory,
+        brand: currentBrand,
+        sort: sort.value,
+        filters: JSON.stringify(useFilterStore().values),
+        page: String(page.value)
+      }
+    })
     } catch (e) {
       useAppToast().error(e instanceof ApiError ? e.message : 'خطا در دریافت محصولات.')
     } finally {
@@ -33,10 +45,10 @@ export const useProductListStore = defineStore('productList', () => {
   }
 
   // Called once by the page, whenever category/brand changes
-  function fetchList(params: { category?: string; brand?: string }) {
+  function fetchList(params: { category?: string; brand?: string; page?: number }) {
     currentCategory = params.category
     currentBrand = params.brand
-    page.value = 1
+    page.value = params.page ?? 1
     refetch()
   }
 

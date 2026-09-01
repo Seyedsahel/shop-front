@@ -18,3 +18,21 @@ export function buildCategoryTree(items: ProductCategory[]): CategoryTreeNode[] 
 
   return roots
 }
+
+export function getCategoryPath(items: ProductCategory[], slug: string): ProductCategory[] {
+  const bySlug = items.find(c => c.slug === slug)
+  if (!bySlug) return []
+
+  const byId = new Map(items.map(c => [c.id, c]))
+  const path: ProductCategory[] = [bySlug]
+
+  let current = bySlug
+  while (current.parentId) {
+    const parent = byId.get(current.parentId)
+    if (!parent) break
+    path.unshift(parent)
+    current = parent
+  }
+
+  return path
+}

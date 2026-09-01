@@ -2,19 +2,42 @@
 const route = useRoute()
 const filterStore = useFilterStore()
 const productListStore = useProductListStore()
+const categoryStore = useCategoryStore()
+const brandStore = useBrandStore()
 
-onMounted(() => filterStore.fetchFilters())
+onMounted(async () => {
+  categoryStore.fetchCategories()
+  brandStore.fetchBrands()
 
-watch(() => [route.query.category, route.query.brand], () => {
+  await filterStore.fetchFilters()
+  if (route.query.filters){
+    try{
+      const restored = JSON.parse(route.query.filters as string)
+      Object.assign(filterStore.values, restored)
+    } catch{
+      // malformed query, ignore and fall back to defaults
+    }
+  }
+  if (route.query.sort) {
+    productListStore.sort = route.query.sort as string
+  }
   productListStore.fetchList({
     category: route.query.category as string | undefined,
     brand: route.query.brand as string | undefined,
+    page: route.query.page ? Number(route.query.page) : 1
   })
-}, { immediate: true })
+})
 
 const pageTitle = computed(() => {
-  if (route.query.category) return `دسته‌بندی: ${route.query.category}`
-  if (route.query.brand) return `برند: ${route.query.brand}`
+  if (route.query.category) {
+    const path = getCategoryPath(categoryStore.items, route.query.category as string)
+    if (path.length) return path.map(c => c.name).join(' / ')
+    return route.query.category as string // fallback while categories are still loading
+  }
+  if (route.query.brand) {
+    const brand = brandStore.items.find(b => b.id === route.query.brand)
+    return brand ? `برند: ${brand.name}` : 'برند'
+  }
   return 'همه محصولات'
 })
 </script>
