@@ -25,7 +25,7 @@ export default defineNuxtConfig({
     }
   },
   runtimeConfig: {
-    backendUrl: '',
+    backendUrl: 'http://78.39.57.118',
     backendApiKey: '',
     useMockData: true,
   }

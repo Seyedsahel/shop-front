@@ -1,8 +1,10 @@
 export interface ProductCategory {
   id: string
-  slug: string
+  parentId: string
   name: string
-  iconUrl: string
+  slug: string
+  createdAt: number 
+  updatedAt: number 
 }
 export interface CategoriesResponse {
   items: ProductCategory[]

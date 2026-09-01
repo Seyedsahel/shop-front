@@ -1,8 +1,8 @@
 <script setup lang="ts">
 const categoryStore = useCategoryStore()
 onMounted(() => categoryStore.fetchCategories())
-
-defineEmits<{ close: [] }>()
+const emit = defineEmits<{ close: [] }>() 
+const tree = computed(()=> buildCategoryTree(categoryStore.items))
 </script>
 
 <template>
@@ -10,17 +10,14 @@ defineEmits<{ close: [] }>()
     <template v-if="categoryStore.isLoading">
       <div v-for="n in 6" :key="n" class="h-10 mx-2 my-1 rounded-lg bg-loading animate-pulse" />
     </template>
-
-    <NuxtLink
+     <NavCategoryTreeItem
+     class="px-4"
       v-else
-      v-for="category in categoryStore.items"
-      :key="category.id"
-      :to="`/category/${category.slug}`"
-      class="flex items-center justify-between px-4 py-3 text-sm text-text-secondary hover:text-text-primary hover:bg-surface transition-colors"
-      @click="$emit('close')"
-    >
-      {{ category.name }}
-      <UIcon name="solar:alt-arrow-left-linear" class="size-4 text-text-muted" />
-    </NuxtLink>
+      v-for="root in tree"
+      :key="root.id"
+      :node="root"
+      @close="emit('close')"
+    />
+
   </div>
 </template>

@@ -6,7 +6,7 @@ const open = ref(false)
 <template>
   <div class="border-b border-divider">
     <button class="w-full flex items-center justify-between py-3.5" @click="open = !open">
-      <span class="flex items-center gap-2 text-sm font-medium text-text-primary">
+      <span class="flex items-center gap-2 text-sm font-medium text-text-secondary">
         <UIcon v-if="icon" :name="icon" class="size-4 text-text-secondary" />
         {{ title }}
       </span>

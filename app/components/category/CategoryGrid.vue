@@ -25,12 +25,12 @@ onMounted(() => categoryStore.fetchCategories())
         :to="`/category/${category.slug}`"
         class="flex flex-col items-center gap-2 group"
       >
-        <div class="size-20 md:size-28 rounded-full bg-surface-hover overflow-hidden flex items-center justify-center transition-transform group-hover:scale-105">
-          <img :src="category.iconUrl" :alt="category.name" class="size-full object-cover" />
-        </div>
-        <span class="text-xs md:text-sm text-text-secondary text-center leading-tight">
+        <div class="size-20 md:size-28 bg-accent rounded-full bg-surface-hover overflow-hidden flex items-center justify-center transition-transform group-hover:scale-105">
           {{ category.name }}
-        </span>
+        </div>
+        <!-- <span class="text-xs md:text-sm text-text-secondary text-center leading-tight">
+          {{ category.name }}
+        </span> -->
       </NuxtLink>
     </div>
   </section>

@@ -1,4 +1,4 @@
-export const useCategoryStore = defineStore('categirty', () =>{
+export const useCategoryStore = defineStore('category', () =>{
     const items = ref<ProductCategory[]>([])
     const isLoading = ref(false)
 
