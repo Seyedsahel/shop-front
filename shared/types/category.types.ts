@@ -1,6 +1,7 @@
 export interface ProductCategory {
   id: string
   parentId: string
+  imageUrl: string
   name: string
   slug: string
   createdAt: number 
