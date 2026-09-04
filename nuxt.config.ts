@@ -28,5 +28,8 @@ export default defineNuxtConfig({
     backendUrl: 'http://78.39.57.118',
     backendApiKey: '',
     useMockData: true,
-  }
+      public: {
+    imageBaseUrl: 'http://78.39.57.118:80/images'
+  },
+  },
 })

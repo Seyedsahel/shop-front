@@ -1,18 +1,19 @@
 <!-- app/components/product/ProductGrid.vue -->
 <script setup lang="ts">
 const props = defineProps<{
-  category: string
+  categoryId: string
   title?: string
   variant?: 'default' | 'compact'
 }>()
 
-const productStore = useProductStore()
+const productListStore = useProductListStore()
 
 onMounted(() => {
-  productStore.fetchByCategory(props.category)
+  productListStore.fetchPreview(props.categoryId)
 })
 
-const products = computed(() => productStore.byCategory[props.category] ?? [])
+const products = computed(() => productListStore.previewsByCategory[props.categoryId] ?? [])
+const isLoading = computed(() => productListStore.previewLoading[props.categoryId] ?? false)
 
 // --- Row-overflow detection ---
 // Column count changes per breakpoint (2/4/7), so "one row" has no fixed
@@ -65,7 +66,7 @@ const clipStyle = computed(() =>
         class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-7 gap-4 overflow-hidden transition-[max-height] duration-300"
         :style="clipStyle"
       >
-        <template v-if="productStore.isLoading">
+        <template v-if="isLoading">
           <div v-for="n in 8" :key="n" class="aspect-square bg-loading rounded-2xl animate-pulse" />
         </template>
 
@@ -84,7 +85,7 @@ const clipStyle = computed(() =>
         class="absolute inset-x-0 bottom-0 h-20 flex items-end justify-center pb-4 bg-linear-to-t from-surface via-surface/50 to-transparent backdrop-blur-sm rounded-b-md"
       >
         <UButton
-          :to="`/products?category=${category}`"
+          :to="`/products?category=${categoryId}`"
           variant="soft"
           class="bg-primary hover:bg-primary-hover text-primary-foreground px-6 py-2 rounded-xl"
         >

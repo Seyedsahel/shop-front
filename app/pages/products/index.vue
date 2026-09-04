@@ -3,40 +3,36 @@ const route = useRoute()
 const filterStore = useFilterStore()
 const productListStore = useProductListStore()
 const categoryStore = useCategoryStore()
-const brandStore = useBrandStore()
+
+async function loadForCategory(slug?: string) {
+  const category = slug ? categoryStore.items.find(c => c.slug === slug) : undefined
+  const categoryIds = category ? [category.id] : undefined
+  await filterStore.fetchFilters(categoryIds)
+  productListStore.fetchList({ categoryIds, page: 1 })
+}
 
 onMounted(async () => {
-  categoryStore.fetchCategories()
-  brandStore.fetchBrands()
+  await categoryStore.fetchCategories()
 
-  await filterStore.fetchFilters()
-  if (route.query.filters){
-    try{
-      const restored = JSON.parse(route.query.filters as string)
-      Object.assign(filterStore.values, restored)
-    } catch{
-      // malformed query, ignore and fall back to defaults
-    }
+  if (route.query.filters) {
+    try { Object.assign(filterStore.values, JSON.parse(route.query.filters as string)) }
+    catch { /* ignore malformed query */ }
   }
-  if (route.query.sort) {
-    productListStore.sort = route.query.sort as string
-  }
-  productListStore.fetchList({
-    category: route.query.category as string | undefined,
-    brand: route.query.brand as string | undefined,
-    page: route.query.page ? Number(route.query.page) : 1
-  })
+  if (route.query.sort) productListStore.sort = route.query.sort as string
+
+  await loadForCategory(route.query.category as string | undefined)
+})
+
+// Fires only on subsequent changes — the initial load is already handled above
+watch(() => route.query.category, (newSlug) => {
+  loadForCategory(newSlug as string | undefined)
 })
 
 const pageTitle = computed(() => {
-  if (route.query.category) {
-    const path = getCategoryPath(categoryStore.items, route.query.category as string)
-    if (path.length) return path.map(c => c.name).join(' / ')
-    return route.query.category as string // fallback while categories are still loading
-  }
-  if (route.query.brand) {
-    const brand = brandStore.items.find(b => b.id === route.query.brand)
-    return brand ? `برند: ${brand.name}` : 'برند'
+  const slug = route.query.category as string | undefined
+  if (slug) {
+    const path = getCategoryPath(categoryStore.items, slug)
+    return path.length ? path.map(c => c.name).join(' / ') : slug
   }
   return 'همه محصولات'
 })
