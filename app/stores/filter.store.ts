@@ -1,19 +1,16 @@
-// definitions -> Definition State: What filters are available?
-// values -> Selection State : What has the user selected?
 export const useFilterStore = defineStore('filter', () => {
   const definitions = ref<FilterDefinition[]>([])
   const values = reactive<Record<string, FilterValue>>({})
   const isLoading = ref(false)
 
-  async function fetchFilters() {
-    if (definitions.value.length) return
+  async function fetchFilters(categoryIds?: string[]) {
     isLoading.value = true
     try {
-      const res = await useApi().get<FiltersResponse>('/catalog/filters')
+      const res = await useApi().post<FiltersResponse>('/catalog/filters', { category_ids: categoryIds })
       definitions.value = res.items
       for (const filter of res.items) {
-        if (values[filter.id] === undefined) {
-          values[filter.id] = filter.type === 'checkbox' ? [] : filter.type === 'range' ? null : filter.type === 'toggle' ? false : null
+        if (values[filter.slug] === undefined) {
+          values[filter.slug] = filter.dataType === 'multiselect' ? [] : filter.dataType === 'boolean' ? null : null
         }
       }
     } catch (e) {
@@ -23,25 +20,34 @@ export const useFilterStore = defineStore('filter', () => {
     }
   }
 
-  function setValue(id: string, value: FilterValue) {
-  values[id] = value
-  const productListStore = useProductListStore()
-  productListStore.setPage(1)
-  productListStore.refetch()
-}
-
-function resetAll() {
-  for (const filter of definitions.value) {
-    values[filter.id] = filter.type === 'checkbox' ? [] : filter.type === 'toggle' ? false : null
+  function setValue(slug: string, value: FilterValue) {
+    values[slug] = value
+    useProductListStore().refetch()
   }
-  const productListStore = useProductListStore()
-  productListStore.setPage(1)
-  productListStore.refetch()
-}
+
+  function resetAll() {
+    for (const filter of definitions.value) {
+      values[filter.slug] = filter.dataType === 'multiselect' ? [] : null
+    }
+    useProductListStore().refetch()
+  }
 
   const activeCount = computed(() =>
-    Object.values(values).filter(v => v && (Array.isArray(v) ? v.length > 0 : true)).length
+    Object.values(values).filter(v => v !== null && v !== false && !(Array.isArray(v) && v.length === 0)).length
   )
 
-  return { definitions, values, isLoading, activeCount, fetchFilters, setValue, resetAll }
+  // Converts current values into the backend's attribute_fields shape —
+  // every filter (select/string/multiselect/boolean) becomes a string[]
+  // keyed by slug, since that's the one shape the backend accepts for all of them.
+  function toAttributeFields(): Record<string, string[]> {
+    const fields: Record<string, string[]> = {}
+    for (const [slug, value] of Object.entries(values)) {
+      if (value === null || value === undefined) continue
+      if (Array.isArray(value) && value.length) fields[slug] = value
+      else if (typeof value === 'string' && value) fields[slug] = [value]
+    }
+    return fields
+  }
+
+  return { definitions, values, isLoading, activeCount, fetchFilters, setValue, resetAll, toAttributeFields }
 })
