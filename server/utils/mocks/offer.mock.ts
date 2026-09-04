@@ -1,12 +1,17 @@
+// server/utils/mocks/offer.mock.ts
 export const mockSpecialOfferResponse: SpecialOfferResponse = {
-  endsAt: new Date(Date.now() + 1000 * 60 * 60 * 26).toISOString(), // ~26h from now
+  endsAt: new Date(Date.now() + 1000 * 60 * 60 * 26).toISOString(),
   products: [
-    { id: '1', slug: 'rose-serum', name: 'سرم روشن‌کننده گل رز', imageUrl: 'https://dkstatics-public.digikala.com/digikala-products/c64720f4446aa94b873dab4ae35091bc3f0fcc22_1637680139.jpg?x-oss-process=image/resize,m_lfit,h_600,w_600/quality,q_80/format,webp', price: 480000, compareAtPrice: 600000, inStock: true, category: 'offer-product',quantity:2 },
-    { id: '2', slug: 'cashmere-cream', name: 'کرم مرطوب‌کننده کشمیر', imageUrl: 'https://dkstatics-public.digikala.com/digikala-products/77c6fef632053dfb55688d83f45c5c30fcff5ec0_1716454946.jpg?x-oss-process=image/resize,m_lfit,h_600,w_600/quality,q_80/format,webp', price: 320000, inStock: true, category: 'offer-product',quantity:2 },
-    { id: '3', slug: 'sage-toner', name: 'تونر مرهم گیاهی', imageUrl: 'https://dkstatics-public.digikala.com/digikala-products/11e6cb3e603eed957be91e8cca58f51fac034a00_1754237192.jpg?x-oss-process=image/resize,m_lfit,h_600,w_600/quality,q_80/format,webp', price: 190000, inStock: false, category: 'offer-product',quantity:2 },
-    { id: '4', slug: 'amber-oil', name: 'روغن تغذیه‌کننده کهربا', imageUrl: 'https://dkstatics-public.digikala.com/digikala-products/e50c784329c3786a59c1e0a0914e43c2695b3aed_1760871822.jpg?x-oss-process=image/resize,m_lfit,h_600,w_600/quality,q_80/format,webp', price: 275000, compareAtPrice: 340000, inStock: true, category: 'offer-product',quantity:2 },
-    { id: '5', slug: 'pearl-mask', name: 'ماسک صورت مروارید', imageUrl: 'https://dkstatics-public.digikala.com/digikala-products/938e1e45c0b5977d84afbecbb2b9c24e81c3dc73_1779179683.jpg?x-oss-process=image/resize,m_lfit,h_600,w_600/quality,q_80/format,webp', price: 210000, inStock: true, category: 'offer-product',quantity:4 },
-    { id: '6', slug: 'pearl-mask', name: 'ماسک صورت مروارید', imageUrl: 'https://dkstatics-public.digikala.com/digikala-products/c6e95dc80d225ba59cf31443671cca2de6c3f693_1753698024.jpg?x-oss-process=image/resize,m_lfit,h_600,w_600/quality,q_80/format,webp', price: 210000, inStock: true, category: 'offer-product' ,quantity:2},
-    { id: '7', slug: 'pearl-mask', name: 'ماسک صورت مروارید', imageUrl: 'https://dkstatics-public.digikala.com/digikala-products/ec33c4d938439c0bcc57a0a77ad740e89d2716b9_1754244445.jpg?x-oss-process=image/resize,m_lfit,h_600,w_600/quality,q_80/format,webp', price: 210000, inStock: false, category: 'offer-product', quantity:2},
-   ],
+    {
+      id: 'o1', productTypeId: 'x', name: 'ژل بهداشتی پروبیوتیک بانوان', slug: 'probiotic-gel',
+      thumbnailUrl: null, imageUrl: 'https://placehold.co/300x300/png',
+      description: '', basePrice: 298000, stock: 10, createdAt: 0, updatedAt: 0,
+    },
+    {
+      id: 'o2', productTypeId: 'x', name: 'پودر بتا آلانین بی پی آی', slug: 'beta-alanine',
+      thumbnailUrl: null, imageUrl: 'https://placehold.co/300x300/png',
+      description: '', basePrice: 1950000, stock: 10, createdAt: 0, updatedAt: 0,
+    },
+    // ...same fields for the other two
+  ],
 }
