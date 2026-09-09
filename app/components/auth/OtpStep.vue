@@ -4,9 +4,12 @@ const code = ref('')
 const codeError = ref('')
 const codeInput = ref()
 
+const timeLeft = useCountdown(computed(() => authStore.otpRequestedAt))
+const canResend = computed(() => timeLeft.expired)
+
 function validateCode(value: string) {
   if (!value) return 'کد تایید را وارد کنید.'
-  if (!/^\d{6}$/.test(value)) return 'کد باید ۶ رقم باشد.'
+  if (!/^\d{4,6}$/.test(value)) return 'کد معتبر نیست.'
   return ''
 }
 
@@ -19,6 +22,10 @@ const submit = async () => {
   } catch {
     // toast already fired inside the store
   }
+}
+
+async function handleResend(){
+  await authStore.resendOtp()
 }
 </script>
 
@@ -47,5 +54,22 @@ const submit = async () => {
         </button>
       </div>
     </form>
+    <div class="text-sm text-text-secondary">
+      <span v-if="!canResend">
+        ارسال مجدد کد تا 
+        <span class="tabular-nums font-medium text-text-primary">
+          {{ String(timeLeft.minutes).padStart(2, '0') }}:{{ String(timeLeft.seconds).padStart(2, '0') }}
+        </span>
+      </span>
+      <button
+       v-else 
+       type="button" 
+       @click="handleResend" 
+       class="text-primary font-medium"
+       :disabled="authStore.isLoading">
+       ارسال مجدد
+      </button>
+
+    </div>
   </div>
 </template>

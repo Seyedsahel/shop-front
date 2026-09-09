@@ -4,6 +4,7 @@ export const useAuthStore = defineStore('auth', () => {
   const isLoading = ref(false)
   const isAuthenticated = ref(false)
   const user = ref<User | null>(null)
+  const otpRequestedAt = ref<string | null>(null)
   const returnTo = ref<string | null>(null)
 
   async function requestOtp(value: string) {
@@ -12,6 +13,7 @@ export const useAuthStore = defineStore('auth', () => {
       await useApi().post<VerifyOtpResponse>('/auth/request-otp', { phone: value } satisfies RequestOtpPayload)
       phone.value = value
       step.value = 'otp'
+      otpRequestedAt.value = new Date(Date.now() + 60_000).toISOString()
     } catch (e) {
       useAppToast().error(e instanceof ApiError ? e.message : 'خطا در ارسال کد، دوباره تلاش کنید.')
     } finally {
@@ -19,10 +21,15 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function resendOtp() {
+    await requestOtp(phone.value)
+  }
+
   async function verifyOtp(code: string) {
     isLoading.value = true
     try {
       await useApi().post<VerifyOtpResponse>('/auth/verify-otp', { phone: phone.value, code } satisfies VerifyOtpPayload)
+      
       await fetchSession()
       useAppToast().success('ورود با موفقیت انجام شد.')
     } catch (e) {
@@ -54,6 +61,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   function goBackToPhone() {
     step.value = 'phone'
+    otpRequestedAt.value = null
   }
 
   
@@ -68,5 +76,5 @@ export const useAuthStore = defineStore('auth', () => {
     return target
   }
 
-  return { step, phone, isLoading, isAuthenticated, user, requestOtp, verifyOtp, fetchSession, logout, goBackToPhone, requireAuth, consumeReturnTo }
+  return { step, phone, isLoading, isAuthenticated, user, otpRequestedAt,requestOtp, verifyOtp, resendOtp, fetchSession, logout, goBackToPhone, requireAuth, consumeReturnTo }
 })
