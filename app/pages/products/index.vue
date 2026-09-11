@@ -13,17 +13,14 @@ async function loadForCategory(slug?: string) {
 
 onMounted(async () => {
   await categoryStore.fetchCategories()
-
   if (route.query.filters) {
     try { Object.assign(filterStore.values, JSON.parse(route.query.filters as string)) }
     catch { /* ignore malformed query */ }
   }
   if (route.query.sort) productListStore.sort = route.query.sort as string
-
   await loadForCategory(route.query.category as string | undefined)
 })
 
-// Fires only on subsequent changes — the initial load is already handled above
 watch(() => route.query.category, (newSlug) => {
   loadForCategory(newSlug as string | undefined)
 })
@@ -35,6 +32,12 @@ const pageTitle = computed(() => {
     return path.length ? path.map(c => c.name).join(' / ') : slug
   }
   return 'همه محصولات'
+})
+
+// Infinite scroll — sentinel sits right after the grid
+const sentinel = ref<HTMLElement>()
+useInfiniteScroll(sentinel, () => {
+  productListStore.loadMore()
 })
 </script>
 
@@ -55,6 +58,18 @@ const pageTitle = computed(() => {
         </template>
         <ProductCard v-else v-for="product in productListStore.items" :key="product.id" :product="product" />
       </div>
+
+      <!-- Sentinel: triggers loadMore when scrolled into view -->
+      <div ref="sentinel" class="h-4" />
+
+      <div v-if="productListStore.isLoadingMore" class="flex justify-center py-6 gap-2 text-sm text-text-muted bg-accent/10 rounded-lg mt-4">
+        <div class="size-6 rounded-full border-2 border-border-strong border-t-primary animate-spin" />
+        <span>در حال بارگذاری...</span>
+      </div>
+
+      <p v-if="!productListStore.hasMore && productListStore.items.length" class="text-center text-xs text-text-muted py-6">
+        محصول بیشتری برای نمایش وجود ندارد.
+      </p>
     </div>
   </div>
 </template>

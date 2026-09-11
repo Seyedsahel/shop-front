@@ -1,17 +1,23 @@
+
 export const useProductListStore = defineStore('productList', () => {
-  // ---- Main paginated list (used by /products) ----
   const items = ref<Product[]>([])
   const total = ref(0)
   const page = ref(1)
   const limit = ref(12)
   const isLoading = ref(false)
+  const isLoadingMore = ref(false)
   const sort = ref('relevant')
   let currentCategoryIds: string[] | undefined
   let priceMin: number | undefined
   let priceMax: number | undefined
+  
+  const hasMore = computed(() => items.value.length < total.value)
+  
+  // ---- Main paginated list (used by /products) ----
+  async function refetch(mode: 'replace' | 'append' = 'replace') {
+    if (mode === 'append') isLoadingMore.value = true
+    else isLoading.value = true
 
-  async function refetch() {
-    isLoading.value = true
     try {
       const filterStore = useFilterStore()
       const sortOption = sortOptions.find(o => o.id === sort.value)
@@ -27,12 +33,12 @@ export const useProductListStore = defineStore('productList', () => {
         sortDir: sortOption?.sortDir,
       } satisfies ProductListRequest)
 
-      items.value = res.items
+      items.value = mode === 'append' ? [...items.value, ...res.items] : res.items
       total.value = res.total
       page.value = res.page
       limit.value = res.limit
 
-      const route =useRoute()
+      const route = useRoute()
       const router = useRouter()
       router.replace({
         query: {
@@ -46,18 +52,25 @@ export const useProductListStore = defineStore('productList', () => {
       useAppToast().error(e instanceof ApiError ? e.message : 'خطا در دریافت محصولات.')
     } finally {
       isLoading.value = false
+      isLoadingMore.value = false
     }
   }
 
   function fetchList(params: { categoryIds?: string[]; page?: number }) {
     currentCategoryIds = params.categoryIds
     page.value = params.page ?? 1
-    refetch()
+    refetch('replace')
   }
 
-  function setSort(id: string) { sort.value = id; page.value = 1; refetch() }
-  function setPage(p: number) { page.value = p; refetch() }
-  function setPriceRange(min?: number, max?: number) { priceMin = min; priceMax = max; page.value = 1; refetch() }
+  function loadMore() {
+    if (isLoading.value || isLoadingMore.value || !hasMore.value) return
+    page.value += 1
+    refetch('append')
+  }
+
+  function setSort(id: string) { sort.value = id; page.value = 1; refetch('replace') }
+  function setPage(p: number) { page.value = p; refetch('replace') }
+  function setPriceRange(min?: number, max?: number) { priceMin = min; priceMax = max; page.value = 1; refetch('replace') }
 
   // ---- Home-preview cache (used by ProductGrid/ProductSlider, keyed independently) ----
   const previewsByCategory = ref<Record<string, Product[]>>({})
@@ -80,8 +93,8 @@ export const useProductListStore = defineStore('productList', () => {
   }
 
   return {
-    items, total, page, limit, isLoading, sort,
-    fetchList, setSort, setPage, setPriceRange, refetch,
+    items, total, page, limit, isLoading, isLoadingMore, sort, hasMore,
+    fetchList, loadMore, setSort, setPage, setPriceRange, refetch,
     previewsByCategory, previewLoading, fetchPreview,
   }
 })
