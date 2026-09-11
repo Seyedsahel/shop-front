@@ -14,12 +14,12 @@ function isActive(to: string) {
 </script>
 
 <template>
-  <nav class="fixed m-5 rounded-2xl bottom-2 inset-x-0 z-50 sm:hidden bg-surface/90 backdrop-blur-sm border border-divider h-16 flex items-center justify-around">
+  <nav class="fixed m-5 rounded-2xl bottom-2 inset-x-0 z-50 sm:hidden bg-primary/90 backdrop-blur-sm border border-accent h-16 flex items-center justify-around">
     <NuxtLink
       v-for="item in navItems"
       :key="item.to"
       :to="item.to"
-      class="flex flex-col items-center gap-1 text-text-secondary"
+      class="flex flex-col items-center gap-1 text-primary-foreground"
         active-class="!text-accent-foreground font-medium"
 
     >
