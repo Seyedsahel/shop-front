@@ -12,7 +12,7 @@ try{
       price_max: body.priceMax,
       attribute_fields: body.attributeFields,
       page: body.page ?? 1,
-      limit: body.limit ?? 12,
+      limit: body.limit ?? 30,
       sort_by: body.sortBy,
       sort_dir: body.sortDir,
     },

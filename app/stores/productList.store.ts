@@ -3,7 +3,7 @@ export const useProductListStore = defineStore('productList', () => {
   const items = ref<Product[]>([])
   const total = ref(0)
   const page = ref(1)
-  const limit = ref(12)
+  const limit = ref(30)
   const isLoading = ref(false)
   const isLoadingMore = ref(false)
   const sort = ref('relevant')
