@@ -1,6 +1,6 @@
 <script setup lang="ts">
 const filterStore = useFilterStore()
-onMounted(() => filterStore.fetchFilters())
+
 
 defineEmits<{ apply: [] }>()
 </script>

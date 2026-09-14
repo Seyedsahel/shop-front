@@ -4,25 +4,14 @@
 // server/api/catalog/filters.post.ts  (delete the old filters.get.ts)
 export default defineEventHandler(async (event): Promise<FiltersResponse> => {
   const body = await readBody<{ category_ids?: string[] }>(event)
-  const config = useRuntimeConfig()
-
-  if (config.useMockData) {
-    return {
-      items: [
-        { slug: 'brand', name: 'برند', dataType: 'string', availableValues: ['BabyBloom', 'PureSkin', 'SmileCare'] },
-        { slug: 'requires-prescription', name: 'نیاز به نسخه', dataType: 'boolean', availableValues: ['false', 'true'] },
-      ],
-      total: 2, page: 1, limit: 12,
-    }
-  }
-
+  
   const raw = await backendFetch<any>('/api/products/filters', {
     method: 'POST',
     body: { category_ids: body.category_ids, page: 1, limit: 50 },
   })
-
+  console.log('[filters]', body.category_ids, '→', raw.attributes.length, 'attrs:', raw.attributes.map((a: any) => a.slug))
   return {
-    items: raw.items.map((f: any) => ({
+    items: raw.attributes.map((f: any) => ({
       slug: f.slug,
       name: f.name,
       dataType: f.data_type,
