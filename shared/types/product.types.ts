@@ -18,6 +18,7 @@ export interface Product {
 export interface ProductListRequest {
   search?: string
   categoryIds?: string[]
+  brandIds?: string[]
   priceMin?: number
   priceMax?: number
   attributeFields?: Record<string, string[]>

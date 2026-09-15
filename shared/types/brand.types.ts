@@ -1,9 +1,13 @@
 export interface Brand {
   id: string
   name: string
-  logoUrl: string
-  href?: string
+  slug: string
+  imageUrl: string
+  description: string
+  createdAt: number
+  updatedAt: number
 }
+
 export interface BrandsResponse {
   items: Brand[]
 }

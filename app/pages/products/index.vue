@@ -3,33 +3,46 @@ const route = useRoute()
 const filterStore = useFilterStore()
 const productListStore = useProductListStore()
 const categoryStore = useCategoryStore()
+const brandStore = useBrandStore()
 
-async function loadForCategory(slug?: string) {
-  const category = slug ? categoryStore.items.find(c => c.slug === slug) : undefined
+async function loadProducts(categorySlug?: string, brandSlug?: string) {
+  const category = categorySlug ? categoryStore.items.find(c => c.slug === categorySlug) : undefined
+  const brand = brandStore.findBySlug(brandSlug)
   const categoryIds = category ? [category.id] : undefined
+  const brandIds = brand ? [brand.id] : undefined
   await filterStore.fetchFilters(categoryIds)
-  productListStore.fetchList({ categoryIds, page: 1 })
+  productListStore.fetchList({ categoryIds, brandIds, page: 1 })
 }
 
 onMounted(async () => {
-  await categoryStore.fetchCategories()
+  await Promise.all([
+    categoryStore.fetchCategories(),
+    brandStore.fetchBrands(),
+  ])
   if (route.query.filters) {
     try { Object.assign(filterStore.values, JSON.parse(route.query.filters as string)) }
     catch { /* ignore malformed query */ }
   }
   if (route.query.sort) productListStore.sort = route.query.sort as string
-  await loadForCategory(route.query.category as string | undefined)
+  await loadProducts(route.query.category as string | undefined, route.query.brand as string | undefined)
 })
 
-watch(() => route.query.category, (newSlug) => {
-  loadForCategory(newSlug as string | undefined)
-})
+watch(
+  () => [route.query.category, route.query.brand],
+  ([categorySlug, brandSlug]) => {
+    loadProducts(categorySlug as string | undefined, brandSlug as string | undefined)
+  },
+)
 
 const pageTitle = computed(() => {
-  const slug = route.query.category as string | undefined
-  if (slug) {
-    const path = getCategoryPath(categoryStore.items, slug)
-    return path.length ? path.map(c => c.name).join(' / ') : slug
+  const categorySlug = route.query.category as string | undefined
+  const brandSlug = route.query.brand as string | undefined
+  if (categorySlug) {
+    const path = getCategoryPath(categoryStore.items, categorySlug)
+    return path.length ? path.map(c => c.name).join(' / ') : categorySlug
+  }
+  if (brandSlug) {
+    return brandStore.findBySlug(brandSlug)?.name ?? brandSlug
   }
   return 'همه محصولات'
 })

@@ -8,6 +8,7 @@ export const useProductListStore = defineStore('productList', () => {
   const isLoadingMore = ref(false)
   const sort = ref('relevant')
   let currentCategoryIds: string[] | undefined
+  let currentBrandIds: string[] | undefined
   let priceMin: number | undefined
   let priceMax: number | undefined
   
@@ -24,6 +25,7 @@ export const useProductListStore = defineStore('productList', () => {
 
       const res = await useApi().post<ProductListResponse>('/catalog/product-list', {
         categoryIds: currentCategoryIds,
+        brandIds: currentBrandIds,
         priceMin,
         priceMax,
         attributeFields: filterStore.toAttributeFields(),
@@ -56,8 +58,9 @@ export const useProductListStore = defineStore('productList', () => {
     }
   }
 
-  function fetchList(params: { categoryIds?: string[]; page?: number }) {
+  function fetchList(params: { categoryIds?: string[]; brandIds?: string[]; page?: number }) {
     currentCategoryIds = params.categoryIds
+    currentBrandIds = params.brandIds
     page.value = params.page ?? 1
     refetch('replace')
   }

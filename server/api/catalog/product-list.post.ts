@@ -8,6 +8,7 @@ try{
     body: {
       search: body.search,
       category_ids: body.categoryIds,
+      brand_ids: body.brandIds,
       price_min: body.priceMin,
       price_max: body.priceMax,
       attribute_fields: body.attributeFields,

@@ -9,7 +9,6 @@ export default defineEventHandler(async (event): Promise<FiltersResponse> => {
     method: 'POST',
     body: { category_ids: body.category_ids, page: 1, limit: 50 },
   })
-  console.log('[filters]', body.category_ids, '→', raw.attributes.length, 'attrs:', raw.attributes.map((a: any) => a.slug))
   return {
     items: raw.attributes.map((f: any) => ({
       slug: f.slug,
