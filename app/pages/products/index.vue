@@ -31,7 +31,7 @@ onMounted(async () => {
 })
 
 watch(
-  () => [route.query.category, route.query.brand],
+  [() => route.query.category, () => route.query.brand],
   () => {
     loadProductsFromRoute()
   },

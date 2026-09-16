@@ -7,11 +7,13 @@ export const useProductListStore = defineStore('productList', () => {
   const isLoading = ref(false)
   const isLoadingMore = ref(false)
   const sort = ref('relevant')
+  let listRequestId = 0
   
   const hasMore = computed(() => items.value.length < total.value)
   
   // ---- Main paginated list (used by /products) ----
-  async function refetch(mode: 'replace' | 'append' = 'replace') {
+  async function refetch(mode: 'replace' | 'append' = 'replace', requestedPage = page.value) {
+    const requestId = ++listRequestId
     if (mode === 'append') isLoadingMore.value = true
     else isLoading.value = true
 
@@ -21,13 +23,20 @@ export const useProductListStore = defineStore('productList', () => {
 
       const res = await useApi().post<ProductListResponse>('/catalog/product-list', {
         ...filterStore.toProductListRequest(),
-        page: page.value,
+        page: requestedPage,
         limit: limit.value,
         sortBy: sortOption?.sortBy,
         sortDir: sortOption?.sortDir,
       } satisfies ProductListRequest)
 
-      items.value = mode === 'append' ? [...items.value, ...res.items] : res.items
+      if (requestId !== listRequestId) return
+
+      if (mode === 'append') {
+        const existingIds = new Set(items.value.map(item => item.id))
+        items.value = [...items.value, ...res.items.filter(item => !existingIds.has(item.id))]
+      } else {
+        items.value = res.items
+      }
       total.value = res.total
       page.value = res.page
       limit.value = res.limit
@@ -36,7 +45,7 @@ export const useProductListStore = defineStore('productList', () => {
       const router = useRouter()
       const categorySlugs = filterStore.selectedCategories.map(category => category.slug)
       const brandSlugs = filterStore.selectedBrands.map(brand => brand.slug)
-      router.replace({
+      await router.replace({
         query: {
           ...route.query,
           category: categorySlugs.length ? categorySlugs.join(',') : undefined,
@@ -49,27 +58,28 @@ export const useProductListStore = defineStore('productList', () => {
         },
       })
     } catch (e) {
+      if (requestId !== listRequestId) return
       useAppToast().error(e instanceof ApiError ? e.message : 'خطا در دریافت محصولات.')
     } finally {
-      isLoading.value = false
-      isLoadingMore.value = false
+      if (requestId === listRequestId) {
+        isLoading.value = false
+        isLoadingMore.value = false
+      }
     }
   }
 
   function fetchList(params: { page?: number } = {}) {
-    page.value = params.page ?? 1
-    refetch('replace')
+    return refetch('replace', params.page ?? 1)
   }
 
   function loadMore() {
     if (isLoading.value || isLoadingMore.value || !hasMore.value) return
-    page.value += 1
-    refetch('append')
+    return refetch('append', page.value + 1)
   }
 
-  function setSort(id: string) { sort.value = id; page.value = 1; refetch('replace') }
-  function setPage(p: number) { page.value = p; refetch('replace') }
-  function applyFilters() { page.value = 1; refetch('replace') }
+  function setSort(id: string) { sort.value = id; return refetch('replace', 1) }
+  function setPage(p: number) { return refetch('replace', p) }
+  function applyFilters() { return refetch('replace', 1) }
 
   // ---- Home-preview cache (used by ProductGrid/ProductSlider, keyed independently) ----
   const previewsByCategory = ref<Record<string, Product[]>>({})
