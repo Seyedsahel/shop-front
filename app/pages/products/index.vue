@@ -11,10 +11,13 @@ function getQueryList(value: unknown) {
 async function loadProductsFromRoute() {
   const categorySlugs = getQueryList(route.query.category)
   const brandSlugs = getQueryList(route.query.brand)
+  const search = typeof route.query.search === 'string' ? route.query.search.trim() : ''
   await filterStore.fetchFilters()
   if (route.query.filters) {
     try { Object.assign(filterStore.values, JSON.parse(route.query.filters as string)) }
-    catch { /* ignore malformed query */ }
+    catch { filterStore.resetAll() }
+  } else {
+    filterStore.resetAll()
   }
   filterStore.initializeSelections({
     categorySlugs,
@@ -23,6 +26,7 @@ async function loadProductsFromRoute() {
     priceMax: route.query.priceMax ? Number(route.query.priceMax) : undefined,
   })
   if (route.query.sort) productListStore.sort = route.query.sort as string
+  productListStore.setListSearch(search)
   productListStore.fetchList({ page: Number(route.query.page) || 1 })
 }
 
@@ -31,13 +35,16 @@ onMounted(async () => {
 })
 
 watch(
-  [() => route.query.category, () => route.query.brand],
+  [() => route.query.category, () => route.query.brand, () => route.query.search],
   () => {
     loadProductsFromRoute()
   },
 )
 
 const pageTitle = computed(() => {
+  if (productListStore.listSearch) {
+    return `جستجو برای «${productListStore.listSearch}»`
+  }
   if (filterStore.selectedCategories.length) {
     return filterStore.selectedCategories.map(category => category.name).join(' / ')
   }
@@ -59,6 +66,9 @@ useInfiniteScroll(sentinel, () => {
     <FilterSidebar />
     <div class="flex-1">
       <h1 class="text-lg font-semibold text-text-primary mb-4">{{ pageTitle }}</h1>
+      <p v-if="productListStore.listSearch" class="mb-4 text-sm text-text-secondary">
+        {{ productListStore.total.toLocaleString('fa-IR') }} کالا پیدا شد.
+      </p>
       <div class="flex gap-3 mb-4 lg:hidden">
         <ProductSortBar />
         <FilterMobileButton class="flex-1" />

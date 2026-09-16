@@ -3,6 +3,8 @@ const props = defineProps<{ product: Product; variant?: 'default' | 'compact' }>
 const cartStore = useCartStore()
 
 const inStock = computed(() => props.product.stock > 0)
+const finalPrice = computed(() => props.product.price?.final ?? props.product.basePrice)
+const hasDiscount = computed(() => (props.product.price?.discountPercent ?? 0) > 0)
 
 function addToCart() {
   cartStore.addItem(props.product.id)
@@ -21,9 +23,19 @@ function addToCart() {
         {{ product.name }}
       </NuxtLink>
 
-      <span class="text-sm font-semibold text-text-primary">
-        {{ product.basePrice.toLocaleString('fa-IR') }} تومان
-      </span>
+      <div class="flex flex-col gap-1">
+        <div v-if="hasDiscount" class="flex items-center gap-2">
+          <span class="rounded-full bg-danger text-danger-foreground px-2 py-0.5 text-[11px] font-bold">
+            {{ product.price.discountPercent.toLocaleString('fa-IR') }}٪
+          </span>
+          <span class="text-xs text-text-muted line-through">
+            {{ product.price.original.toLocaleString('fa-IR') }}
+          </span>
+        </div>
+        <span class="text-sm font-semibold text-text-primary">
+          {{ finalPrice.toLocaleString('fa-IR') }} تومان
+        </span>
+      </div>
 
       <button
         v-if="variant !== 'compact'"

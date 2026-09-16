@@ -1,18 +1,27 @@
 // shared/types/product.types.ts
 
 // ---- List item (from /api/products/list) ----
+export interface ProductPrice {
+  original: number
+  final: number
+  discount: number
+  discountPercent: number
+}
+
 export interface Product {
   id: string
-  productTypeId: string
+  productTypeId?: string | null
   name: string
   slug: string
+  brandId: string
   thumbnailUrl: string | null   // relative path from backend, e.g. "products/abc.jpg"
   imageUrl: string              // proxied URL, e.g. "/api/images/products/abc.jpg"
   description: string
   basePrice: number
+  price: ProductPrice
   stock: number
-  createdAt: number
-  updatedAt: number
+  createdAt?: number
+  updatedAt?: number
 }
 
 export interface ProductListRequest {

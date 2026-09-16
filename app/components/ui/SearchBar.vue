@@ -1,6 +1,20 @@
 <script setup lang="ts">
-const props = defineProps<{ autofocus?: boolean }>()
-const query = ref('')
+const props = withDefaults(defineProps<{
+  autofocus?: boolean
+  navigateOnSubmit?: boolean
+  placeholder?: string
+}>(), {
+  navigateOnSubmit: true,
+  placeholder: 'جستجوی محصولات و خدمات...',
+})
+
+const emit = defineEmits<{
+  submit: [query: string]
+  focus: []
+  clear: []
+}>()
+
+const query = defineModel<string>({ default: '' })
 const input = ref<HTMLInputElement>()
 
 onMounted(() => {
@@ -9,7 +23,14 @@ onMounted(() => {
 
 function submit() {
   if (!query.value.trim()) return
-  navigateTo(`/search?q=${encodeURIComponent(query.value)}`)
+  emit('submit', query.value.trim())
+  if (props.navigateOnSubmit) navigateTo(`/products?search=${encodeURIComponent(query.value.trim())}`)
+}
+
+function clear() {
+  query.value = ''
+  emit('clear')
+  input.value?.focus()
 }
 </script>
 
@@ -19,9 +40,18 @@ function submit() {
     <input
       ref="input"
       v-model="query"
-      type="text"
-      placeholder="جستجوی محصولات و خدمات..."
+      type="search"
+      :placeholder="placeholder"
       class="w-full bg-transparent outline-none text-sm text-text-primary placeholder:text-text-muted"
+      @focus="emit('focus')"
     />
+    <button
+      v-if="query"
+      type="button"
+      class="shrink-0 text-text-muted hover:text-text-primary transition-colors"
+      @click="clear"
+    >
+      <UIcon name="solar:close-circle-broken" class="size-5" />
+    </button>
   </form>
 </template>

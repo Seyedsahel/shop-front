@@ -7,9 +7,20 @@ export const useProductListStore = defineStore('productList', () => {
   const isLoading = ref(false)
   const isLoadingMore = ref(false)
   const sort = ref('relevant')
+  const listSearch = ref('')
   let listRequestId = 0
+  let searchRequestId = 0
   
   const hasMore = computed(() => items.value.length < total.value)
+
+  // ---- Live product search (used by navbar and mobile overlay) ----
+  const searchItems = ref<Product[]>([])
+  const searchTotal = ref(0)
+  const searchPage = ref(1)
+  const searchLimit = ref(12)
+  const searchQuery = ref('')
+  const isSearchLoading = ref(false)
+  const searchError = ref('')
   
   // ---- Main paginated list (used by /products) ----
   async function refetch(mode: 'replace' | 'append' = 'replace', requestedPage = page.value) {
@@ -23,6 +34,7 @@ export const useProductListStore = defineStore('productList', () => {
 
       const res = await useApi().post<ProductListResponse>('/catalog/product-list', {
         ...filterStore.toProductListRequest(),
+        search: listSearch.value || undefined,
         page: requestedPage,
         limit: limit.value,
         sortBy: sortOption?.sortBy,
@@ -48,6 +60,7 @@ export const useProductListStore = defineStore('productList', () => {
       await router.replace({
         query: {
           ...route.query,
+          search: listSearch.value || undefined,
           category: categorySlugs.length ? categorySlugs.join(',') : undefined,
           brand: brandSlugs.length ? brandSlugs.join(',') : undefined,
           sort: sort.value,
@@ -80,6 +93,64 @@ export const useProductListStore = defineStore('productList', () => {
   function setSort(id: string) { sort.value = id; return refetch('replace', 1) }
   function setPage(p: number) { return refetch('replace', p) }
   function applyFilters() { return refetch('replace', 1) }
+  function setListSearch(search: string) { listSearch.value = search.trim() }
+
+  async function searchProducts(params: {
+    search: string
+    page?: number
+    limit?: number
+    sortBy?: string
+    sortDir?: 'asc' | 'desc'
+  }) {
+    const normalizedSearch = params.search.trim()
+    const requestId = ++searchRequestId
+    searchQuery.value = normalizedSearch
+    searchError.value = ''
+
+    if (!normalizedSearch) {
+      searchItems.value = []
+      searchTotal.value = 0
+      searchPage.value = 1
+      isSearchLoading.value = false
+      return
+    }
+
+    isSearchLoading.value = true
+
+    try {
+      const res = await useApi().post<ProductListResponse>('/catalog/product-list', {
+        search: normalizedSearch,
+        page: params.page ?? 1,
+        limit: params.limit ?? searchLimit.value,
+        sortBy: params.sortBy,
+        sortDir: params.sortDir,
+      } satisfies ProductListRequest)
+
+      if (requestId !== searchRequestId) return
+
+      searchItems.value = res.items
+      searchTotal.value = res.total
+      searchPage.value = res.page
+      searchLimit.value = res.limit
+    } catch (e) {
+      if (requestId !== searchRequestId) return
+      searchItems.value = []
+      searchTotal.value = 0
+      searchError.value = e instanceof ApiError ? e.message : 'خطا در جستجوی محصولات.'
+    } finally {
+      if (requestId === searchRequestId) isSearchLoading.value = false
+    }
+  }
+
+  function clearSearch() {
+    searchRequestId++
+    searchItems.value = []
+    searchTotal.value = 0
+    searchPage.value = 1
+    searchQuery.value = ''
+    searchError.value = ''
+    isSearchLoading.value = false
+  }
 
   // ---- Home-preview cache (used by ProductGrid/ProductSlider, keyed independently) ----
   const previewsByCategory = ref<Record<string, Product[]>>({})
@@ -102,8 +173,10 @@ export const useProductListStore = defineStore('productList', () => {
   }
 
   return {
-    items, total, page, limit, isLoading, isLoadingMore, sort, hasMore,
-    fetchList, loadMore, setSort, setPage, applyFilters, refetch,
+    items, total, page, limit, isLoading, isLoadingMore, sort, listSearch, hasMore,
+    fetchList, loadMore, setSort, setPage, applyFilters, setListSearch, refetch,
+    searchItems, searchTotal, searchPage, searchLimit, searchQuery, isSearchLoading, searchError,
+    searchProducts, clearSearch,
     previewsByCategory, previewLoading, fetchPreview,
   }
 })
