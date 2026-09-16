@@ -7,10 +7,6 @@ export const useProductListStore = defineStore('productList', () => {
   const isLoading = ref(false)
   const isLoadingMore = ref(false)
   const sort = ref('relevant')
-  let currentCategoryIds: string[] | undefined
-  let currentBrandIds: string[] | undefined
-  let priceMin: number | undefined
-  let priceMax: number | undefined
   
   const hasMore = computed(() => items.value.length < total.value)
   
@@ -24,11 +20,7 @@ export const useProductListStore = defineStore('productList', () => {
       const sortOption = sortOptions.find(o => o.id === sort.value)
 
       const res = await useApi().post<ProductListResponse>('/catalog/product-list', {
-        categoryIds: currentCategoryIds,
-        brandIds: currentBrandIds,
-        priceMin,
-        priceMax,
-        attributeFields: filterStore.toAttributeFields(),
+        ...filterStore.toProductListRequest(),
         page: page.value,
         limit: limit.value,
         sortBy: sortOption?.sortBy,
@@ -42,11 +34,17 @@ export const useProductListStore = defineStore('productList', () => {
 
       const route = useRoute()
       const router = useRouter()
+      const categorySlugs = filterStore.selectedCategories.map(category => category.slug)
+      const brandSlugs = filterStore.selectedBrands.map(brand => brand.slug)
       router.replace({
         query: {
-          ...route.query, // keeps `category` (the slug) untouched
+          ...route.query,
+          category: categorySlugs.length ? categorySlugs.join(',') : undefined,
+          brand: brandSlugs.length ? brandSlugs.join(',') : undefined,
           sort: sort.value,
           filters: JSON.stringify(filterStore.values),
+          priceMin: filterStore.hasCustomPrice ? String(filterStore.selectedPriceMin) : undefined,
+          priceMax: filterStore.hasCustomPrice ? String(filterStore.selectedPriceMax) : undefined,
           page: String(page.value),
         },
       })
@@ -58,9 +56,7 @@ export const useProductListStore = defineStore('productList', () => {
     }
   }
 
-  function fetchList(params: { categoryIds?: string[]; brandIds?: string[]; page?: number }) {
-    currentCategoryIds = params.categoryIds
-    currentBrandIds = params.brandIds
+  function fetchList(params: { page?: number } = {}) {
     page.value = params.page ?? 1
     refetch('replace')
   }
@@ -73,7 +69,7 @@ export const useProductListStore = defineStore('productList', () => {
 
   function setSort(id: string) { sort.value = id; page.value = 1; refetch('replace') }
   function setPage(p: number) { page.value = p; refetch('replace') }
-  function setPriceRange(min?: number, max?: number) { priceMin = min; priceMax = max; page.value = 1; refetch('replace') }
+  function applyFilters() { page.value = 1; refetch('replace') }
 
   // ---- Home-preview cache (used by ProductGrid/ProductSlider, keyed independently) ----
   const previewsByCategory = ref<Record<string, Product[]>>({})
@@ -97,7 +93,7 @@ export const useProductListStore = defineStore('productList', () => {
 
   return {
     items, total, page, limit, isLoading, isLoadingMore, sort, hasMore,
-    fetchList, loadMore, setSort, setPage, setPriceRange, refetch,
+    fetchList, loadMore, setSort, setPage, applyFilters, refetch,
     previewsByCategory, previewLoading, fetchPreview,
   }
 })

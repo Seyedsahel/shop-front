@@ -27,12 +27,7 @@ const open = ref(false)
           </button>
         </div>
         <div class="flex-1 overflow-y-auto px-4 py-2">
-          <FilterPanel />
-        </div>
-        <div class="border-t border-divider p-4 shrink-0">
-          <button class="w-full bg-primary hover:bg-primary-hover text-primary-foreground py-2.5 rounded-xl text-sm font-medium" @click="open = false">
-            اعمال فیلتر
-          </button>
+          <FilterPanel @applied="open = false" />
         </div>
       </div>
     </Transition>

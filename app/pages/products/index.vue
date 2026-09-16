@@ -2,47 +2,47 @@
 const route = useRoute()
 const filterStore = useFilterStore()
 const productListStore = useProductListStore()
-const categoryStore = useCategoryStore()
-const brandStore = useBrandStore()
 
-async function loadProducts(categorySlug?: string, brandSlug?: string) {
-  const category = categorySlug ? categoryStore.items.find(c => c.slug === categorySlug) : undefined
-  const brand = brandStore.findBySlug(brandSlug)
-  const categoryIds = category ? [category.id] : undefined
-  const brandIds = brand ? [brand.id] : undefined
-  await filterStore.fetchFilters(categoryIds)
-  productListStore.fetchList({ categoryIds, brandIds, page: 1 })
+function getQueryList(value: unknown) {
+  if (Array.isArray(value)) return value.flatMap(item => String(item).split(',')).filter(Boolean)
+  return typeof value === 'string' ? value.split(',').filter(Boolean) : []
 }
 
-onMounted(async () => {
-  await Promise.all([
-    categoryStore.fetchCategories(),
-    brandStore.fetchBrands(),
-  ])
+async function loadProductsFromRoute() {
+  const categorySlugs = getQueryList(route.query.category)
+  const brandSlugs = getQueryList(route.query.brand)
+  await filterStore.fetchFilters()
   if (route.query.filters) {
     try { Object.assign(filterStore.values, JSON.parse(route.query.filters as string)) }
     catch { /* ignore malformed query */ }
   }
+  filterStore.initializeSelections({
+    categorySlugs,
+    brandSlugs,
+    priceMin: route.query.priceMin ? Number(route.query.priceMin) : undefined,
+    priceMax: route.query.priceMax ? Number(route.query.priceMax) : undefined,
+  })
   if (route.query.sort) productListStore.sort = route.query.sort as string
-  await loadProducts(route.query.category as string | undefined, route.query.brand as string | undefined)
+  productListStore.fetchList({ page: Number(route.query.page) || 1 })
+}
+
+onMounted(async () => {
+  await loadProductsFromRoute()
 })
 
 watch(
   () => [route.query.category, route.query.brand],
-  ([categorySlug, brandSlug]) => {
-    loadProducts(categorySlug as string | undefined, brandSlug as string | undefined)
+  () => {
+    loadProductsFromRoute()
   },
 )
 
 const pageTitle = computed(() => {
-  const categorySlug = route.query.category as string | undefined
-  const brandSlug = route.query.brand as string | undefined
-  if (categorySlug) {
-    const path = getCategoryPath(categoryStore.items, categorySlug)
-    return path.length ? path.map(c => c.name).join(' / ') : categorySlug
+  if (filterStore.selectedCategories.length) {
+    return filterStore.selectedCategories.map(category => category.name).join(' / ')
   }
-  if (brandSlug) {
-    return brandStore.findBySlug(brandSlug)?.name ?? brandSlug
+  if (filterStore.selectedBrands.length) {
+    return filterStore.selectedBrands.map(brand => brand.name).join(' / ')
   }
   return 'همه محصولات'
 })

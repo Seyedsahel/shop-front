@@ -7,8 +7,31 @@ export interface FilterDefinition {
   availableValues: string[]
 }
 
+export interface FilterBrandOption {
+  id: string
+  name: string
+  slug: string
+  imageUrl: string
+}
+
+export interface FilterCategoryOption {
+  id: string
+  parentId: string
+  name: string
+  slug: string
+  imageUrl: string
+}
+
+export interface FilterPriceRange {
+  min: number
+  max: number
+}
+
 export interface FiltersResponse {
-  items: FilterDefinition[]
+  attributes: FilterDefinition[]
+  brands: FilterBrandOption[]
+  categories: FilterCategoryOption[]
+  priceRange: FilterPriceRange
   total: number
   page: number
   limit: number
