@@ -1,5 +1,4 @@
 export default defineEventHandler(async (event): Promise<ProductListResponse> => {
-  const config = useRuntimeConfig()
   const body = await readBody<ProductListRequest>(event)
 
 try{
@@ -26,7 +25,7 @@ try{
       name: p.name,
       slug: p.slug,
       thumbnailUrl: p.thumbnail_url,
-      imageUrl: p.thumbnail_url ? `${config.public.imageBaseUrl}/${p.thumbnail_url}` : '',
+      imageUrl: toBackendImageUrl(p.thumbnail_url),
       description: p.description,
       basePrice: p.base_price,
       stock: p.stock,

@@ -1,10 +1,8 @@
 
 // const sleep = (ms: number): Promise<void> => {
 //   return new Promise((resolve) => setTimeout(resolve, ms));
-// server/api/catalog/filters.post.ts  (delete the old filters.get.ts)
 export default defineEventHandler(async (event): Promise<FiltersResponse> => {
   const body = await readBody<{ category_ids?: string[] }>(event)
-  const config = useRuntimeConfig()
   
   const raw = await backendFetch<any>('/api/products/filters', {
     method: 'POST',
@@ -22,14 +20,14 @@ export default defineEventHandler(async (event): Promise<FiltersResponse> => {
       id: brand.id,
       name: brand.name,
       slug: brand.slug,
-      imageUrl: brand.image_url ? `${config.public.imageBaseUrl}/${brand.image_url}` : '',
+      imageUrl: toBackendImageUrl(brand.image_url),
     })),
     categories: (raw.categories ?? []).map((category: any) => ({
       id: category.id,
       parentId: category.parent_id ?? '',
       name: category.name,
       slug: category.slug,
-      imageUrl: category.image_url ? `${config.public.imageBaseUrl}/${category.image_url}` : '',
+      imageUrl: toBackendImageUrl(category.image_url),
     })),
     priceRange: {
       min: raw.min_price ?? 0,

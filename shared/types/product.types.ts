@@ -7,7 +7,7 @@ export interface Product {
   name: string
   slug: string
   thumbnailUrl: string | null   // relative path from backend, e.g. "products/abc.jpg"
-  imageUrl: string              // full URL, built in the server proxy
+  imageUrl: string              // proxied URL, e.g. "/api/images/products/abc.jpg"
   description: string
   basePrice: number
   stock: number
@@ -37,7 +37,7 @@ export interface ProductListResponse {
 
 // ---- Detail (from /api/products/{slug}/detail) ----
 export interface ProductDetailImage {
-  imageUrl: string       // full URL, built in the server proxy
+  imageUrl: string       // proxied URL, e.g. "/api/images/products/abc.jpg"
   sortOrder: number
   isThumbnail: boolean
 }

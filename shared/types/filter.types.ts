@@ -11,6 +11,7 @@ export interface FilterBrandOption {
   id: string
   name: string
   slug: string
+  // Backend images must be exposed through /api/images via toBackendImageUrl().
   imageUrl: string
 }
 
@@ -19,6 +20,7 @@ export interface FilterCategoryOption {
   parentId: string
   name: string
   slug: string
+  // Backend images must be exposed through /api/images via toBackendImageUrl().
   imageUrl: string
 }
 

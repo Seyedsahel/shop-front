@@ -1,5 +1,6 @@
 export interface Banner {
   id: string
+  // Backend images must be exposed through /api/images via toBackendImageUrl().
   imageUrl: string
   href: string
 }
