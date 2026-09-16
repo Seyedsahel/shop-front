@@ -25,15 +25,15 @@ function addToCart() {
         {{ product.basePrice.toLocaleString('fa-IR') }} تومان
       </span>
 
-      <UButton
+      <button
         v-if="variant !== 'compact'"
-        size="lg"
-        class="mt-auto bg-primary hover:bg-primary-hover text-primary-foreground rounded-lg"
+        type="button"
+        class="mt-auto inline-flex min-h-11 items-center justify-center bg-primary hover:bg-primary-hover text-primary-foreground rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
         :disabled="!inStock || cartStore.isAdding"
         @click="addToCart"
       >
         افزودن به سبد
-      </UButton>
+      </button>
     </div>
   </div>
 </template>

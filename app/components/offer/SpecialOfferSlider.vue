@@ -9,10 +9,13 @@ onMounted(() => offerStore.fetchOffer())
 
       <div class="flex flex-col items-center justify-center sm:items-start gap-3 sm:w-52 shrink-0 text-center sm:text-start">
         <h2 class="text-lg sm:text-2xl font-bold text-offer-foreground">پیشنهاد شگفت‌انگیز</h2>
-        <UButton to="products?category=offer" variant="outline" 
-          class="border-white/40 text-offer-foreground bg-white/20 hover:bg-white/10 rounded-full px-6">
+        <button
+          type="button"
+          class="inline-flex items-center justify-center border border-white/40 text-offer-foreground bg-white/20 hover:bg-white/10 rounded-full px-6 py-2 text-sm font-medium transition-colors"
+          @click="navigateTo('/products?category=offer')"
+        >
           مشاهده همه
-        </UButton>
+        </button>
         <UiCountdownTimer :target-date="offerStore.endsAt" />
       </div>
 

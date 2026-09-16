@@ -84,13 +84,13 @@ const clipStyle = computed(() =>
         v-if="exceedsOneRow"
         class="absolute inset-x-0 bottom-0 h-20 flex items-end justify-center pb-4 bg-linear-to-t from-surface via-surface/50 to-transparent backdrop-blur-sm rounded-b-md"
       >
-        <UButton
-          :to="`/products?category=${categoryId}`"
-          variant="soft"
-          class="bg-primary hover:bg-primary-hover text-primary-foreground px-6 py-2 rounded-xl"
+        <button
+          type="button"
+          class="inline-flex items-center justify-center bg-primary hover:bg-primary-hover text-primary-foreground px-6 py-2 rounded-xl text-sm font-medium transition-colors"
+          @click="navigateTo(`/products?category=${categoryId}`)"
         >
           مشاهده همه
-        </UButton>
+        </button>
       </div>
     </div>
   </section>

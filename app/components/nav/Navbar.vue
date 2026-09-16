@@ -51,18 +51,26 @@ function toggleCategories() {
           <UIcon name="solar:magnifer-linear" class="size-5" />
         </button>
 
-        <UButton :to="authStore.isAuthenticated ? '/profile' : '/auth'" variant="ghost" size="sm" class="flex justify-center text-text-primary">
+        <button
+          type="button"
+          class="inline-flex items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm text-text-primary hover:bg-surface-hover transition-colors"
+          @click="navigateTo(authStore.isAuthenticated ? '/profile' : '/auth')"
+        >
           <UIcon :name="authStore.isAuthenticated ? 'solar:user-outline' : 'solar:login-2-broken'" class="size-5" />
           <span class="hidden sm:inline">{{ authStore.isAuthenticated ? 'پروفایل' : 'ورود' }}</span>
-        </UButton>
+        </button>
 
-        <UButton to="/cart" variant="ghost" size="sm" class="relative text-text-primary">
+        <button
+          type="button"
+          class="relative inline-flex items-center justify-center rounded-md px-3 py-1.5 text-sm text-text-primary hover:bg-surface-hover transition-colors"
+          @click="navigateTo('/cart')"
+        >
           <div class="flex items-center gap-2">
             <UIcon name="solar:cart-4-outline" class="size-5" />
             <span class="hidden sm:inline">سبد خرید</span>
             <UiCounterBadge :count="cartStore.itemCount" />
           </div>
-        </UButton>
+        </button>
       </div>
     </div>
 
