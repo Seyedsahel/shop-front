@@ -1,10 +1,12 @@
 export default defineEventHandler(async (event) => {
   const body = await readBody<RequestOtpPayload>(event)
 
-  await backendFetch('api/auth/otp/request', { 
+  const response = await backendFetch<RequestOtpResponse>('api/auth/otp/request', {
     method: 'POST',
-    body: { phone: body.phone },
-   })
+    // The backend expects JSON encoded as text/plain for this endpoint.
+    body: JSON.stringify({ phone: body.phone }),
+    headers: { 'Content-Type': 'text/plain' },
+  })
   
-  return { success: true } satisfies VerifyOtpResponse
+  return response
 })

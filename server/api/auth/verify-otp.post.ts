@@ -4,13 +4,14 @@ export default defineEventHandler(async (event) => {
 
   const res = await backendFetch<BackendOtpVerifyResponse>('api/auth/otp/verify', {
     method: 'POST',
-    body:{ phone: body.phone,
-           code: body.code },
+    // The backend expects JSON encoded as text/plain for this endpoint.
+    body: JSON.stringify({ phone: body.phone, code: body.code }),
+    headers: { 'Content-Type': 'text/plain' },
   })
 
   setCookie(event, 'auth_token', res.token, {
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
       maxAge: 60 * 60 * 24 * 30,

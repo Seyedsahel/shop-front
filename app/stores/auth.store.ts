@@ -10,7 +10,7 @@ export const useAuthStore = defineStore('auth', () => {
   async function requestOtp(value: string) {
     isLoading.value = true
     try {
-      await useApi().post<VerifyOtpResponse>('/auth/request-otp', { phone: value } satisfies RequestOtpPayload)
+      await useApi().post<RequestOtpResponse>('/auth/request-otp', { phone: value } satisfies RequestOtpPayload)
       phone.value = value
       step.value = 'otp'
       otpRequestedAt.value = new Date(Date.now() + 60_000).toISOString()
@@ -29,8 +29,11 @@ export const useAuthStore = defineStore('auth', () => {
     isLoading.value = true
     try {
       await useApi().post<VerifyOtpResponse>('/auth/verify-otp', { phone: phone.value, code } satisfies VerifyOtpPayload)
-      
-      await fetchSession()
+
+      // The verify endpoint sets the HttpOnly auth cookie. A profile cannot be
+      // fetched until the backend provides /auth/me.
+      isAuthenticated.value = true
+      user.value = null
       useAppToast().success('ورود با موفقیت انجام شد.')
     } catch (e) {
       useAppToast().error(e instanceof ApiError ? e.message : 'کد وارد شده صحیح نیست.')
@@ -41,6 +44,8 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function fetchSession() {
+    // TODO(auth): This local session probe must call the backend /auth/me
+    // endpoint when it becomes available.
     const res = await useApi().get<SessionResponse>('/auth/me')
     isAuthenticated.value = res.isAuthenticated
     user.value = res.user ?? null

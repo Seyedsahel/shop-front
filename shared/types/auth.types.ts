@@ -8,12 +8,24 @@ export interface VerifyOtpPayload {
   code: string
 }
 
+export interface RequestOtpResponse {
+  message: string
+}
+
 export interface VerifyOtpResponse {
   success: boolean
 }
 
 export interface BackendOtpVerifyResponse {
   token: string
+}
+
+export interface BackendLogoutPayload {
+  refresh_token: string
+}
+
+export interface BackendLogoutResponse {
+  status: string
 }
 
 export interface User {
