@@ -28,10 +28,17 @@ export interface BackendLogoutResponse {
   status: string
 }
 
+export interface BackendAuthValidateResponse {
+  valid: boolean
+  user_id: string
+  role: string
+}
+
 export interface User {
   id: string
+  role?: string
   name?: string
-  phone: string
+  phone?: string
 }
 
 export interface SessionResponse {

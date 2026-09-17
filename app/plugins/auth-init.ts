@@ -3,8 +3,5 @@ export default defineNuxtPlugin(async () => {
 
   try {
     await authStore.fetchSession()
-  } catch {
-    authStore.isAuthenticated = false
-    authStore.user = null
-  }
+  } catch {}
 })

@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
     const response = await backendFetch<BackendLogoutResponse>('api/auth/logout', {
       method: 'POST',
       body: { refresh_token: authToken } satisfies BackendLogoutPayload,
-    })
+    }, event)
 
     deleteCookie(event, 'auth_token', { path: '/' })
     return response

@@ -2,8 +2,24 @@ export default defineEventHandler(async (event): Promise<SessionResponse> => {
   const token = getCookie(event, 'auth_token')
   if (!token) return { isAuthenticated: false }
 
-  // TODO(auth): Replace this cookie-presence check with backend token validation
-  // once the backend provides /auth/me. Do not derive a user profile from the JWT
-  // on the client or server before then.
-  return {isAuthenticated: true}
+  try {
+    const validation = await backendFetch<BackendAuthValidateResponse>('api/auth/validate', {}, event)
+
+    if (!validation.valid) {
+      deleteCookie(event, 'auth_token', { path: '/' })
+      return { isAuthenticated: false }
+    }
+
+    return {
+      isAuthenticated: true,
+      user: { id: validation.user_id, role: validation.role },
+    }
+  } catch (error: any) {
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      deleteCookie(event, 'auth_token', { path: '/' })
+      return { isAuthenticated: false }
+    }
+
+    throw error
+  }
 })

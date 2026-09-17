@@ -4,6 +4,7 @@ export const useAuthStore = defineStore('auth', () => {
   const isLoading = ref(false)
   const isAuthenticated = ref(false)
   const user = ref<User | null>(null)
+  const sessionChecked = ref(false)
   const otpRequestedAt = ref<string | null>(null)
   const returnTo = ref<string | null>(null)
 
@@ -30,10 +31,7 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       await useApi().post<VerifyOtpResponse>('/auth/verify-otp', { phone: phone.value, code } satisfies VerifyOtpPayload)
 
-      // The verify endpoint sets the HttpOnly auth cookie. A profile cannot be
-      // fetched until the backend provides /auth/me.
-      isAuthenticated.value = true
-      user.value = null
+      await fetchSession()
       useAppToast().success('ورود با موفقیت انجام شد.')
     } catch (e) {
       useAppToast().error(e instanceof ApiError ? e.message : 'کد وارد شده صحیح نیست.')
@@ -44,11 +42,18 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function fetchSession() {
-    // TODO(auth): This local session probe must call the backend /auth/me
-    // endpoint when it becomes available.
-    const res = await useApi().get<SessionResponse>('/auth/me')
-    isAuthenticated.value = res.isAuthenticated
-    user.value = res.user ?? null
+    try {
+      const res = await useApi().get<SessionResponse>('/auth/me')
+      isAuthenticated.value = res.isAuthenticated
+      user.value = res.user ?? null
+      return res
+    } catch (error) {
+      isAuthenticated.value = false
+      user.value = null
+      throw error
+    } finally {
+      sessionChecked.value = true
+    }
   }
 
   async function logout() {
@@ -56,6 +61,7 @@ export const useAuthStore = defineStore('auth', () => {
       await useApi().post('/auth/logout')
       isAuthenticated.value = false
       user.value = null
+      sessionChecked.value = true
       step.value = 'phone'
       phone.value = ''
       useAppToast().success('با موفقیت خارج شدید.')
@@ -72,14 +78,15 @@ export const useAuthStore = defineStore('auth', () => {
   
   function requireAuth(path: string) {
     returnTo.value = path
-    navigateTo('/auth')
+    navigateTo({ path: '/auth', query: { redirect: path } })
   }
 
   function consumeReturnTo(): string | null {
-    const target = returnTo.value
+    const redirect = useRoute().query.redirect
+    const target = returnTo.value ?? (typeof redirect === 'string' && redirect.startsWith('/') ? redirect : null)
     returnTo.value = null
     return target
   }
 
-  return { step, phone, isLoading, isAuthenticated, user, otpRequestedAt,requestOtp, verifyOtp, resendOtp, fetchSession, logout, goBackToPhone, requireAuth, consumeReturnTo }
+  return { step, phone, isLoading, isAuthenticated, user, sessionChecked, otpRequestedAt, requestOtp, verifyOtp, resendOtp, fetchSession, logout, goBackToPhone, requireAuth, consumeReturnTo }
 })
