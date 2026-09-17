@@ -11,6 +11,7 @@ const isLoading = computed(() => productListStore.previewLoading[props.categoryI
 <template>
 
   <UiSlider
+  v-if="products.length || isLoading"
   :title="title"
   :is-loading="isLoading"
   :item-width-px="176"

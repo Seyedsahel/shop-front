@@ -4,7 +4,7 @@ onMounted(() => brandStore.fetchBrands())
 </script>
 
 <template>
-  <UiSlider title="محبوب‌ترین برندها" :is-loading="brandStore.isLoading" :skeleton-count="8" :item-width-px="112">
+  <UiSlider v-if="brandStore.items.length || brandStore.isLoading" title="محبوب‌ترین برندها" :is-loading="brandStore.isLoading" :skeleton-count="8" :item-width-px="112">
         
     <NuxtLink
             v-for="brand in brandStore.items"

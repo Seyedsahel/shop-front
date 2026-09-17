@@ -28,7 +28,7 @@ onBeforeUnmount(stop)
 </script>
 
 <template>
-  <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+  <section v-if="bannerStore.slider.length || bannerStore.isLoading" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
     <div v-if="bannerStore.isLoading" class="w-full bg-loading aspect-video sm:aspect-21/7 rounded-2xl animate-pulse" />
 
     <div v-else class="w-full">
