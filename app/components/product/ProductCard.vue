@@ -7,7 +7,8 @@ const finalPrice = computed(() => props.product.price?.final ?? props.product.ba
 const hasDiscount = computed(() => (props.product.price?.discountPercent ?? 0) > 0)
 
 function addToCart() {
-  cartStore.addItem(props.product.id)
+  // TODO: Replace local cart mutation with Cart API.
+  cartStore.addItem(props.product.id, 1, props.product)
 }
 </script>
 
