@@ -77,6 +77,21 @@ export interface ProductVariant {
   stock: number
 }
 
+export interface ProductDetailPrice {
+  original: number
+  final: number
+  discount: number
+  discountPercent: number
+}
+
+export interface ProductDetailBrand {
+  id: string
+  name: string
+  slug: string
+  fileId: string | null
+  description: string
+}
+
 export interface ProductDetail {
   id: string
   name: string
@@ -84,6 +99,8 @@ export interface ProductDetail {
   description: string
   basePrice: number
   baseStock: number
+  price: ProductDetailPrice
+  brand: ProductDetailBrand | null
   images: ProductDetailImage[]
   categories: ProductDetailCategory[]
   specifications: ProductSpecification[]
