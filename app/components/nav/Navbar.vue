@@ -104,7 +104,7 @@ watch(width, () => {
 
         <button
           type="button"
-          class="inline-flex items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm text-text-primary hover:bg-surface-hover transition-colors"
+          class="inline-flex cursor-pointer items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm text-text-primary transition-colors hover:bg-surface-hover"
           @click="navigateTo(authStore.isAuthenticated ? '/profile' : '/auth')"
         >
           <UIcon :name="authStore.isAuthenticated ? 'solar:user-outline' : 'solar:login-2-broken'" class="size-5" />
@@ -113,7 +113,7 @@ watch(width, () => {
 
         <button
           type="button"
-          class="relative inline-flex items-center justify-center rounded-md px-3 py-1.5 text-sm text-text-primary hover:bg-surface-hover transition-colors"
+          class="relative inline-flex cursor-pointer items-center justify-center rounded-md px-3 py-1.5 text-sm text-text-primary transition-colors hover:bg-surface-hover"
           @click="navigateTo('/cart')"
         >
           <div class="flex items-center gap-2">
@@ -133,7 +133,7 @@ watch(width, () => {
       <!-- Categories: trigger + desktop dropdown share one click-outside boundary -->
       <div ref="categoriesWrapper" class="relative">
         <button
-          class="flex items-center gap-2 text-sm text-text-secondary hover:text-text-primary transition-colors"
+          class="flex cursor-pointer items-center gap-2 text-sm text-text-secondary transition-colors hover:text-text-primary"
           @click="toggleCategories"
         >
           <UIcon name="solar:hamburger-menu-outline" class="size-4" />
