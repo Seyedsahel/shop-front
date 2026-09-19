@@ -41,7 +41,13 @@ export interface User {
   phone?: string
 }
 
+export interface BackendGuestResponse {
+  token: string
+}
+
 export interface SessionResponse {
+  identity: string | null
+  hasGuestSession: boolean
   isAuthenticated: boolean
   user?: User
 }

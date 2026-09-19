@@ -4,5 +4,5 @@ export default defineEventHandler(async (event) => {
 
   if (config.useMockData) return { success: true }
 
-  return await backendFetch('/engagement/comments', { method: 'POST', body })
+  return await backendFetch('/engagement/comments', { method: 'POST', authorization: 'user', body }, event)
 })

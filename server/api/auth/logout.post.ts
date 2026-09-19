@@ -7,13 +7,14 @@ export default defineEventHandler(async (event) => {
     // credential available for the backend's required refresh_token field.
     const response = await backendFetch<BackendLogoutResponse>('api/auth/logout', {
       method: 'POST',
+      authorization: 'user',
       body: { refresh_token: authToken } satisfies BackendLogoutPayload,
     }, event)
 
-    deleteCookie(event, 'auth_token', { path: '/' })
+    clearSessionCookies(event)
     return response
   }
 
-  deleteCookie(event, 'auth_token', { path: '/' })
+  clearSessionCookies(event)
   return { status: 'already_logged_out' } satisfies BackendLogoutResponse
 })

@@ -5,7 +5,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
     try {
       await authStore.fetchSession()
     } catch {
-      // The session store has already reset its state.
+      // A failed session check does not grant access.
     }
   }
 
