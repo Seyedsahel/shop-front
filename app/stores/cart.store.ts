@@ -1,54 +1,120 @@
-const initialItems: CartUiItem[] = [
-  { id: 'cart-1', productId: 'rose-serum', slug: 'rose-serum', name: 'سرم ویتامین سی وایت ویت ویتالایر', imageUrl: 'https://dkstatics-public.digikala.com/digikala-products/c64720f4446aa94b873dab4ae35091bc3f0fcc22_1637680139.jpg?x-oss-process=image/resize,m_lfit,h_600,w_600/quality,q_80/format,webp', description: 'حجم ۳۰ میلی‌لیتر · روشن‌کننده و محرک کلاژن‌سازی', unitPrice: 480000, originalPrice: 600000, quantity: 1, stock: 5 },
-  { id: 'cart-2', productId: 'cashmere-cream', slug: 'cashmere-cream', name: 'کرم مرطوب‌کننده و ترمیم‌کننده کشمیری', imageUrl: 'https://dkstatics-public.digikala.com/digikala-products/c64720f4446aa94b873dab4ae35091bc3f0fcc22_1637680139.jpg?x-oss-process=image/resize,m_lfit,h_600,w_600/quality,q_80/format,webp', description: 'مناسب پوست خشک و حساس · بافت سبک و جذب سریع', unitPrice: 320000, quantity: 2, stock: 8 },
-  { id: 'cart-3', productId: 'amber-oil', slug: 'amber-oil', name: 'روغن مراقبت پوست با عصاره‌های گیاهی', imageUrl: 'https://dkstatics-public.digikala.com/digikala-products/c64720f4446aa94b873dab4ae35091bc3f0fcc22_1637680139.jpg?x-oss-process=image/resize,m_lfit,h_600,w_600/quality,q_80/format,webp', description: '۳۰ میلی‌لیتر · تغذیه‌کننده و نرم‌کننده پوست', unitPrice: 275000, originalPrice: 340000, quantity: 1, stock: 3 },
-]
-
 export const useCartStore = defineStore('cart', () => {
-  // TODO: Replace this temporary UI state with Cart API-backed canonical state.
-  const items = ref<CartUiItem[]>(initialItems.map(item => ({ ...item })))
-  // TODO: Replace with Favorites API-backed canonical state.
-  const wishlistProductIds = ref<string[]>([])
-  const isAdding = ref(false)
-  const itemCount = computed(() => items.value.reduce((sum, item) => sum + item.quantity, 0))
-  const subtotal = computed(() => items.value.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0))
-  const discount = computed(() => items.value.reduce((sum, item) => sum + ((item.originalPrice ?? item.unitPrice) - item.unitPrice) * item.quantity, 0))
+  const auth = useAuthStore()
+  const api = useApi()
+  const cart = ref<CartViewResponse | null>(null)
+  const isLoading = ref(false)
+  const isMutating = ref(false)
+  const loaded = ref(false)
+  const stale = ref(false)
+  const error = ref('')
+  let epoch = 0
+  let fetchPromise: Promise<void> | null = null
+  const busy = computed(() => isLoading.value || isMutating.value)
+  const items = computed<CartUiItem[]>(() => Object.values(cart.value?.products ?? {}).map(item => {
+    const product = cart.value?.presentation[item.product_id]
+    const variant = product?.purchaseVariants.find(entry => entry.variantId === item.variant_id)
+    return {
+      ...item,
+      name: product?.name ?? null,
+      slug: product?.slug ?? null,
+      imageUrl: product?.images.find(image => image.isThumbnail)?.imageUrl ?? product?.images[0]?.imageUrl ?? null,
+      description: variant ? `${variant.name}: ${variant.value}` : product?.description ?? '',
+      stock: item.variant_id ? variant?.stock ?? null : product?.baseStock ?? null,
+      presentationUnavailable: !product || Boolean(item.variant_id && !variant),
+    }
+  }))
+  const itemCount = computed(() => items.value.length)
+  const subtotalOriginal = computed(() => cart.value?.pricing.subtotal_original ?? 0)
+  const subtotal = computed(() => cart.value?.pricing.subtotal ?? 0)
+  const discount = computed(() => cart.value?.pricing.discount ?? 0)
+  const total = computed(() => cart.value?.pricing.total ?? 0)
 
-  function fetchCart() {
-    // TODO: Replace with Cart API fetch. The mock is initialized above for UI development.
+  watch(() => auth.identity, () => {
+    epoch++
+    cart.value = null
+    loaded.value = false
+    stale.value = false
+    error.value = ''
+    if (import.meta.client && !busy.value) void fetchCart().catch(() => {})
+  }, { flush: 'sync' })
+
+  async function readCart(activeEpoch: number) {
+    const response = await api.get<CartViewResponse>('/cart')
+    if (epoch !== activeEpoch) throw new ApiError('نشست خرید تغییر کرده است؛ دوباره تلاش کنید.')
+    cart.value = response
+    loaded.value = true
+    stale.value = false
+    error.value = ''
   }
 
-  function addItem(productId: string, quantity = 1, product?: Product) {
-    isAdding.value = true
-    const existing = items.value.find(item => item.productId === productId)
-    if (existing) existing.quantity = Math.min(existing.quantity + quantity, existing.stock)
-    else items.value.push({
-      id: `cart-${productId}`,
-      productId,
-      slug: product?.slug ?? productId,
-      name: product?.name ?? 'محصول انتخاب‌شده',
-      imageUrl: product?.imageUrl ?? '',
-      description: product?.description ?? 'جزئیات محصول پس از اتصال به API نمایش داده می‌شود.',
-      unitPrice: product?.price.final ?? product?.basePrice ?? 0,
-      originalPrice: product?.price.original,
-      quantity,
-      stock: product?.stock ?? quantity,
+  function fetchCart(): Promise<void> {
+    if (fetchPromise) return fetchPromise
+    if (isMutating.value) return Promise.resolve()
+    isLoading.value = true
+    error.value = ''
+    fetchPromise = auth.withShoppingSession(false, async session => {
+      if (!session.identity) {
+        cart.value = null
+        loaded.value = true
+        stale.value = false
+        return
+      }
+      await readCart(epoch)
+    }).catch(caught => {
+      error.value = caught instanceof ApiError ? caught.message : 'دریافت سبد خرید ناموفق بود.'
+      stale.value = true
+      throw caught
+    }).finally(() => {
+      isLoading.value = false
+      fetchPromise = null
     })
-    useAppToast().success('محصول به سبد خرید اضافه شد.')
-    isAdding.value = false
+    return fetchPromise
   }
 
-  function increase(id: string) { const item = items.value.find(entry => entry.id === id); if (item && item.quantity < item.stock) item.quantity++ }
-  function decrease(id: string) { const item = items.value.find(entry => entry.id === id); if (!item) return; if (item.quantity === 1) remove(id); else item.quantity-- }
-  function remove(id: string) { items.value = items.value.filter(item => item.id !== id) }
-  function clear() { items.value = [] }
-  function moveToWishlist(id: string) {
-    const item = items.value.find(entry => entry.id === id)
-    if (!item) return
-    if (!wishlistProductIds.value.includes(item.productId)) wishlistProductIds.value.push(item.productId)
-    remove(id)
-    useAppToast().success('محصول به علاقه‌مندی‌ها منتقل شد.')
+  async function mutate(action: () => Promise<unknown>, create = false) {
+    if (busy.value) throw new ApiError('لطفاً تا پایان عملیات سبد خرید صبر کنید.')
+    if (stale.value) throw new ApiError('ابتدا سبد خرید را دوباره دریافت کنید.')
+    isMutating.value = true
+    error.value = ''
+    const startingIdentity = auth.identity
+    try {
+      await auth.withShoppingSession(create, async session => {
+        if (!session.identity || (!create && session.identity !== startingIdentity)) {
+          throw new ApiError('نشست خرید تغییر کرده است؛ سبد را دوباره دریافت کنید.')
+        }
+        const activeEpoch = epoch
+        await action()
+        try {
+          await readCart(activeEpoch)
+        } catch {
+          stale.value = true
+          throw new ApiError('تغییر ثبت شد، اما دریافت سبد جدید ناموفق بود. فقط دریافت سبد را دوباره امتحان کنید.', undefined, 'CART_REFRESH_FAILED')
+        }
+      })
+    } catch (caught) {
+      stale.value = true
+      error.value = caught instanceof ApiError ? caught.message : 'تغییر سبد خرید ناموفق بود.'
+      throw caught
+    } finally {
+      isMutating.value = false
+    }
   }
 
-  return { items, itemCount, subtotal, discount, wishlistProductIds, isAdding, fetchCart, addItem, increase, decrease, remove, clear, moveToWishlist }
+  function addItem(productId: string, quantity: number, variantId: string | null) {
+    if (!Number.isSafeInteger(quantity) || quantity < 1) return Promise.reject(new ApiError('تعداد معتبر نیست.'))
+    return mutate(() => api.post('/cart/items', { product_id: productId, quantity, variant_id: variantId } satisfies CartItemPayload), true)
+  }
+  function updateQuantity(id: string, quantity: number) {
+    const item = cart.value?.products[id]
+    if (!item || !Number.isSafeInteger(quantity) || quantity < 1) return Promise.reject(new ApiError('کالا یا تعداد معتبر نیست.'))
+    return mutate(() => api.patch(`/cart/items/${encodeURIComponent(id)}`, {
+      product_id: item.product_id, variant_id: item.variant_id?.trim() || null, quantity,
+    } satisfies CartItemPayload))
+  }
+  function remove(id: string) {
+    return mutate(() => api.delete(`/cart/items/${encodeURIComponent(id)}`))
+  }
+  function clear() { return mutate(() => api.delete('/cart')) }
+
+  return { cart, items, itemCount, subtotalOriginal, subtotal, discount, total, isLoading, isMutating, busy, loaded, stale, error, fetchCart, addItem, updateQuantity, remove, clear }
 })

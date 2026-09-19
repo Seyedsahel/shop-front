@@ -3,6 +3,21 @@ export const useProductDetailStore = defineStore('productDetail', () => {
   const isLoading = ref(false)
   const error = ref('')
   let requestId = 0
+  const bySlug = ref<Record<string, ProductDetail>>({})
+  const pending = new Map<string, Promise<ProductDetail>>()
+
+  function loadBySlug(slug: string): Promise<ProductDetail> {
+    const key = slug.trim()
+    if (!key) return Promise.reject(new ApiError('شناسهٔ محصول نامعتبر است.'))
+    const existing = pending.get(key)
+    if (existing) return existing
+    const api = useApi()
+    const request = api.get<ProductDetail>(`/catalog/product-detail/${encodeURIComponent(key)}`)
+      .then(product => { bySlug.value[key] = product; return product })
+      .finally(() => { pending.delete(key) })
+    pending.set(key, request)
+    return request
+  }
 
   async function fetchBySlug(slug: string) {
     const normalizedSlug = slug.trim()
@@ -17,7 +32,7 @@ export const useProductDetailStore = defineStore('productDetail', () => {
     error.value = ''
 
     try {
-      const product = await useApi().get<ProductDetail>(`/catalog/product-detail/${encodeURIComponent(normalizedSlug)}`)
+      const product = await loadBySlug(normalizedSlug)
       if (activeRequest !== requestId) return
       current.value = product
     } catch (caught) {
@@ -29,5 +44,5 @@ export const useProductDetailStore = defineStore('productDetail', () => {
     }
   }
 
-  return { current, isLoading, error, fetchBySlug }
+  return { bySlug, loadBySlug, current, isLoading, error, fetchBySlug }
 })

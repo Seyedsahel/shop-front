@@ -1,14 +1,14 @@
 <script setup lang="ts">
 const props = defineProps<{ product: Product; variant?: 'default' | 'compact' }>()
-const cartStore = useCartStore()
+
+const quickAddOpen = ref(false)
 
 const inStock = computed(() => props.product.stock > 0)
 const finalPrice = computed(() => props.product.price?.final ?? props.product.basePrice)
 const hasDiscount = computed(() => (props.product.price?.discountPercent ?? 0) > 0)
 
 function addToCart() {
-  // TODO: Replace local cart mutation with Cart API.
-  cartStore.addItem(props.product.id, 1, props.product)
+  quickAddOpen.value = true
 }
 </script>
 
@@ -30,11 +30,11 @@ function addToCart() {
             {{ product.price.discountPercent.toLocaleString('fa-IR') }}٪
           </span>
           <span class="text-xs text-text-muted line-through">
-            {{ product.price.original.toLocaleString('fa-IR') }}
+            {{ formatMoney(product.price.original) }}
           </span>
         </div>
         <span class="text-sm font-semibold text-text-primary">
-          {{ finalPrice.toLocaleString('fa-IR') }} تومان
+          {{ formatMoney(finalPrice) }}
         </span>
       </div>
 
@@ -42,11 +42,12 @@ function addToCart() {
         v-if="variant !== 'compact'"
         type="button"
         class="mt-auto inline-flex min-h-11 items-center justify-center bg-primary hover:bg-primary-hover text-primary-foreground rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-        :disabled="!inStock || cartStore.isAdding"
+        :disabled="!inStock"
         @click="addToCart"
       >
         افزودن به سبد
       </button>
     </div>
+    <ProductQuickAdd v-if="quickAddOpen" v-model="quickAddOpen" :product="product" />
   </div>
 </template>

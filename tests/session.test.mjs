@@ -89,9 +89,9 @@ test('authenticated identity wins and guest issuance is skipped', async () => {
   assert.match(response.headers.get('set-cookie'), /guest_token=; Max-Age=0/)
 })
 
-test('login replaces guest identity; logout clears both cookies', async () => {
+test('login forwards the guest bearer token, replaces guest identity, and logout clears both cookies', async () => {
   globalThis.$fetch = async (_, options) => {
-    assert.equal(options.headers.get('authorization'), null)
+    assert.equal(options.headers.get('authorization'), 'Bearer guest')
     return { token: 'new-user' }
   }
   const response = await request(login, 'guest_token=guest', { phone: '123', code: '1234' })

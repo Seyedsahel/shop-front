@@ -5,7 +5,7 @@ export default defineEventHandler(async (event): Promise<SubmitConsultationRespo
   if (config.useMockData) return { success: true }
 
   return await backendFetch<SubmitConsultationResponse>('/booking/consultation-request', {
-    method: 'POST',
+    method: 'POST', authorization: 'user',
     body,
-  })
+  }, event)
 })

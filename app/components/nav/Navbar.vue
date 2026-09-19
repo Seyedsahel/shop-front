@@ -3,7 +3,7 @@ import { useWindowSize } from '@vueuse/core'
 
 const authStore = useAuthStore()
 const cartStore = useCartStore()
-onMounted(() => cartStore.fetchCart())
+onMounted(() => { void cartStore.fetchCart().catch(() => {}) })
 
 const navLinks = [
   { label: 'خانه', href: '/' },

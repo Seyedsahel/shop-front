@@ -47,10 +47,6 @@ const error = computed(() => productListStore.searchError)
 const total = computed(() => productListStore.searchTotal)
 const searchRoute = computed(() => ({ path: '/products', query: { search: normalizedQuery.value } }))
 
-function formatPrice(value: number) {
-  return value.toLocaleString('fa-IR')
-}
-
 function productPrice(product: Product) {
   return product.price?.final ?? product.basePrice
 }
@@ -140,8 +136,7 @@ function close() {
             {{ product.name }}
           </h4>
           <div class="mt-2 text-sm font-bold text-text-primary">
-            {{ formatPrice(productPrice(product)) }}
-            <span class="text-[11px] font-normal text-text-secondary">تومان</span>
+            {{ formatMoney(productPrice(product)) }}
           </div>
           <div v-if="product.price.discountPercent > 0" class="mt-1 text-[11px] text-danger">
             {{ product.price.discountPercent.toLocaleString('fa-IR') }}٪ تخفیف

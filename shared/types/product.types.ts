@@ -106,3 +106,10 @@ export interface ProductDetail {
   specifications: ProductSpecification[]
   purchaseVariants: ProductVariant[]
 }
+
+/** Fields used from GET /api/products/{id} before requesting slug-based details. */
+export interface BackendProductLookupResponse {
+  id: string
+  slug: string
+  thumbnail_url: string | null
+}

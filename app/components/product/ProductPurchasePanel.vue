@@ -1,4 +1,6 @@
 <script setup lang="ts">
+const cartStore = useCartStore()
+const toast = useAppToast()
 const props = defineProps<{ product: ProductDetail }>()
 
 const selectedVariantId = ref<string | null>(null)
@@ -30,12 +32,14 @@ watch(availableStock, stock => {
   quantity.value = Math.min(Math.max(quantity.value, 1), Math.max(stock, 1))
 })
 
-function formatPrice(value: number) {
-  return `${value.toLocaleString('fa-IR')} تومان`
-}
-
-function addToCart() {
-  // TODO: Connect selectedVariantId and quantity to the cart API when cart mutations are implemented.
+async function addToCart() {
+  if (!isInStock.value || cartStore.busy) return
+  try {
+    await cartStore.addItem(props.product.id, quantity.value, selectedVariantId.value)
+    toast.success('محصول به سبد خرید اضافه شد.')
+  } catch (error) {
+    toast.error(error instanceof ApiError ? error.message : 'افزودن به سبد ناموفق بود.')
+  }
 }
 
 function toggleFavorite() {
@@ -60,8 +64,8 @@ function toggleFavorite() {
     <div class="rounded-2xl bg-primary-subtle p-4 sm:p-5">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-baseline gap-2">
-          <span class="text-2xl font-bold text-text-primary sm:text-3xl">{{ formatPrice(unitPrice) }}</span>
-          <span v-if="canShowDiscount" class="text-sm text-text-muted line-through">{{ formatPrice(product.price.original) }}</span>
+          <span class="text-2xl font-bold text-text-primary sm:text-3xl">{{ formatMoney(unitPrice) }}</span>
+          <span v-if="canShowDiscount" class="text-sm text-text-muted line-through">{{ formatMoney(product.price.original) }}</span>
           <UiBadge v-if="canShowDiscount" variant="discount">{{ product.price.discountPercent.toLocaleString('fa-IR') }}٪ تخفیف</UiBadge>
         </div>
         <UiBadge :variant="isInStock ? 'stock' : 'discount'">
@@ -87,7 +91,7 @@ function toggleFavorite() {
         >
           <span class="flex items-center justify-between gap-3 font-medium text-text-primary">
             <span>{{ variant.value }}</span>
-            <span>{{ formatPrice(variant.finalPrice) }}</span>
+            <span>{{ formatMoney(variant.finalPrice) }}</span>
           </span>
           <span class="mt-2 block text-xs" :class="variant.stock > 0 ? 'text-success' : 'text-danger'">
             {{ variant.stock > 0 ? `${variant.stock.toLocaleString('fa-IR')} عدد موجود` : 'ناموجود' }}
@@ -96,6 +100,7 @@ function toggleFavorite() {
       </div>
     </div>
 
+    <div v-if="cartStore.stale" role="alert" class="text-sm text-danger">{{ cartStore.error }} <NuxtLink to="/cart" class="underline">بررسی و دریافت دوباره سبد</NuxtLink></div>
     <div class="flex flex-col gap-3 sm:flex-row">
       <div class="flex h-12 w-full items-center justify-between rounded-xl border border-border-strong bg-card sm:w-36">
         <button type="button" class="grid size-11 place-items-center text-text-secondary hover:text-primary 
@@ -108,9 +113,9 @@ function toggleFavorite() {
         </button>
       </div>
       <div class="flex w-full gap-3 sm:flex-1">
-        <button type="button" class="inline-flex min-h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:bg-disabled-bg disabled:text-disabled-text sm:h-12 sm:py-0" :disabled="!isInStock" @click="addToCart">
+        <button type="button" class="inline-flex min-h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:bg-disabled-bg disabled:text-disabled-text sm:h-12 sm:py-0" :disabled="!isInStock || cartStore.busy || cartStore.stale" @click="addToCart">
           <UIcon name="solar:cart-large-2-outline" class="size-5 shrink-0" />
-          <span class="truncate">{{ isInStock ? `افزودن به سبد · ${formatPrice(totalPrice)}` : 'این محصول ناموجود است' }}</span>
+          <span class="truncate">{{ cartStore.isMutating ? 'در حال افزودن به سبد…' : isInStock ? `افزودن به سبد · ${formatMoney(totalPrice)}` : 'این محصول ناموجود است' }}</span>
         </button>
         <button type="button" class="inline-flex size-12 shrink-0 items-center justify-center rounded-xl border border-secondary bg-primary-subtle text-text-primary transition-colors hover:bg-secondary-subtle hover:text-primary" aria-label="افزودن به علاقه‌مندی‌ها" @click="toggleFavorite">
           <UIcon name="solar:heart-outline" class="size-5" />
