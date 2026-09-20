@@ -1,10 +1,4 @@
-// server/api/engagement/stories.get.ts
 export default defineEventHandler(async (event): Promise<StoriesResponse> => {
-  const config = useRuntimeConfig()
-
-  if (config.useMockData) {
-    return mockStoriesResponse
-  }
-
-  return await backendFetch<StoriesResponse>('/engagement/stories')
+  const stories = await backendFetch<StoryApiItem[]>('/api/stories', { authorization: 'none' }, event)
+  return { items: stories.filter(isAvailableStory).map(mapStory) }
 })

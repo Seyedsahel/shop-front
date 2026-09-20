@@ -1,171 +1,65 @@
-<!-- app/pages/stories/[id].vue -->
 <script setup lang="ts">
 definePageMeta({ layout: false })
 
 const route = useRoute()
 const storyStore = useStoryStore()
-
-onMounted(async () => {
-  if (!storyStore.items.length)
-   await storyStore.fetchStories()
+const isClosing = ref(false)
+const isNavigating = ref(false)
+const storyId = computed(() => typeof route.params.id === 'string' ? route.params.id : '')
+const currentIndex = computed(() => storyStore.items.findIndex(story => story.id === storyId.value))
+const current = computed(() => storyStore.items[currentIndex.value])
+const isLoading = computed(() => storyStore.isLoading || storyStore.isDetailLoading)
+const fallbackPath = computed(() => {
+  const from = route.query.from
+  return typeof from === 'string' && from.startsWith('/') && !from.startsWith('//') ? from : '/'
 })
 
-const currentIndex = computed(() =>
-  storyStore.items.findIndex(s => s.id === route.params.id)
-)
-const current = computed(() => storyStore.items[currentIndex.value])
-
-function goTo(index: number) {
+async function loadStory(id: string) {
+  if (!id) return
+  await storyStore.fetchStories()
+  if (!storyStore.items.some(story => story.id === id)) {
+    try { await storyStore.fetchStory(id) } catch { await close() }
+  }
+}
+async function close() {
+  if (isClosing.value) return
+  isClosing.value = true
+  await navigateTo(fallbackPath.value, { replace: true })
+}
+async function goTo(index: number) {
+  if (isClosing.value || isNavigating.value) return
   const target = storyStore.items[index]
-  if (!target) {
-    navigateTo('/') // ran off either end
-    return
-  }
-  navigateTo(`/stories/${target.id}`, { replace: true })
-}
-
-function next() { goTo(currentIndex.value + 1) }
-function prev() { goTo(currentIndex.value - 1) }
-
-watch(current, (story) => {
-  if (story) storyStore.markSeen(story.id)
-}, { immediate: true })
-
-// --- Auto-advance with progress ---
-const STORY_DURATION_MS = 5000
-const progress = ref(0) // 0 to 1, current story's fill
-let frame: number | undefined
-let startedAt = 0
-let pausedElapsed = 0
-let isPaused = false
-
-function tick(now: number) {
-  if (isPaused) return
-  const elapsed = pausedElapsed + (now - startedAt)
-  progress.value = Math.min(elapsed / STORY_DURATION_MS, 1)
-  if (progress.value >= 1) {
-    next()
-    return
-  }
-  frame = requestAnimationFrame(tick)
-}
-
-function startProgress() {
-  cancelAnimationFrame(frame ?? 0)
-  progress.value = 0
-  pausedElapsed = 0
-  isPaused = false
-  startedAt = performance.now()
-  frame = requestAnimationFrame(tick)
-}
-
-function pause() {
-  if (isPaused) return
-  isPaused = true
-  pausedElapsed += performance.now() - startedAt
-}
-
-function resume() {
-  if (!isPaused) return
-  isPaused = false
-  startedAt = performance.now()
-  frame = requestAnimationFrame(tick)
-}
-
-watch(current, () => startProgress(), { immediate: true })
-onBeforeUnmount(() => cancelAnimationFrame(frame ?? 0))
-
-// --- Swipe handling ---
-let startX = 0
-let startY = 0
-const SWIPE_THRESHOLD = 50
-
-function onTouchStart(e: TouchEvent) {
-  const touch = e.touches[0]
-  if (!touch) return
-  startX = touch.clientX
-  startY = touch.clientY
-  pause()
-}
-
-function onTouchEnd(e: TouchEvent) {
-  const touch = e.changedTouches[0]
-  if (!touch) return
-  const dx = touch.clientX - startX
-  const dy = touch.clientY - startY
-
-  if (Math.abs(dx) >= Math.abs(dy) && Math.abs(dx) >= SWIPE_THRESHOLD) {
-    dx < 0 ? next() : prev()
-  } else {
-    resume()
+  if (!target) return close()
+  isNavigating.value = true
+  try {
+    await navigateTo({ path: `/stories/${target.id}`, query: { from: fallbackPath.value } }, { replace: true })
+  } finally {
+    isNavigating.value = false
   }
 }
-
-function onKeydown(e: KeyboardEvent) {
-  if (e.key === 'ArrowLeft') next()
-  if (e.key === 'ArrowRight') prev()
-  if (e.key === 'Escape') navigateTo('/')
+function onKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape') close()
+  else if (event.key === 'ArrowLeft') goTo(currentIndex.value + 1)
+  else if (event.key === 'ArrowRight') goTo(currentIndex.value - 1)
 }
 
+watch(storyId, loadStory, { immediate: true })
+watch(current, story => { if (story) storyStore.markSeen(story.id) }, { immediate: true })
 onMounted(() => window.addEventListener('keydown', onKeydown))
 onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 </script>
 
 <template>
-  <div
-    v-if="current"
-    class="fixed inset-0 z-100 bg-charcoal flex items-center justify-center overflow-hidden"
-    @touchstart="onTouchStart"
-    @touchend="onTouchEnd"
-    @mousedown="pause"
-    @mouseup="resume"
-  >
-    <img :src="current.mediaUrl" alt="" class="absolute inset-0 size-full object-cover blur-2xl scale-110 opacity-60" />
-    <img :src="current.mediaUrl" :alt="current.title" class="relative z-10 max-h-full max-w-full object-contain" />
-
-    <!-- Progress segments -->
-    <div class="absolute top-3 inset-x-3 z-20 flex gap-1.5">
-      <div
-        v-for="(item, i) in storyStore.items"
-        :key="item.id"
-        class="h-1 flex-1 rounded-full bg-pearl-white/30 overflow-hidden"
-      >
-        <div
-          class="h-full bg-border-strong transition-all duration-100"
-          :style="{
-            width: i < currentIndex ? '100%' : i === currentIndex ? `${progress * 100}%` : '0%'
-          }"
-        />
-      </div>
-    </div>
-
-    <!-- Title bar -->
-    <div class="absolute top-7 inset-x-0 z-20 ">
-        <h1 class="text-accent-foreground font-medium text-sm text-center">
-          {{ current.title }}
-        </h1>
-      <button class="absolute top-1/2 inset-e-4 -translate-y-1/2 text-accent-foreground" @click="navigateTo('/')">
-        <UIcon name="solar:close-circle-broken" class="size-6" />
-      </button>
-    </div>
-
-    <button
-      v-if="currentIndex < storyStore.items.length - 1"
-      class="hidden sm:flex absolute top-1/2 -translate-y-1/2 inset-s-3 z-20 size-9 rounded-full bg-charcoal/40 text-pearl-white items-center justify-center"
-      @click="next"
-    >
-      <UIcon name="solar:arrow-left-broken" class="size-5" />
-    </button>
-    <button
-      v-if="currentIndex > 0"
-      class="hidden sm:flex absolute top-1/2 -translate-y-1/2 inset-e-3 z-20 size-9 rounded-full bg-charcoal/40 text-pearl-white items-center justify-center"
-      @click="prev"
-    >
-      <UIcon name="solar:arrow-right-broken" class="size-5" />
-    </button>
-  </div>
-
-  <div v-else-if="storyStore.isLoading" class="fixed inset-0 z-100 bg-charcoal flex items-center justify-center">
-    <div class="size-10 rounded-full border-2 border-pearl-white/30 border-t-pearl-white animate-spin" />
+  <StoriesStoryViewer
+    v-if="current && !isClosing"
+    :story="current"
+    :index="currentIndex"
+    :total="storyStore.items.length"
+    @close="close"
+    @next="goTo(currentIndex + 1)"
+    @prev="goTo(currentIndex - 1)"
+  />
+  <div v-else-if="isLoading" class="fixed inset-0 z-100 flex items-center justify-center bg-charcoal" role="status" aria-label="در حال بارگذاری استوری">
+    <div class="size-10 animate-spin rounded-full border-2 border-pearl-white/30 border-t-pearl-white" />
   </div>
 </template>
