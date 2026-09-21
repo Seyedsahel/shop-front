@@ -121,8 +121,8 @@ onBeforeUnmount(() => {
     </div>
 
     <template v-if="!mediaError">
-      <button v-if="index > 0" type="button" aria-label="استوری قبلی" class="absolute inset-y-0 start-0 z-20 w-1/3 cursor-w-resize" @pointerdown.stop @pointerup.stop @click.stop="emit('prev')" />
-      <button v-if="index < total - 1" type="button" aria-label="استوری بعدی" class="absolute inset-y-0 end-0 z-20 w-1/3 cursor-e-resize" @pointerdown.stop @pointerup.stop @click.stop="emit('next')" />
+      <button v-if="index > 0" type="button" aria-label="استوری قبلی" class="absolute inset-y-0 inset-s-0 z-20 w-1/3 cursor-w-resize" @pointerdown.stop @pointerup.stop @click.stop="emit('prev')" />
+      <button v-if="index < total - 1" type="button" aria-label="استوری بعدی" class="absolute inset-y-0 inset-e-0 z-20 w-1/3 cursor-e-resize" @pointerdown.stop @pointerup.stop @click.stop="emit('next')" />
     </template>
     <div v-else class="absolute z-30 flex flex-col items-center gap-3 rounded-xl bg-charcoal/80 p-5 text-center text-pearl-white"><p>بارگذاری استوری ناموفق بود.</p><button type="button" class="rounded-lg bg-pearl-white px-4 py-2 text-charcoal" @click.stop="retryMedia">تلاش دوباره</button></div>
   </div>

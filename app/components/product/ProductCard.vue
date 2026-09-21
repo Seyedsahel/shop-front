@@ -8,7 +8,14 @@ const imageFailed = ref(false)
 const inStock = computed(() => props.product.stock > 0)
 const finalPrice = computed(() => props.product.price?.final ?? props.product.basePrice)
 const hasDiscount = computed(() => (props.product.price?.discountPercent ?? 0) > 0)
-const cartItem = computed(() => cartStore.items.find(item => item.product_id === props.product.id))
+const cartItems = computed(() => cartStore.itemsForProduct(props.product.id))
+// A product card can safely expose an inline quantity selector only for one
+// variantless cart line. Variant products can have several independent lines.
+const inlineCartItem = computed(() => {
+  const [item] = cartItems.value
+  if (cartItems.value.length !== 1 || !item || item.variant_id !== null) return null
+  return item
+})
 const cartActionDisabled = computed(() => cartStore.busy || cartStore.stale)
 
 watch(() => props.product.imageUrl, () => {
@@ -20,7 +27,7 @@ function addToCart() {
 }
 
 async function changeQuantity(amount: number) {
-  const item = cartItem.value
+  const item = inlineCartItem.value
   if (!item || cartActionDisabled.value) return
 
   try {
@@ -69,12 +76,14 @@ async function changeQuantity(amount: number) {
         </div>
 
         <div v-if="variant !== 'compact'" class="pointer-events-auto mt-auto">
-          <div v-if="cartItem" class="flex min-h-11 items-center justify-between rounded-lg bg-primary px-1 text-primary-foreground">
+          <div v-if="inlineCartItem" class="flex min-h-11 items-center justify-between rounded-lg bg-primary px-1 text-primary-foreground">
             <button type="button" class="grid size-9 place-items-center rounded-md transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-40" aria-label="کاهش تعداد" :disabled="cartActionDisabled" @click="changeQuantity(-1)"><UIcon name="solar:minus-circle-outline" class="size-5" /></button>
-            <output class="min-w-8 text-center text-sm font-bold">{{ cartItem.quantity.toLocaleString('fa-IR') }}</output>
-            <button type="button" class="grid size-9 place-items-center rounded-md transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-40" aria-label="افزایش تعداد" :disabled="cartActionDisabled || cartItem.stock === null || cartItem.quantity >= cartItem.stock" @click="changeQuantity(1)"><UIcon name="solar:add-circle-outline" class="size-5" /></button>
+            <output class="min-w-8 text-center text-sm font-bold">{{ inlineCartItem.quantity.toLocaleString('fa-IR') }}</output>
+            <button type="button" class="grid size-9 place-items-center rounded-md transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-40" aria-label="افزایش تعداد" :disabled="cartActionDisabled || inlineCartItem.stock === null || inlineCartItem.quantity >= inlineCartItem.stock" @click="changeQuantity(1)"><UIcon name="solar:add-circle-outline" class="size-5" /></button>
           </div>
-          <button v-else type="button" class="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50" :disabled="!inStock" @click="addToCart">افزودن به سبد</button>
+          <button v-else type="button" class="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50" :disabled="!inStock && !cartItems.length" @click="addToCart">
+            {{ cartItems.length ? 'مدیریت گزینه‌ها' : 'افزودن به سبد' }}
+          </button>
         </div>
       </div>
     </div>

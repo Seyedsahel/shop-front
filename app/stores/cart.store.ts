@@ -29,6 +29,10 @@ export const useCartStore = defineStore('cart', () => {
   const discount = computed(() => cart.value?.pricing.discount ?? 0)
   const total = computed(() => cart.value?.pricing.total ?? 0)
 
+  function itemsForProduct(productId: string) {
+    return items.value.filter(item => item.product_id === productId)
+  }
+
   watch(() => auth.identity, () => {
     epoch++
     cart.value = null
@@ -116,5 +120,5 @@ export const useCartStore = defineStore('cart', () => {
   }
   function clear() { return mutate(() => api.delete('/cart')) }
 
-  return { cart, items, itemCount, subtotalOriginal, subtotal, discount, total, isLoading, isMutating, busy, loaded, stale, error, fetchCart, addItem, updateQuantity, remove, clear }
+  return { cart, items, itemsForProduct, itemCount, subtotalOriginal, subtotal, discount, total, isLoading, isMutating, busy, loaded, stale, error, fetchCart, addItem, updateQuantity, remove, clear }
 })

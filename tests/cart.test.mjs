@@ -65,6 +65,15 @@ test('keyed items, variants and pricing remain backend authoritative', async () 
   assert.equal(store.discount, 100)
 })
 
+test('product cart selector preserves every independently purchasable variant line', async () => {
+  const { store, respond } = setup()
+  const cart = fixture()
+  cart.products.other = { ...cart.products.item, id: 'other', variant_id: 'other-variant' }
+  respond(cart)
+  await store.fetchCart()
+  assert.deepEqual(store.itemsForProduct('product').map(item => item.id), ['item', 'other'])
+})
+
 test('add establishes identity, sends nullable variant and refetches canonical cart', async () => {
   const { store, calls } = setup(null)
   await store.addItem('product', 2, null)

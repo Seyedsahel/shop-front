@@ -11,6 +11,7 @@ const selectedVariantId = ref<string | null>(null)
 const quantity = ref(1)
 let requestId = 0
 const detail = computed(() => details.bySlug[props.product.slug])
+const cartLines = computed(() => cart.itemsForProduct(props.product.id))
 const selectedVariant = computed(() => detail.value?.purchaseVariants.find(variant => variant.variantId === selectedVariantId.value))
 const stock = computed(() => selectedVariant.value?.stock ?? (detail.value?.purchaseVariants.length ? 0 : detail.value?.baseStock ?? 0))
 const unitPrice = computed(() => selectedVariant.value?.finalPrice ?? detail.value?.price.final ?? props.product.price.final)
@@ -50,6 +51,21 @@ async function add() {
     submitting.value = false
   }
 }
+async function changeCartLineQuantity(item: CartUiItem, amount: number) {
+  if (cart.busy || cart.stale) return
+  try {
+    if (amount < 0 && item.quantity === 1) {
+      if (!(await useConfirm('این کالا از سبد حذف شود؟'))) return
+      await cart.remove(item.id)
+      toast.success('کالا از سبد حذف شد.')
+      return
+    }
+    await cart.updateQuantity(item.id, item.quantity + amount)
+    toast.success('تعداد کالا به‌روزرسانی شد.')
+  } catch (caught) {
+    error.value = caught instanceof ApiError ? caught.message : 'به‌روزرسانی سبد ناموفق بود.'
+  }
+}
 async function retry() {
   if (cart.stale) {
     try { await cart.fetchCart(); error.value = '' } catch { error.value = cart.error }
@@ -58,7 +74,7 @@ async function retry() {
 </script>
 
 <template>
-  <UiModal v-model="open" title="افزودن به سبد خرید" :dismissible="!submitting">
+  <UiModal v-model="open" :title="cartLines.length ? 'مدیریت گزینه‌های سبد خرید' : 'افزودن به سبد خرید'" :dismissible="!submitting">
     <div class="mb-5 flex items-center gap-4">
       <img v-if="product.imageUrl" :src="product.imageUrl" :alt="product.name" class="size-20 rounded-xl object-contain bg-surface" />
       <div class="min-w-0"><h3 class="text-sm font-semibold leading-7">{{ product.name }}</h3><p class="mt-2 font-bold text-primary">{{ formatMoney(unitPrice) }}</p></div>
@@ -69,6 +85,20 @@ async function retry() {
       <button type="button" class="mt-2 block underline" :disabled="loading || cart.busy" @click="retry">دریافت دوباره</button>
     </div>
     <template v-if="!loading && detail">
+      <section v-if="cartLines.length" class="mb-5 space-y-2 border-b border-divider pb-5">
+        <h4 class="text-sm font-semibold">گزینه‌های موجود در سبد</h4>
+        <div v-for="item in cartLines" :key="item.id" class="flex items-center justify-between gap-3 rounded-xl bg-surface p-3">
+          <div class="min-w-0">
+            <p class="text-sm font-medium">{{ item.description || 'گزینه پیش‌فرض' }}</p>
+            <p class="mt-1 text-xs text-text-muted">{{ formatMoney(item.pricing.final_unit) }}</p>
+          </div>
+          <div class="flex shrink-0 items-center gap-3 rounded-lg bg-card p-1">
+            <button type="button" aria-label="کاهش تعداد" class="size-9 rounded-md disabled:opacity-40" :disabled="cart.busy || cart.stale" @click="changeCartLineQuantity(item, -1)">−</button>
+            <output class="min-w-5 text-center text-sm font-semibold">{{ item.quantity.toLocaleString('fa-IR') }}</output>
+            <button type="button" aria-label="افزایش تعداد" class="size-9 rounded-md disabled:opacity-40" :disabled="cart.busy || cart.stale || item.stock === null || item.quantity >= item.stock" @click="changeCartLineQuantity(item, 1)">+</button>
+          </div>
+        </div>
+      </section>
       <fieldset v-if="detail.purchaseVariants.length" :disabled="submitting" class="mb-5 space-y-2">
         <legend class="mb-2 text-sm font-semibold">انتخاب {{ detail.purchaseVariants[0]?.name }}</legend>
         <label v-for="variant in detail.purchaseVariants" :key="variant.variantId" class="flex cursor-pointer items-center gap-3 rounded-xl border p-3" :class="[selectedVariantId === variant.variantId ? 'border-primary bg-primary-subtle' : 'border-border', variant.stock <= 0 ? 'opacity-50' : '']">
