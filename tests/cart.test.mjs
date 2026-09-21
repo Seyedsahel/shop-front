@@ -18,12 +18,11 @@ Object.assign(globalThis, h3, { ref, computed, watch, defineStore })
 globalThis.ApiError = (await load('app/utils/api-error.ts')).ApiError
 const { useCartStore } = await load('app/stores/cart.store.ts')
 const fixture = () => ({
-  id: 'cart', cart_token: 'not-a-jwt', user_id: '',
+  id: 'cart', guest_id: 'guest', user_id: '',
   products: { item: { id: 'item', product_id: 'product', variant_id: 'variant', quantity: 2,
+    name: 'Real product', slug: 'real-product', stock: 4, image_url: '/photo',
     pricing: { original_unit: 200, final_unit: 150, original_total: 400, discount: 100, total: 300 } } },
   pricing: { subtotal_original: 400, discount: 100, subtotal: 300, total: 300 },
-  presentation: { product: { name: 'Real product', slug: 'real-product', images: [], baseStock: 50,
-    purchaseVariants: [{ variantId: 'variant', name: 'Size', value: 'Large', stock: 4 }] } },
 })
 function setup(identity = 'guest') {
   setActivePinia(createPinia())
@@ -58,7 +57,7 @@ test('keyed items, variants and pricing remain backend authoritative', async () 
   await store.fetchCart()
   assert.equal(store.items[0].id, 'item')
   assert.equal(store.items[0].stock, 4)
-  assert.equal(store.items[0].description, 'Size: Large')
+  assert.equal(store.items[0].variant_id, 'variant')
   assert.equal(store.itemCount, 1)
   assert.equal(store.total, 300)
   assert.equal(store.subtotalOriginal, 400)
@@ -145,14 +144,13 @@ test('same identity validation keeps cart; ownership change clears and reloads i
   assert.equal(calls.filter(call => call[0] === 'get').length, 1)
 })
 
-test('missing presentation does not discard canonical items or invent stock', async () => {
+test('cart lines retain the endpoint-supplied presentation fields', async () => {
   const { store, respond } = setup()
-  respond({ ...fixture(), presentation: { product: null } })
+  respond(fixture())
   await store.fetchCart()
   assert.equal(store.itemCount, 1)
-  assert.equal(store.items[0].stock, null)
-  assert.equal(store.items[0].name, null)
-  assert.equal(store.items[0].presentationUnavailable, true)
+  assert.equal(store.items[0].name, 'Real product')
+  assert.equal(store.items[0].image_url, '/photo')
 })
 
 test('money conversion defaults to tomans without modifying backend values', async () => {
@@ -204,23 +202,21 @@ test('all mutation proxies preserve methods/payloads and central guest/user prec
   }
 })
 
-test('GET proxy enriches distinct product IDs via slug lookup while preserving cart totals', async () => {
+test('GET proxy makes one cart request and normalizes only supplied image paths', async () => {
   const handler = (await load('server/api/cart/index.get.ts')).default
   const calls = []
   globalThis.$fetch = async url => {
     calls.push(url)
     if (url === '/api/cart') return fixture()
-    if (url === '/api/products/product') return { slug: 'real-product', thumbnail_url: '/photo' }
-    if (url === '/api/products/real-product/detail') return { id: 'product', name: 'Product', images: [], purchase_variants: [] }
     throw new Error('Unexpected URL')
   }
   const response = await request(handler, 'GET')
   const body = await response.json()
   assert.equal(response.status, 200)
   assert.equal(body.pricing.total, 300)
-  assert.equal(body.presentation.product.name, 'Product')
-  assert.equal(body.presentation.product.images[0].imageUrl, '/photo')
-  assert.deepEqual(calls, ['/api/cart', '/api/products/product', '/api/products/real-product/detail'])
+  assert.equal(body.products.item.name, 'Real product')
+  assert.equal(body.products.item.image_url, '/photo')
+  assert.deepEqual(calls, ['/api/cart'])
   assert.equal(response.headers.get('cache-control'), 'no-store')
 })
 
@@ -259,25 +255,19 @@ test('Product Details passes selected variant and quantity to Cart and guards re
   assert.deepEqual(calls[1], ['base-product', 1, null])
 })
 
-test('failed product enrichment preserves removable items, but session failures propagate', async () => {
+test('GET proxy does not request product data when the cart includes a variant', async () => {
   const handler = (await load('server/api/cart/index.get.ts')).default
-  for (const status of [404, 401]) {
-    globalThis.$fetch = async url => {
-      if (url === '/api/cart') return fixture()
-      throw Object.assign(new Error('Unavailable'), { response: { status } })
-    }
-    const response = await request(handler, 'GET')
-    assert.equal(response.status, status === 401 ? 401 : 200)
-    const body = await response.json()
-    if (status === 404) {
-      assert.equal(body.products.item.quantity, 2)
-      assert.equal(body.presentation.product, null)
-    } else assert.equal(body.data.code, 'GUEST_SESSION_EXPIRED')
+  globalThis.$fetch = async url => {
+    assert.equal(url, '/api/cart')
+    return fixture()
   }
+  const response = await request(handler, 'GET')
+  assert.equal(response.status, 200)
+  assert.equal((await response.json()).products.item.variant_id, 'variant')
 })
 
 
-test('item count counts distinct cart entries, independently of quantity', async () => {
+test('item count counts distinct cart entries independently of quantity', async () => {
   const { store, respond } = setup()
   const cart = fixture()
   cart.products.item.quantity = 3

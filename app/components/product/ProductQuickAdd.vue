@@ -51,7 +51,7 @@ async function add() {
     submitting.value = false
   }
 }
-async function changeCartLineQuantity(item: CartUiItem, amount: number) {
+async function changeCartLineQuantity(item: CartItem, amount: number) {
   if (cart.busy || cart.stale) return
   try {
     if (amount < 0 && item.quantity === 1) {
@@ -89,13 +89,14 @@ async function retry() {
         <h4 class="text-sm font-semibold">گزینه‌های موجود در سبد</h4>
         <div v-for="item in cartLines" :key="item.id" class="flex items-center justify-between gap-3 rounded-xl bg-surface p-3">
           <div class="min-w-0">
-            <p class="text-sm font-medium">{{ item.description || 'گزینه پیش‌فرض' }}</p>
+            <!-- TODO: Use the variant label supplied by the Cart API once the backend adds it. -->
+            <p class="text-sm font-medium">{{ item.variant_id || 'گزینه پیش‌فرض' }}</p>
             <p class="mt-1 text-xs text-text-muted">{{ formatMoney(item.pricing.final_unit) }}</p>
           </div>
           <div class="flex shrink-0 items-center gap-3 rounded-lg bg-card p-1">
             <button type="button" aria-label="کاهش تعداد" class="size-9 rounded-md disabled:opacity-40" :disabled="cart.busy || cart.stale" @click="changeCartLineQuantity(item, -1)">−</button>
             <output class="min-w-5 text-center text-sm font-semibold">{{ item.quantity.toLocaleString('fa-IR') }}</output>
-            <button type="button" aria-label="افزایش تعداد" class="size-9 rounded-md disabled:opacity-40" :disabled="cart.busy || cart.stale || item.stock === null || item.quantity >= item.stock" @click="changeCartLineQuantity(item, 1)">+</button>
+            <button type="button" aria-label="افزایش تعداد" class="size-9 rounded-md disabled:opacity-40" :disabled="cart.busy || cart.stale || item.quantity >= item.stock" @click="changeCartLineQuantity(item, 1)">+</button>
           </div>
         </div>
       </section>

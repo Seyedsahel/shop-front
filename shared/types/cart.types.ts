@@ -8,8 +8,12 @@ export interface CartItemPricing {
 export interface CartItem {
   id: string
   product_id: string
-  variant_id: string | null
+  variant_id: string
   quantity: number
+  name: string
+  slug: string
+  stock: number
+  image_url: string | null
   pricing: CartItemPricing
 }
 export interface CartPricing {
@@ -20,7 +24,7 @@ export interface CartPricing {
 }
 export interface CartResponse {
   id: string
-  cart_token: string
+  guest_id: string
   user_id: string
   products: Record<string, CartItem>
   pricing: CartPricing
@@ -29,16 +33,4 @@ export interface CartItemPayload {
   product_id: string
   quantity: number
   variant_id: string | null
-}
-/** Product presentation is enriched by the Nuxt proxy, never used for cart pricing. */
-export interface CartViewResponse extends CartResponse {
-  presentation: Record<string, ProductDetail | null>
-}
-export interface CartUiItem extends CartItem {
-  name: string | null
-  slug: string | null
-  imageUrl: string | null
-  description: string
-  stock: number | null
-  presentationUnavailable: boolean
 }

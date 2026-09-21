@@ -9,7 +9,7 @@ async function run(action: () => Promise<unknown>, message: string) {
 async function remove(id: string) {
   if (await useConfirm('این کالا از سبد حذف شود؟')) void run(() => cartStore.remove(id), 'کالا از سبد حذف شد.')
 }
-function changeQuantity(item: CartUiItem, amount: number) {
+function changeQuantity(item: CartItem, amount: number) {
   if (item.quantity + amount < 1) return remove(item.id)
   void run(() => cartStore.updateQuantity(item.id, item.quantity + amount), 'تعداد کالا به‌روزرسانی شد.')
 }
@@ -29,7 +29,6 @@ function checkout() {
       <div v-if="cartStore.error" role="alert" class="mb-4 rounded-xl border border-danger-border p-4 text-danger">{{ cartStore.error }}<button type="button" class="mx-3 underline" :disabled="cartStore.busy" @click="cartStore.fetchCart().catch(() => {})">دریافت دوباره سبد</button></div>
       <div v-if="cartStore.isLoading || !cartStore.loaded" role="status" class="p-8 text-center">{{ cartStore.error ? 'سبد خرید در دسترس نیست.' : 'در حال دریافت سبد خرید…' }}</div>
       <CartEmptyState v-else-if="!cartStore.items.length && !cartStore.error" />
-      <button v-if="cartStore.items.some(item => item.presentationUnavailable)" class="mb-3 text-primary underline" :disabled="cartStore.busy" @click="cartStore.fetchCart().catch(() => {})">دریافت دوباره اطلاعات محصولات</button>
       <div v-if="cartStore.loaded && cartStore.items.length" class="grid items-start gap-6 lg:grid-cols-12">
         <section class="space-y-4 lg:col-span-8">
           <div class="flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-4 sm:px-5">

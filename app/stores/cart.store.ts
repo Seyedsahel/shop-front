@@ -1,7 +1,7 @@
 export const useCartStore = defineStore('cart', () => {
   const auth = useAuthStore()
   const api = useApi()
-  const cart = ref<CartViewResponse | null>(null)
+  const cart = ref<CartResponse | null>(null)
   const isLoading = ref(false)
   const isMutating = ref(false)
   const loaded = ref(false)
@@ -10,19 +10,7 @@ export const useCartStore = defineStore('cart', () => {
   let epoch = 0
   let fetchPromise: Promise<void> | null = null
   const busy = computed(() => isLoading.value || isMutating.value)
-  const items = computed<CartUiItem[]>(() => Object.values(cart.value?.products ?? {}).map(item => {
-    const product = cart.value?.presentation[item.product_id]
-    const variant = product?.purchaseVariants.find(entry => entry.variantId === item.variant_id)
-    return {
-      ...item,
-      name: product?.name ?? null,
-      slug: product?.slug ?? null,
-      imageUrl: product?.images.find(image => image.isThumbnail)?.imageUrl ?? product?.images[0]?.imageUrl ?? null,
-      description: variant ? `${variant.name}: ${variant.value}` : product?.description ?? '',
-      stock: item.variant_id ? variant?.stock ?? null : product?.baseStock ?? null,
-      presentationUnavailable: !product || Boolean(item.variant_id && !variant),
-    }
-  }))
+  const items = computed(() => Object.values(cart.value?.products ?? {}))
   const itemCount = computed(() => items.value.length)
   const subtotalOriginal = computed(() => cart.value?.pricing.subtotal_original ?? 0)
   const subtotal = computed(() => cart.value?.pricing.subtotal ?? 0)
@@ -43,7 +31,7 @@ export const useCartStore = defineStore('cart', () => {
   }, { flush: 'sync' })
 
   async function readCart(activeEpoch: number) {
-    const response = await api.get<CartViewResponse>('/cart')
+    const response = await api.get<CartResponse>('/cart')
     if (epoch !== activeEpoch) throw new ApiError('نشست خرید تغییر کرده است؛ دوباره تلاش کنید.')
     cart.value = response
     loaded.value = true
