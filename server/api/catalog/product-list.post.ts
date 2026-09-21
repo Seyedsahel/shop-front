@@ -5,6 +5,7 @@ export default defineEventHandler(async (event): Promise<ProductListResponse> =>
     const raw = await backendFetch<any>('/api/products/list', {
       method: 'POST',
       body: {
+        discount_id: body.discountId,
         search: body.search,
         category_ids: body.categoryIds,
         brand_ids: body.brandIds,
@@ -18,36 +19,7 @@ export default defineEventHandler(async (event): Promise<ProductListResponse> =>
       },
     })
 
-    return {
-      items: raw.items.map((p: any) => {
-        const originalPrice = Number(p.price?.original ?? p.base_price ?? 0)
-        const finalPrice = Number(p.price?.final ?? p.base_price ?? originalPrice)
-
-        return {
-          id: p.id,
-          productTypeId: p.product_type_id ?? null,
-          name: p.name,
-          slug: p.slug,
-          brandId: p.brand_id ?? '',
-          thumbnailUrl: p.thumbnail_url,
-          imageUrl: toBackendImageUrl(p.thumbnail_url),
-          description: p.description,
-          basePrice: Number(p.base_price ?? originalPrice),
-          price: {
-            original: originalPrice,
-            final: finalPrice,
-            discount: Number(p.price?.discount ?? Math.max(originalPrice - finalPrice, 0)),
-            discountPercent: Number(p.price?.discount_percent ?? 0),
-          },
-          stock: Number(p.stock ?? 0),
-          createdAt: p.created_at,
-          updatedAt: p.updated_at,
-        }
-      }),
-      total: raw.total,
-      page: raw.page,
-      limit: raw.limit,
-    }
+    return mapProductListResponse(raw)
   } catch (e: any) {
     console.error('Backend product-list error:', e.data ?? e.message)
     throw e

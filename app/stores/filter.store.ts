@@ -9,11 +9,17 @@ export const useFilterStore = defineStore('filter', () => {
   const selectedPriceMin = ref<number | null>(null)
   const selectedPriceMax = ref<number | null>(null)
   const isLoading = ref(false)
+  const discountId = ref<string | null>(null)
 
-  async function fetchFilters(categoryIds?: string[]) {
+  async function fetchFilters(params: Pick<ProductFiltersRequest, 'categoryIds' | 'discountId' | 'limit'> = {}) {
     isLoading.value = true
     try {
-      const res = await useApi().post<FiltersResponse>('/catalog/filters', { category_ids: categoryIds })
+      const res = await useApi().post<FiltersResponse>('/catalog/filters', {
+        categoryIds: params.categoryIds,
+        discountId: params.discountId ?? discountId.value ?? undefined,
+        limit: params.limit ?? 20,
+      } satisfies ProductFiltersRequest)
+      if (params.discountId !== undefined) discountId.value = params.discountId || null
       definitions.value = res.attributes
       brands.value = res.brands
       categories.value = res.categories
@@ -56,6 +62,10 @@ export const useFilterStore = defineStore('filter', () => {
   function setPriceRange(min?: number | null, max?: number | null) {
     selectedPriceMin.value = min ?? null
     selectedPriceMax.value = max ?? null
+  }
+
+  function setDiscountId(id?: string) {
+    discountId.value = id || null
   }
 
   function resetAll() {
@@ -139,9 +149,11 @@ export const useFilterStore = defineStore('filter', () => {
     selectedBrands,
     selectedCategories,
     isLoading,
+    discountId,
     activeCount,
     hasCustomPrice,
     fetchFilters,
+    setDiscountId,
     setValue,
     toggleBrand,
     toggleCategory,

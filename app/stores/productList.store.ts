@@ -8,6 +8,10 @@ export const useProductListStore = defineStore('productList', () => {
   const isLoadingMore = ref(false)
   const sort = ref('relevant')
   const listSearch = ref('')
+  const discountId = ref<string | null>(null)
+  const discountedOnly = ref(false)
+  const hasDiscountedProducts = ref<boolean | null>(null)
+  const isDiscountedAvailabilityLoading = ref(false)
   let listRequestId = 0
   let searchRequestId = 0
   
@@ -32,8 +36,10 @@ export const useProductListStore = defineStore('productList', () => {
       const filterStore = useFilterStore()
       const sortOption = sortOptions.find(o => o.id === sort.value)
 
-      const res = await useApi().post<ProductListResponse>('/catalog/product-list', {
+      const res = await useApi().post<ProductListResponse>(discountedOnly.value ? '/discounts/products' : '/catalog/product-list', {
         ...filterStore.toProductListRequest(),
+        discountId: discountId.value ?? undefined,
+        discountedOnly: discountedOnly.value || undefined,
         search: listSearch.value || undefined,
         page: requestedPage,
         limit: limit.value,
@@ -94,6 +100,26 @@ export const useProductListStore = defineStore('productList', () => {
   function setPage(p: number) { return refetch('replace', p) }
   function applyFilters() { return refetch('replace', 1) }
   function setListSearch(search: string) { listSearch.value = search.trim() }
+  function setDiscountId(id?: string) { discountId.value = id || null }
+  function setDiscountedOnly(enabled: boolean) { discountedOnly.value = enabled }
+
+  async function fetchDiscountedAvailability() {
+    if (hasDiscountedProducts.value !== null || isDiscountedAvailabilityLoading.value) return
+    isDiscountedAvailabilityLoading.value = true
+    try {
+      const res = await useApi().post<ProductListResponse>('/discounts/products', {
+        discountedOnly: true,
+        page: 1,
+        limit: 1,
+      } satisfies ProductListRequest)
+      hasDiscountedProducts.value = res.total > 0
+    } catch (e) {
+      hasDiscountedProducts.value = false
+      useAppToast().error(e instanceof ApiError ? e.message : 'خطا در دریافت محصولات تخفیف‌دار.')
+    } finally {
+      isDiscountedAvailabilityLoading.value = false
+    }
+  }
 
   async function searchProducts(params: {
     search: string
@@ -173,8 +199,9 @@ export const useProductListStore = defineStore('productList', () => {
   }
 
   return {
-    items, total, page, limit, isLoading, isLoadingMore, sort, listSearch, hasMore,
-    fetchList, loadMore, setSort, setPage, applyFilters, setListSearch, refetch,
+    items, total, page, limit, isLoading, isLoadingMore, sort, listSearch, discountId, discountedOnly, hasMore,
+    hasDiscountedProducts, isDiscountedAvailabilityLoading, fetchDiscountedAvailability,
+    fetchList, loadMore, setSort, setPage, applyFilters, setListSearch, setDiscountId, setDiscountedOnly, refetch,
     searchItems, searchTotal, searchPage, searchLimit, searchQuery, isSearchLoading, searchError,
     searchProducts, clearSearch,
     previewsByCategory, previewLoading, fetchPreview,

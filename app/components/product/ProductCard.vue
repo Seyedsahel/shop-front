@@ -3,12 +3,17 @@ const props = defineProps<{ product: Product; variant?: 'default' | 'compact' }>
 const cartStore = useCartStore()
 const toast = useAppToast()
 const quickAddOpen = ref(false)
+const imageFailed = ref(false)
 
 const inStock = computed(() => props.product.stock > 0)
 const finalPrice = computed(() => props.product.price?.final ?? props.product.basePrice)
 const hasDiscount = computed(() => (props.product.price?.discountPercent ?? 0) > 0)
 const cartItem = computed(() => cartStore.items.find(item => item.product_id === props.product.id))
 const cartActionDisabled = computed(() => cartStore.busy || cartStore.stale)
+
+watch(() => props.product.imageUrl, () => {
+  imageFailed.value = false
+})
 
 function addToCart() {
   quickAddOpen.value = true
@@ -38,7 +43,15 @@ async function changeQuantity(amount: number) {
     <NuxtLink :to="`/products/${product.slug}`" :aria-label="`مشاهده ${product.name}`" class="absolute inset-0 z-0 rounded-2xl focus-visible:outline-2 focus-visible:outline-primary" />
     <div class="pointer-events-none relative z-10 flex flex-1 flex-col gap-2">
       <div class="relative aspect-square bg-surface-hover">
-        <img :src="product.imageUrl" :alt="product.name" class="size-full object-cover" />
+        <img
+          v-if="product.imageUrl && !imageFailed"
+          :src="product.imageUrl"
+          :alt="product.name"
+          loading="lazy"
+          class="size-full object-cover"
+          @error="imageFailed = true"
+        >
+        <UIcon v-else name="solar:gallery-remove-outline" class="absolute inset-0 m-auto size-10 text-text-muted" aria-hidden="true" />
         <UiBadge v-if="!inStock" variant="stock" class="absolute top-2 inset-e-2">ناموجود</UiBadge>
       </div>
 

@@ -25,6 +25,8 @@ export interface Product {
 }
 
 export interface ProductListRequest {
+  discountId?: string
+  discountedOnly?: boolean
   search?: string
   categoryIds?: string[]
   brandIds?: string[]

@@ -3,5 +3,5 @@ import ProductListPage from '~/components/product/ProductListPage.vue'
 </script>
 
 <template>
-  <ProductListPage />
+  <ProductListPage discounted-only />
 </template>

@@ -1,6 +1,11 @@
 <script setup lang="ts">
 const categoryStore = useCategoryStore()
-onMounted(() => categoryStore.fetchCategories())
+const productListStore = useProductListStore()
+
+onMounted(() => {
+  categoryStore.fetchCategories()
+  productListStore.fetchDiscountedAvailability()
+})
 </script>
 
 <template>
@@ -18,20 +23,32 @@ onMounted(() => categoryStore.fetchCategories())
         </div>
       </template>
 
-      <NuxtLink
-        v-else
-        v-for="category in categoryStore.items"
-        :key="category.id"
-        :to="`/products?category=${category.slug}`"
-        class="flex flex-col items-center gap-2 group"
-      >
-        <div class="size-20 md:size-28 rounded-full bg-surface overflow-hidden flex items-center justify-center transition-transform group-hover:scale-105">
-          <img :src="category.imageUrl" :alt="category.name" class="size-full object-cover" />
-        </div>
-        <span class="text-xs md:text-sm text-text-secondary text-center leading-tight">
-          {{ category.name }}
-        </span>
-      </NuxtLink>
+      <template v-else>
+        <NuxtLink
+          v-if="productListStore.hasDiscountedProducts"
+          to="/discounts/products"
+          class="flex flex-col items-center gap-2 group"
+        >
+          <div class="size-20 md:size-28 rounded-full bg-danger/10 text-danger overflow-hidden flex items-center justify-center transition-transform group-hover:scale-105">
+            <UIcon name="solar:tag-price-bold" class="size-9 md:size-12" />
+          </div>
+          <span class="text-xs md:text-sm text-text-secondary text-center leading-tight">تخفیف‌ها</span>
+        </NuxtLink>
+
+        <NuxtLink
+          v-for="category in categoryStore.items"
+          :key="category.id"
+          :to="`/products?category=${category.slug}`"
+          class="flex flex-col items-center gap-2 group"
+        >
+          <div class="size-20 md:size-28 rounded-full bg-surface overflow-hidden flex items-center justify-center transition-transform group-hover:scale-105">
+            <img :src="category.imageUrl" :alt="category.name" class="size-full object-cover" />
+          </div>
+          <span class="text-xs md:text-sm text-text-secondary text-center leading-tight">
+            {{ category.name }}
+          </span>
+        </NuxtLink>
+      </template>
     </div>
   </section>
 </template>

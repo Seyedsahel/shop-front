@@ -2,11 +2,15 @@
 // const sleep = (ms: number): Promise<void> => {
 //   return new Promise((resolve) => setTimeout(resolve, ms));
 export default defineEventHandler(async (event): Promise<FiltersResponse> => {
-  const body = await readBody<{ category_ids?: string[] }>(event)
+  const body = await readBody<ProductFiltersRequest>(event)
   
   const raw = await backendFetch<any>('/api/products/filters', {
     method: 'POST',
-    body: { category_ids: body.category_ids, page: 1, limit: 50 },
+    body: {
+      category_ids: body.categoryIds,
+      discount_id: body.discountId,
+      limit: body.limit ?? 20,
+    },
   })
 
   return {

@@ -39,6 +39,12 @@ export interface FiltersResponse {
   limit: number
 }
 
+export interface ProductFiltersRequest {
+  categoryIds?: string[]
+  discountId?: string
+  limit?: number
+}
+
 // select/string → radio (backend calls them different types but both are single-choice from a fixed list)
 // multiselect → checkbox
 // boolean → toggle, values are literally "true"/"false" strings
