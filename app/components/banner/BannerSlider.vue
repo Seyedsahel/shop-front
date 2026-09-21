@@ -10,7 +10,7 @@ let timer: ReturnType<typeof setInterval> | undefined
 function start() {
   stop()
   timer = setInterval(() => {
-    active.value = (active.value + 1) % bannerStore.slider.length
+    active.value = (active.value + 1) % bannerStore.homeTop.length
   }, 2000)
 }
 function stop() {
@@ -21,20 +21,20 @@ function goTo(i: number) {
   start() // reset timer on manual interaction
 }
 
-watch(() => bannerStore.slider.length, (len) => {
+watch(() => bannerStore.homeTop.length, (len) => {
   if (len > 1) start()
 })
 onBeforeUnmount(stop)
 </script>
 
 <template>
-  <section v-if="bannerStore.slider.length || bannerStore.isLoading" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+  <section v-if="bannerStore.homeTop.length || bannerStore.isLoading" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
     <div v-if="bannerStore.isLoading" class="w-full bg-loading aspect-video sm:aspect-21/7 rounded-2xl animate-pulse" />
 
     <div v-else class="w-full">
       <div class="relative w-full aspect-video sm:aspect-21/7 rounded-2xl overflow-hidden">
         <a
-          v-for="(banner, i) in bannerStore.slider"
+          v-for="(banner, i) in bannerStore.homeTop"
           :key="banner.id"
           :href="banner.href"
           class="absolute inset-0 transition-opacity duration-500"
@@ -47,9 +47,9 @@ onBeforeUnmount(stop)
       </div>
 
       <!-- Dots — manual navigation + hover preview -->
-      <div v-if="bannerStore.slider.length > 1" class="flex justify-center gap-2 mt-3">
+      <div v-if="bannerStore.homeTop.length > 1" class="flex justify-center gap-2 mt-3">
         <button
-          v-for="(banner, i) in bannerStore.slider"
+          v-for="(banner, i) in bannerStore.homeTop"
           :key="banner.id"
           type="button"
           class="size-2.5 rounded-full border transition-colors"

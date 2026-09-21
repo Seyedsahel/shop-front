@@ -1,24 +1,34 @@
 
 export const useBannerStore = defineStore('banner', () => {
-  const duo = ref<Banner[]>([])
-  const slider = ref<Banner[]>([])
+  const homeHero = ref<Banner[]>([])
+  const homeTop = ref<Banner[]>([])
+  const homeMiddle = ref<Banner[]>([])
   const isLoading = ref(false)
   let fetched = false
+  let pendingRequest: Promise<void> | undefined
 
-  async function fetchBanners() {
+  function fetchBanners() {
     if (fetched) return
-    isLoading.value = true
-    try {
-      const res = await useApi().get<BannersResponse>('/engagement/banners')
-      duo.value = res.duo
-      slider.value = res.slider
-      fetched = true
-    } catch (e) {
-      useAppToast().error(e instanceof ApiError ? e.message : 'خطا در دریافت بنرها.')
-    } finally {
-      isLoading.value = false
-    }
+    if (pendingRequest) return pendingRequest
+
+    pendingRequest = (async () => {
+      isLoading.value = true
+      try {
+        const res = await useApi().get<BannersResponse>('/engagement/banners')
+        homeHero.value = res.homeHero
+        homeTop.value = res.homeTop
+        homeMiddle.value = res.homeMiddle
+        fetched = true
+      } catch (e) {
+        useAppToast().error(e instanceof ApiError ? e.message : 'خطا در دریافت بنرها.')
+      } finally {
+        isLoading.value = false
+        pendingRequest = undefined
+      }
+    })()
+
+    return pendingRequest
   }
 
-  return { duo, slider, isLoading, fetchBanners }
+  return { homeHero, homeTop, homeMiddle, isLoading, fetchBanners }
 })

@@ -1,4 +1,9 @@
 
+<script setup lang="ts">
+const bannerStore = useBannerStore()
+onMounted(() => bannerStore.fetchBanners())
+</script>
+
 <template>
   <section class=" bg-surface flex max-h-[75vh] items-center justify-between gap-5 overflow-hidden">
     <div class="flex w-2/5 flex-col gap-6 lg:gap-8 mx-7 lg:mx-14">
@@ -43,39 +48,34 @@
 
 
   <!-- Main picture -->
-  <div
+  <a
+    v-if="bannerStore.homeHero[0]"
+    :href="bannerStore.homeHero[0].href"
     class="hidden lg:block relative z-10 h-150 w-70 shrink-0 overflow-hidden rounded-full"
   >
     <img
-      src="https://matterofmonday.com/cdn/shop/files/Four_Product_Full_Size_4k.webp?v=1779483233"
-      alt=""
+      :src="bannerStore.homeHero[0].imageUrl"
+      :alt="bannerStore.homeHero[0].title"
       class="h-full w-full object-cover"
     />
-  </div>
+  </a>
 
 
   <!-- Middle pictures -->
   <div class="hidden lg:flex relative z-10 flex-col gap-8 mx-6">
 
-    <div
+    <a
+      v-for="banner in bannerStore.homeHero.slice(1, 3)"
+      :key="banner.id"
+      :href="banner.href"
       class="h-70 w-62.5 overflow-hidden rounded-full"
     >
       <img
-        src="https://www.beautypackaging.com/wp-content/uploads/sites/8/2025/03/871_main-3.jpg"
-        alt=""
+        :src="banner.imageUrl"
+        :alt="banner.title"
         class="h-full w-full object-cover"
       />
-    </div>
-
-    <div
-      class="h-70 w-62.5 overflow-hidden rounded-full"
-    >
-      <img
-        src="https://cdn.shopify.com/s/files/1/0513/2409/files/minimalskincare.jpg?v=1695229112"
-        alt=""
-        class="h-full w-full object-cover"
-      />
-    </div>
+    </a>
 
   </div>
 
@@ -83,34 +83,40 @@
   <!-- Left picture -->
    <div class="relative z-10 flex flex-col gap-4 sm:mx-6">
 
-    <div
+    <a
+      v-if="bannerStore.homeHero[3]"
+      :href="bannerStore.homeHero[3].href"
       class="h-45 w-62.5 overflow-hidden rounded-b-full"
     >
       <img
-        src="https://www.beautypackaging.com/wp-content/uploads/sites/8/2025/03/871_main-3.jpg"
-        alt=""
+        :src="bannerStore.homeHero[3].imageUrl"
+        :alt="bannerStore.homeHero[3].title"
         class="h-full w-full object-cover"
       />
-    </div>
-    <div
+    </a>
+    <a
+      v-if="bannerStore.homeHero[4]"
+      :href="bannerStore.homeHero[4].href"
     class="relative z-10 h-60 w-45 sm:h-95 sm:w-62.5 overflow-hidden rounded-full"
   >
     <img
-      src="https://cdn.sanity.io/images/513whq4h/production/b57a528049124b9407b4a9dcaf26d415536a0320-2048x2048.jpg?auto=format&fit=max&q=75&w=1024"
-      alt=""
+      :src="bannerStore.homeHero[4].imageUrl"
+      :alt="bannerStore.homeHero[4].title"
       class="h-full w-full object-cover"
     />
-  </div>
+  </a>
 
-    <div
+    <a
+      v-if="bannerStore.homeHero[5]"
+      :href="bannerStore.homeHero[5].href"
       class="h-50 w-62.5 overflow-hidden rounded-t-full"
     >
       <img
-        src="https://cdn.shopify.com/s/files/1/0513/2409/files/minimalskincare.jpg?v=1695229112"
-        alt=""
+        :src="bannerStore.homeHero[5].imageUrl"
+        :alt="bannerStore.homeHero[5].title"
         class="h-full w-full object-cover"
       />
-    </div>
+    </a>
 
   </div>
   

@@ -84,10 +84,10 @@ export const useFilterStore = defineStore('filter', () => {
 
   function initializeSelections(input: { categorySlugs?: string[]; brandSlugs?: string[]; attributeValues?: Record<string, FilterValue>; priceMin?: number; priceMax?: number }) {
     selectedCategoryIds.value = (input.categorySlugs ?? [])
-      .map(slug => categories.value.find(category => category.slug === slug)?.id)
+      .map(slug => categories.value.find(category => category.slug === slug || category.id === slug)?.id)
       .filter(Boolean) as string[]
     selectedBrandIds.value = (input.brandSlugs ?? [])
-      .map(slug => brands.value.find(brand => brand.slug === slug)?.id)
+      .map(slug => brands.value.find(brand => brand.slug === slug || brand.id === slug)?.id)
       .filter(Boolean) as string[]
     if (input.attributeValues) Object.assign(values, input.attributeValues)
     if (input.priceMin !== undefined) selectedPriceMin.value = input.priceMin

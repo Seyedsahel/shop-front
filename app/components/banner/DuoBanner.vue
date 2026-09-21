@@ -4,7 +4,7 @@ onMounted(() => bannerStore.fetchBanners())
 </script>
 
 <template>
-  <section v-if="bannerStore.duo.length || bannerStore.isLoading" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+  <section v-if="bannerStore.homeMiddle.length || bannerStore.isLoading" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
     <div class="flex flex-col sm:flex-row gap-4">
       <template v-if="bannerStore.isLoading">
         <div v-for="n in 2" :key="n" class="flex-1 bg-loading aspect-16/10 sm:aspect-4/2 rounded-2xl bg-surface-hover animate-pulse" />
@@ -12,7 +12,7 @@ onMounted(() => bannerStore.fetchBanners())
 
       <a
         v-else
-        v-for="banner in bannerStore.duo"
+        v-for="banner in bannerStore.homeMiddle"
         :key="banner.id"
         :href="banner.href"
         class="relative flex-1 min-h-40 aspect-16/10 sm:aspect-4/2 rounded-2xl overflow-hidden group"
