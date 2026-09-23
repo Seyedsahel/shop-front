@@ -1,9 +1,32 @@
-export default defineEventHandler(async (event): Promise<CommentsResponse> => {
-  const config = useRuntimeConfig()
-  const { targetType, targetId } = getQuery(event) as { targetType: string; targetId: string }
+interface BackendComment {
+  id: string
+  user_id: string
+  user_name?: string | null
+  author_name?: string | null
+  body: string
+  parent_id: string | null
+  created_at: number
+}
 
-  if (config.useMockData) {
-    return { items: getMockComments(targetType, targetId) }
+function mapComment(comment: BackendComment): AppComment {
+  return {
+    id: comment.id,
+    authorName: comment.author_name || comment.user_name || 'کاربر',
+    content: comment.body,
+    createdAt: new Date(comment.created_at * 1000).toLocaleString('fa-IR'),
+    parentId: comment.parent_id,
   }
-  return await backendFetch<CommentsResponse>(`/engagement/comments?targetType=${targetType}&targetId=${targetId}`)
+}
+
+export default defineEventHandler(async (event): Promise<CommentsResponse> => {
+  const { targetType, targetId } = getQuery(event)
+  if ((targetType !== 'product' && targetType !== 'blog') || typeof targetId !== 'string' || !targetId) {
+    throw createError({ statusCode: 400, message: 'Invalid comment target' })
+  }
+
+  const comments = await backendFetch<BackendComment[]>('/api/comments', {
+    query: { comment_type: targetType, reference_id: targetId },
+    authorization: 'none',
+  }, event)
+  return { items: comments.map(mapComment) }
 })
