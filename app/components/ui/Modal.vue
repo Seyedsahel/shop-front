@@ -35,7 +35,7 @@ onBeforeUnmount(() => { dialog.value?.close(); unlockScroll(); previousFocus?.fo
 </script>
 
 <template>
-  <Teleport to="body">
+  <Teleport to="#teleports">
     <dialog ref="dialog" :aria-labelledby="titleId" class="fixed inset-0 m-auto w-[calc(100%-2rem)] max-w-lg max-h-[85dvh] overflow-auto rounded-2xl border border-border bg-card p-0 text-text-primary shadow-xl backdrop:bg-overlay" @close="closed" @cancel="dismissible === false ? $event.preventDefault() : open = false" @click="closeFromBackdrop">
       <div class="p-5 sm:p-6">
         <div class="mb-5 flex items-center justify-between gap-4">

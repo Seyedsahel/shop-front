@@ -17,7 +17,7 @@ const open = ref(false)
     </span>
   </button>
 
-  <Teleport to="body">
+  <Teleport to="#teleports">
     <Transition enter-active-class="transition duration-200" enter-from-class="opacity-0" leave-active-class="transition duration-150" leave-to-class="opacity-0">
       <div v-if="open" class="fixed inset-0 z-100 bg-surface flex flex-col">
         <div class="flex items-center justify-between h-14 px-4 border-b border-divider shrink-0">
