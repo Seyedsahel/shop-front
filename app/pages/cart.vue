@@ -1,8 +1,61 @@
 <script setup lang="ts">
 const cartStore = useCartStore()
 const wishlistStore = useWishlistStore()
+const auth = useAuthStore()
+const addresses = useAddressStore()
+const checkoutStore = useCheckoutStore()
 const toast = useAppToast()
+const couponPending = ref(false)
+const couponPreview = ref<CheckoutPreview | null>(null)
+const previewSignature = ref('')
+const cartSignature = computed(() => JSON.stringify({
+  id: cartStore.cart?.id,
+  items: cartStore.items.map(item => [item.id, item.quantity, item.pricing.total]),
+}))
+const activeCouponPreview = computed(() => previewSignature.value === cartSignature.value
+  && checkoutStore.couponDraft.trim() === checkoutStore.couponCode ? couponPreview.value : null)
+watch(cartSignature, () => { couponPreview.value = null })
 onMounted(() => { void cartStore.fetchCart().catch(() => {}) })
+
+async function applyCoupon() {
+  if (couponPending.value || cartStore.busy || cartStore.stale || !cartStore.cart?.id) return
+  const candidate = checkoutStore.couponDraft.trim()
+  if (!candidate) {
+    checkoutStore.couponCode = ''
+    couponPreview.value = null
+    toast.success('کد تخفیف حذف شد.')
+    return
+  }
+  if (!auth.isAuthenticated) {
+    auth.requireAuth('/cart')
+    return
+  }
+  couponPending.value = true
+  couponPreview.value = null
+  try {
+    if (!checkoutStore.methods.length) await checkoutStore.fetchMethods()
+    const pickup = checkoutStore.methods.find(method => method.code === 'local_pickup')
+    if (!pickup) throw new ApiError('روش تحویل حضوری برای بررسی کد تخفیف در دسترس نیست.')
+    if (!addresses.loaded) await addresses.fetchAll()
+    const address = addresses.items[0]
+    const input: CheckoutInput = {
+      cart_id: cartStore.cart.id,
+      shipping_method_id: pickup.id,
+      ...(address ? { address_id: address.id } : {}),
+      coupon_code: candidate,
+    }
+    const result = await checkoutStore.fetchPreview(input)
+    if (!result) return
+    checkoutStore.couponCode = candidate
+    couponPreview.value = result
+    previewSignature.value = cartSignature.value
+    toast.success('کد تخفیف با پیش‌نمایش سفارش بررسی شد.')
+  } catch (error) {
+    toast.error(error instanceof ApiError ? error.message : 'بررسی کد تخفیف ناموفق بود.')
+  } finally {
+    couponPending.value = false
+  }
+}
 async function run(action: () => Promise<unknown>, message: string) {
   try { await action(); toast.success(message) }
   catch (error) { toast.error(error instanceof ApiError ? error.message : 'عملیات ناموفق بود.') }
@@ -58,7 +111,7 @@ function checkout() {
           <CartItemCard v-for="item in cartStore.items" :key="item.id" :item="item" :disabled="cartStore.busy || cartStore.stale || wishlistStore.busy" @increase="changeQuantity(item, 1)" @decrease="changeQuantity(item, -1)" @remove="remove(item.id)" @move-to-wishlist="moveToWishlist(item)" />
           <div class="flex gap-3 rounded-2xl border border-warning-border bg-warning-subtle p-4"><UIcon name="solar:verified-check-outline" class="size-6 shrink-0 text-warning" /><div><h2 class="text-sm font-semibold text-text-primary">خرید مطمئن از فروشگاه</h2><p class="mt-1 text-xs leading-6 text-text-secondary">جزئیات زمان و هزینه ارسال پس از انتخاب آدرس نمایش داده می‌شود.</p></div></div>
         </section>
-        <div class="lg:col-span-4 lg:sticky lg:top-24"><CartOrderSummary :item-count="cartStore.itemCount" :subtotal-original="cartStore.subtotalOriginal" :total="cartStore.total" :disabled="cartStore.busy || cartStore.stale" :discount="cartStore.discount" @checkout="checkout" /></div>
+        <div class="lg:col-span-4 lg:sticky lg:top-24"><CartOrderSummary v-model:coupon="checkoutStore.couponDraft" :item-count="cartStore.itemCount" :subtotal-original="cartStore.subtotalOriginal" :total="cartStore.total" :disabled="cartStore.busy || cartStore.stale || couponPending" :discount="cartStore.discount" :preview="activeCouponPreview" :coupon-pending="couponPending" :coupon-applied="!!activeCouponPreview && !!checkoutStore.couponCode" @apply-coupon="applyCoupon" @checkout="checkout" /></div>
       </div>
     </div>
   </div>

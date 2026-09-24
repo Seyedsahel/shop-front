@@ -15,6 +15,7 @@ watch(open, value => {
 </script>
 
 <template>
+  <ClientOnly>
   <Teleport to="#teleports">
     <Transition
       enter-active-class="transition duration-200" enter-from-class="opacity-0"
@@ -37,4 +38,5 @@ watch(open, value => {
       </div>
     </Transition>
   </Teleport>
+  </ClientOnly>
 </template>

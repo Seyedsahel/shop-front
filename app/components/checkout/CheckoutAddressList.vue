@@ -1,15 +1,26 @@
 <script setup lang="ts">
-defineProps<{ addresses: AddressDraft[]; selectedId: string | null }>()
-defineEmits<{ select: [id: string]; add: []; edit: [address: AddressDraft] }>()
+const props = defineProps<{ addresses: Address[]; provinces: ShippingProvince[]; selectedId: string | null; disabled?: boolean }>()
+defineEmits<{ select: [id: string]; add: []; edit: [address: Address] }>()
+
+function location(address: Address) {
+  const province = props.provinces.find(item => item.code === address.province_code)
+  const city = province?.cities.find(item => item.code === address.city_code)
+  return [province?.title.trim(), city?.title.trim()].filter(Boolean).join('، ')
+}
 </script>
 
 <template>
-  <div class="space-y-3 p-4">
-    <!-- TODO: Replace saved address list and mutations with Address API. -->
-    <article v-for="address in addresses" :key="address.id" class="rounded-xl border p-4 transition-colors" :class="address.id === selectedId ? 'border-primary bg-primary-subtle' : 'border-border bg-card'">
-      <div class="flex items-center justify-between gap-3"><button type="button" class="text-sm font-semibold text-text-primary" @click="$emit('select', address.id)">{{ address.label }}</button><span class="inline-flex items-center gap-2"><button type="button" class="text-xs text-primary" @click="$emit('edit', address)">ویرایش</button><UIcon v-if="address.id === selectedId" name="solar:check-circle-bold" class="size-5 text-primary" /></span></div>
-      <button type="button" class="mt-2 w-full text-start" @click="$emit('select', address.id)"><span class="block text-xs leading-6 text-text-secondary">{{ address.recipientName }} · {{ address.phone }}</span><span class="mt-1 block text-xs leading-6 text-text-secondary">{{ address.province }}، {{ address.city }}، {{ address.address }}</span></button>
-    </article>
-    <button type="button" class="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-primary px-4 py-3 text-sm font-semibold text-primary" @click="$emit('add')"><UIcon name="solar:add-circle-outline" class="size-5" />افزودن آدرس جدید</button>
-  </div>
+  <section class="rounded-2xl border border-border bg-card p-5 sm:p-6">
+    <div class="flex items-center justify-between gap-3"><h2 class="text-lg font-bold text-text-primary">نشانی و اطلاعات تحویل‌گیرنده</h2><button type="button" :disabled="disabled" class="text-sm font-semibold text-primary disabled:opacity-50" @click="$emit('add')">افزودن نشانی</button></div>
+    <div class="mt-4 space-y-3">
+      <article v-for="address in addresses" :key="address.id" class="rounded-xl border p-4" :class="address.id === selectedId ? 'border-primary bg-primary-subtle' : 'border-border bg-card'">
+        <div class="flex items-start gap-3">
+          <input :id="`checkout-address-${address.id}`" type="radio" name="checkout-address" :checked="address.id === selectedId" :disabled="disabled" class="mt-1 accent-primary" @change="$emit('select', address.id)">
+          <label :for="`checkout-address-${address.id}`" class="min-w-0 flex-1 cursor-pointer text-sm leading-7 text-text-secondary"><strong class="block text-text-primary">{{ address.name }} · <bdi>{{ address.phone_number }}</bdi></strong>{{ location(address) }}<span v-if="location(address)">، </span>{{ address.address }}<span v-if="address.postal_code" class="block">کد پستی: <bdi>{{ address.postal_code }}</bdi></span></label>
+          <button type="button" :disabled="disabled" class="text-xs text-primary disabled:opacity-50" @click="$emit('edit', address)">ویرایش</button>
+        </div>
+      </article>
+      <p v-if="!addresses.length" class="text-sm text-text-secondary">برای ثبت سفارش، یک نشانی و اطلاعات تماس اضافه کنید.</p>
+    </div>
+  </section>
 </template>
