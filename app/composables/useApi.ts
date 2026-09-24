@@ -34,6 +34,7 @@ export const useApi = () => {
 
   return {
     patch: <T>(path: string, body?: NitroFetchOptions<NitroFetchRequest>['body']) => request<T>(path, { method: 'PATCH', body, retry: 0 }),
+    put: <T>(path: string, body?: NitroFetchOptions<NitroFetchRequest>['body']) => request<T>(path, { method: 'PUT', body, retry: 0 }),
     delete: <T>(path: string) => request<T>(path, { method: 'DELETE', retry: 0 }),
     get: <T>(path: string) => request<T>(path),
     post: <T>(path: string, body?: NitroFetchOptions<NitroFetchRequest>['body']) => request<T>(path, { method: 'POST', body }),
