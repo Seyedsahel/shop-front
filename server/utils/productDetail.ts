@@ -4,6 +4,14 @@ export function mapProductDetail(raw: any): ProductDetail {
     name: raw.name,
     slug: raw.slug,
     description: raw.description,
+    descriptionBlocks: (raw.description_blocks ?? [])
+      .map((block: any) => ({
+        type: block.type,
+        title: block.title ?? '',
+        body: block.body ?? '',
+        sortOrder: Number(block.sort_order ?? 0),
+      }))
+      .sort((first: ProductDescriptionBlock, second: ProductDescriptionBlock) => first.sortOrder - second.sortOrder),
     basePrice: Number(raw.base_price ?? 0),
     baseStock: Number(raw.base_stock ?? 0),
     price: {

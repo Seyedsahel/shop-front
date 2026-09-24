@@ -100,11 +100,19 @@ export interface ProductDetailBrand {
   description: string
 }
 
+export interface ProductDescriptionBlock {
+  type: string
+  title: string
+  body: string
+  sortOrder: number
+}
+
 export interface ProductDetail {
   id: string
   name: string
   slug: string
   description: string
+  descriptionBlocks: ProductDescriptionBlock[]
   basePrice: number
   baseStock: number
   price: ProductDetailPrice
