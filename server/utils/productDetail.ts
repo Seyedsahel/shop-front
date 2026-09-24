@@ -29,8 +29,15 @@ export function mapProductDetail(raw: any): ProductDetail {
       attributeId: s.attribute_id, slug: s.slug, name: s.name, dataType: s.data_type, unit: s.unit, value: s.value,
     })),
     purchaseVariants: (raw.purchase_variants ?? []).map((v: any) => ({
-      variantId: v.variant_id, attributeId: v.attribute_id, slug: v.slug, name: v.name, value: v.value,
+      variantId: v.variant_id, sku: v.sku,
       priceAdjustment: v.price_adjustment, finalPrice: v.final_price, stock: v.stock,
+      options: (v.options ?? []).map((option: any) => ({
+        variantOptionId: option.variant_option_id,
+        attributeId: option.attribute_id,
+        slug: option.slug,
+        name: option.name,
+        value: option.value,
+      })),
     })),
   }
 }

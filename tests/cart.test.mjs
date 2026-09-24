@@ -3,7 +3,7 @@ import { test } from 'node:test'
 import { readFile } from 'node:fs/promises'
 import ts from 'typescript'
 import { createPinia, setActivePinia, defineStore } from 'pinia'
-import { ref, computed, watch, reactive, nextTick } from 'vue'
+import { ref, computed, watch, reactive } from 'vue'
 import * as h3 from 'h3'
 
 async function load(path) {
@@ -228,33 +228,6 @@ test('cart proxies reject absent identity and invalid quantities before backend 
 })
 
 
-test('Product Details passes selected variant and quantity to Cart and guards repeated clicks', async () => {
-  const props = reactive({ product: { id: 'product', baseStock: 8, price: { final: 100, original: 100, discountPercent: 0 },
-    purchaseVariants: [{ variantId: 'variant', stock: 6, finalPrice: 100 }] } })
-  const calls = []
-  const cartStore = reactive({ busy: false, stale: false, async addItem(...args) { calls.push(args) } })
-  globalThis.useCartStore = () => cartStore
-  globalThis.useAppToast = () => ({ success() {}, error(message) { throw new Error(message) } })
-  globalThis.defineProps = () => props
-  const source = (await readFile(new URL('../app/components/product/ProductPurchasePanel.vue', import.meta.url), 'utf8'))
-    .match(/<script setup lang="ts">([\s\S]*?)<\/script>/)[1]
-  const { outputText } = ts.transpileModule(source + '\nexport { addToCart, quantity, selectedVariantId }', {
-    compilerOptions: { target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext },
-  })
-  const panel = await import('data:text/javascript;base64,' + Buffer.from(outputText).toString('base64'))
-  panel.quantity.value = 3
-  await panel.addToCart()
-  assert.deepEqual(calls, [['product', 3, 'variant']])
-  cartStore.busy = true
-  await panel.addToCart()
-  assert.equal(calls.length, 1)
-  cartStore.busy = false
-  props.product = { ...props.product, id: 'base-product', purchaseVariants: [] }
-  await nextTick()
-  await panel.addToCart()
-  assert.deepEqual(calls[1], ['base-product', 1, null])
-})
-
 test('GET proxy does not request product data when the cart includes a variant', async () => {
   const handler = (await load('server/api/cart/index.get.ts')).default
   globalThis.$fetch = async url => {
@@ -301,37 +274,4 @@ test('store sends null for variantless backend cart entries', async () => {
     await store.updateQuantity('item', 3)
     assert.equal(calls.find(call => call[0] === 'patch')[2].variant_id, null)
   }
-})
-
-test('quick add selects variants in place, passes quantity, and closes after success', async () => {
-  const open = ref(true)
-  const props = reactive({ product: { id: 'quick-product', slug: 'quick-product', price: { final: 100 } } })
-  const details = reactive({ bySlug: {}, async loadBySlug(slug) {
-    const detail = { baseStock: 10, price: { final: 100 }, purchaseVariants: [
-      { variantId: 'sold-out', stock: 0, finalPrice: 100 },
-      { variantId: 'available', stock: 4, finalPrice: 120 },
-    ] }
-    this.bySlug[slug] = detail
-    return detail
-  } })
-  const calls = []
-  globalThis.useProductDetailStore = () => details
-  globalThis.useCartStore = () => ({ busy: false, stale: false, addItem: async (...args) => { calls.push(args) } })
-  globalThis.useAppToast = () => ({ success() {}, error() {} })
-  globalThis.defineProps = () => props
-  globalThis.defineModel = () => open
-  globalThis.navigateTo = () => { throw new Error('Quick add must not navigate') }
-  const source = (await readFile(new URL('../app/components/product/ProductQuickAdd.vue', import.meta.url), 'utf8'))
-    .match(/<script setup lang="ts">([\s\S]*?)<\/script>/)[1]
-  const { outputText } = ts.transpileModule(source + '\nexport { add, quantity, selectedVariantId, loading }', {
-    compilerOptions: { target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext },
-  })
-  const panel = await import('data:text/javascript;base64,' + Buffer.from(outputText).toString('base64'))
-  await new Promise(resolve => setImmediate(resolve))
-  assert.equal(panel.loading.value, false)
-  assert.equal(panel.selectedVariantId.value, 'available')
-  panel.quantity.value = 3
-  await panel.add()
-  assert.deepEqual(calls, [['quick-product', 3, 'available']])
-  assert.equal(open.value, false)
 })

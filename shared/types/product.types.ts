@@ -68,15 +68,21 @@ export interface ProductSpecification {
   value: string
 }
 
-export interface ProductVariant {
-  variantId: string
+export interface ProductVariantOption {
+  variantOptionId: string
   attributeId: string
   slug: string
   name: string
   value: string
+}
+
+export interface ProductVariant {
+  variantId: string
+  sku: string
   priceAdjustment: number
   finalPrice: number
   stock: number
+  options: ProductVariantOption[]
 }
 
 export interface ProductDetailPrice {

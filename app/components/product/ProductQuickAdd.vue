@@ -7,15 +7,16 @@ const toast = useAppToast()
 const loading = ref(false)
 const submitting = ref(false)
 const error = ref('')
-const selectedVariantId = ref<string | null>(null)
 const quantity = ref(1)
 let requestId = 0
 const detail = computed(() => details.bySlug[props.product.slug])
 const cartLines = computed(() => cart.itemsForProduct(props.product.id))
-const selectedVariant = computed(() => detail.value?.purchaseVariants.find(variant => variant.variantId === selectedVariantId.value))
-const stock = computed(() => selectedVariant.value?.stock ?? (detail.value?.purchaseVariants.length ? 0 : detail.value?.baseStock ?? 0))
+const { attributes, selectedOptions, selectedVariant, select, reset } = useProductVariants(() => detail.value?.purchaseVariants ?? [])
+const stock = computed(() => detail.value?.purchaseVariants.length
+  ? selectedVariant.value?.stock ?? null
+  : detail.value?.baseStock ?? null)
 const unitPrice = computed(() => selectedVariant.value?.finalPrice ?? detail.value?.price.final ?? props.product.price.final)
-const ready = computed(() => !loading.value && !error.value && !!detail.value && stock.value > 0)
+const ready = computed(() => !loading.value && !error.value && !!detail.value && stock.value !== null && stock.value > 0)
 
 async function load() {
   const active = ++requestId
@@ -25,7 +26,7 @@ async function load() {
   try {
     const product = await details.loadBySlug(props.product.slug)
     if (active !== requestId) return
-    selectedVariantId.value = product.purchaseVariants.find(variant => variant.stock > 0)?.variantId ?? null
+    reset()
   } catch (caught) {
     if (active === requestId) error.value = caught instanceof ApiError ? caught.message : 'دریافت اطلاعات محصول ناموفق بود.'
   } finally {
@@ -36,13 +37,14 @@ watch(() => [open.value, props.product.slug] as const, ([visible]) => {
   if (visible) void load()
   else requestId++
 }, { immediate: true })
-watch(stock, value => { quantity.value = Math.min(quantity.value, Math.max(value, 1)) })
+watch(() => selectedVariant.value?.variantId, () => { quantity.value = 1 })
 
 async function add() {
   if (!ready.value || submitting.value || cart.busy || cart.stale) return
+  if (detail.value?.purchaseVariants.length && !selectedVariant.value) return
   submitting.value = true
   try {
-    await cart.addItem(props.product.id, quantity.value, selectedVariantId.value)
+    await cart.addItem(props.product.id, quantity.value, selectedVariant.value?.variantId ?? null)
     toast.success('محصول به سبد خرید اضافه شد.')
     open.value = false
   } catch (caught) {
@@ -100,24 +102,24 @@ async function retry() {
           </div>
         </div>
       </section>
-      <fieldset v-if="detail.purchaseVariants.length" :disabled="submitting" class="mb-5 space-y-2">
-        <legend class="mb-2 text-sm font-semibold">انتخاب {{ detail.purchaseVariants[0]?.name }}</legend>
-        <label v-for="variant in detail.purchaseVariants" :key="variant.variantId" class="flex cursor-pointer items-center gap-3 rounded-xl border p-3" :class="[selectedVariantId === variant.variantId ? 'border-primary bg-primary-subtle' : 'border-border', variant.stock <= 0 ? 'opacity-50' : '']">
-          <input v-model="selectedVariantId" type="radio" :name="`quick-variant-${product.id}`" :value="variant.variantId" :disabled="variant.stock <= 0" class="accent-primary" />
-          <span class="flex-1 text-sm">{{ variant.value }}<span v-if="variant.stock <= 0" class="ms-2 text-danger">ناموجود</span></span>
-          <span class="text-sm">{{ formatMoney(variant.finalPrice) }}</span>
-        </label>
-      </fieldset>
+      <ProductVariantSelectors
+        v-if="detail.purchaseVariants.length"
+        class="mb-5"
+        :attributes="attributes"
+        :selected-options="selectedOptions"
+        :disabled="submitting"
+        @select="select"
+      />
       <div class="mb-5 flex items-center justify-between gap-3">
-        <span class="text-sm">تعداد <span class="text-xs text-text-muted">({{ stock.toLocaleString('fa-IR') }} عدد موجود)</span></span>
+        <span class="text-sm">تعداد <span v-if="stock !== null" class="text-xs text-text-muted">({{ stock.toLocaleString('fa-IR') }} عدد موجود)</span></span>
         <div class="flex items-center gap-4 rounded-xl bg-surface p-1">
           <button type="button" aria-label="کاهش تعداد" class="size-10 rounded-lg bg-card disabled:opacity-40" :disabled="quantity <= 1 || submitting" @click="quantity--">−</button>
           <output class="min-w-5 text-center">{{ quantity.toLocaleString('fa-IR') }}</output>
-          <button type="button" aria-label="افزایش تعداد" class="size-10 rounded-lg bg-card disabled:opacity-40" :disabled="quantity >= stock || submitting" @click="quantity++">+</button>
+          <button type="button" aria-label="افزایش تعداد" class="size-10 rounded-lg bg-card disabled:opacity-40" :disabled="stock === null || quantity >= stock || submitting" @click="quantity++">+</button>
         </div>
       </div>
       <button type="button" class="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50" :disabled="!ready || submitting || cart.busy || cart.stale" @click="add">
-        {{ submitting ? 'در حال افزودن…' : stock <= 0 ? 'ناموجود' : `افزودن به سبد · ${formatMoney(unitPrice * quantity)}` }}
+        {{ submitting ? 'در حال افزودن…' : stock === null ? 'گزینه محصول را انتخاب کنید' : stock <= 0 ? 'ناموجود' : `افزودن به سبد · ${formatMoney(unitPrice * quantity)}` }}
       </button>
     </template>
   </UiModal>

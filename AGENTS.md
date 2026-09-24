@@ -41,3 +41,6 @@ Prefer:
 
 Do not bypass RTK for supported shell commands unless raw output
 is specifically required.
+
+## mock
+Once you’ve set up the backend API connections and no longer need the mock data, delete the mock data file; there’s no need to edit it.
