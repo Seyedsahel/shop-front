@@ -13,6 +13,8 @@ async function load(path) {
 }
 
 Object.assign(globalThis, { computed, ref, watch, toBackendImageUrl: value => value })
+globalThis.ApiError = (await load('app/utils/api-error.ts')).ApiError
+globalThis.onMounted = () => {}
 const { useProductVariants } = await load('app/composables/useProductVariants.ts')
 globalThis.useProductVariants = useProductVariants
 const { mapProductDetail } = await load('server/utils/productDetail.ts')
@@ -101,6 +103,7 @@ test('purchase panel hides stock until resolved and sends only the purchase vari
   } })
   const calls = []
   globalThis.useCartStore = () => ({ busy: false, stale: false, async addItem(...args) { calls.push(args) } })
+  globalThis.useWishlistStore = () => ({ findItem: () => undefined, fetchWishlist: async () => {} })
   globalThis.useAppToast = () => ({ success() {}, error(message) { throw new Error(message) } })
   globalThis.defineProps = () => props
 

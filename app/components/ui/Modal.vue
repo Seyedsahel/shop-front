@@ -29,7 +29,7 @@ function closed() {
 function closeFromBackdrop(event: MouseEvent) {
   if (event.target === dialog.value && props.dismissible !== false) open.value = false
 }
-watch(open, syncOpen, { flush: 'post' })
+watch([open, dialog], syncOpen, { flush: 'post' })
 onMounted(syncOpen)
 onBeforeUnmount(() => { dialog.value?.close(); unlockScroll(); previousFocus?.focus() })
 </script>
