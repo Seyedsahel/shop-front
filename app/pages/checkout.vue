@@ -67,6 +67,10 @@ function selectAddress(address: Address) {
 
 async function saveAddress() {
   if (addresses.mutating || !locations.loaded) return
+  if (pickup.value && !selectedAddressId.value) {
+    toast.error('برای ثبت اطلاعات تحویل‌گیرنده ابتدا یک نشانی در حساب کاربری ذخیره کنید.')
+    return
+  }
   const input = validateAddress()
   if (!input) return
   try {
@@ -105,23 +109,15 @@ const addressReady = computed(() => {
 const methodNames: Record<string, string> = { bike_courier: 'پیک موتوری', local_pickup: 'تحویل حضوری', tapin_post: 'پست' }
 const methodName = computed(() => methodNames[selectedMethod.value?.code ?? ''] ?? selectedMethod.value?.name ?? '')
 const currentInput = computed<CheckoutInput | null>(() => {
-  if (!cart.cart?.id || !selectedMethod.value) return null
+  if (!cart.cart?.id || !selectedMethod.value || !selectedAddressId.value || !selectedAddress.value) return null
   if (pickup.value) {
     const phone = normalizeDigits(draft.value.phone.trim()).replace(/^(?:\+98|0098)/, '0')
-    if (!draft.value.name.trim() || !/^09\d{9}$/.test(phone)) return null
-  } else if (!addressSaved.value || !addressReady.value || !selectedAddressId.value) return null
+    if (!draft.value.name.trim() || !/^09\d{9}$/.test(phone) || !addressSaved.value) return null
+  } else if (!addressSaved.value || !addressReady.value) return null
   return {
+    address_id: selectedAddressId.value,
     cart_id: cart.cart.id,
-    ...(!pickup.value && selectedAddressId.value ? { address_id: selectedAddressId.value } : {}),
     shipping_method_id: selectedMethodId.value,
-    recipient_name: draft.value.name.trim(),
-    phone: normalizeDigits(draft.value.phone.trim()).replace(/^(?:\+98|0098)/, '0'),
-    ...(!pickup.value && selectedAddress.value ? {
-      province_code: selectedAddress.value.province_code,
-      city_code: selectedAddress.value.city_code,
-      address: selectedAddress.value.address,
-      postal_code: selectedAddress.value.postal_code,
-    } : {}),
     ...(checkout.couponCode ? { coupon_code: checkout.couponCode } : {}),
   }
 })
@@ -201,7 +197,7 @@ watch(() => addresses.items.map(item => item.id), ids => {
 watch(() => checkout.methods.map(item => item.id), ids => {
   if (!ids.includes(selectedMethodId.value)) selectedMethodId.value = ''
 })
-watch(() => [currentInput.value?.cart_id, currentInput.value?.address_id, currentInput.value?.shipping_method_id, currentInput.value?.city_code, currentInput.value?.phone] as const,
+watch(() => [currentInput.value?.cart_id, currentInput.value?.address_id, currentInput.value?.shipping_method_id] as const,
   () => { void refreshPreview() })
 watch(() => [cart.loaded, cart.busy, cart.itemCount, cart.error] as const, ([loaded, busy, count, error]) => {
   if (loaded && !busy && !count && !error && !checkout.order) void navigateTo('/cart')

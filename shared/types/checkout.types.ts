@@ -9,16 +9,10 @@ export interface ShippingMethod {
 }
 
 export interface CheckoutInput {
-  address_id?: string
+  address_id: string
   cart_id: string
   shipping_method_id: string
   coupon_code?: string
-  recipient_name?: string
-  phone?: string
-  province_code?: number
-  city_code?: number
-  address?: string
-  postal_code?: string
 }
 
 export interface CheckoutItem {

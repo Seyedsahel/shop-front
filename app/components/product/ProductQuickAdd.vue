@@ -7,6 +7,7 @@ const toast = useAppToast()
 const loading = ref(false)
 const submitting = ref(false)
 const error = ref('')
+const loadError = ref(false)
 const quantity = ref(1)
 let requestId = 0
 const detail = computed(() => details.bySlug[props.product.slug])
@@ -16,19 +17,23 @@ const stock = computed(() => detail.value?.purchaseVariants.length
   ? selectedVariant.value?.stock ?? null
   : detail.value?.baseStock ?? null)
 const unitPrice = computed(() => selectedVariant.value?.finalPrice ?? detail.value?.price.final ?? props.product.price.final)
-const ready = computed(() => !loading.value && !error.value && !!detail.value && stock.value !== null && stock.value > 0)
+const ready = computed(() => !loading.value && !loadError.value && !!detail.value && stock.value !== null && stock.value > 0)
 
 async function load() {
   const active = ++requestId
   loading.value = true
   error.value = ''
+  loadError.value = false
   quantity.value = 1
   try {
     const product = await details.loadBySlug(props.product.slug)
     if (active !== requestId) return
     reset()
   } catch (caught) {
-    if (active === requestId) error.value = caught instanceof ApiError ? caught.message : 'دریافت اطلاعات محصول ناموفق بود.'
+    if (active === requestId) {
+      loadError.value = true
+      error.value = caught instanceof ApiError ? caught.message : 'دریافت اطلاعات محصول ناموفق بود.'
+    }
   } finally {
     if (active === requestId) loading.value = false
   }
@@ -43,6 +48,7 @@ async function add() {
   if (!ready.value || submitting.value || cart.busy || cart.stale) return
   if (detail.value?.purchaseVariants.length && !selectedVariant.value) return
   submitting.value = true
+  error.value = ''
   try {
     await cart.addItem(props.product.id, quantity.value, selectedVariant.value?.variantId ?? null)
     toast.success('محصول به سبد خرید اضافه شد.')
@@ -91,8 +97,7 @@ async function retry() {
         <h4 class="text-sm font-semibold">گزینه‌های موجود در سبد</h4>
         <div v-for="item in cartLines" :key="item.id" class="flex items-center justify-between gap-3 rounded-xl bg-surface p-3">
           <div class="min-w-0">
-            <!-- TODO: Use the variant label supplied by the Cart API once the backend adds it. -->
-            <p class="text-sm font-medium">{{ item.variant_id || 'گزینه پیش‌فرض' }}</p>
+            <p class="text-sm font-medium">{{ item.variant_name || 'گزینه پیش‌فرض' }}</p>
             <p class="mt-1 text-xs text-text-muted">{{ formatMoney(item.pricing.final_unit) }}</p>
           </div>
           <div class="flex shrink-0 items-center gap-3 rounded-lg bg-card p-1">

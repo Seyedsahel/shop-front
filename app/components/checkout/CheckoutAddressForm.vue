@@ -43,6 +43,10 @@ function changeProvince(code: number | undefined) {
         <UiInput v-model="draft.name" :error="errors.name" label="نام و نام خانوادگی تحویل‌گیرنده *" placeholder="نام دریافت‌کننده" />
         <UiInput v-model="draft.phone" :error="errors.phone" label="شماره موبایل *" inputmode="tel" placeholder="۰۹۱۲۳۴۵۶۷۸۹" />
       </div>
+      <div v-if="pickup">
+        <p v-if="!selectedAddress" class="mb-3 text-xs text-text-secondary">برای ثبت سفارش، ابتدا یک نشانی در حساب کاربری ذخیره کنید.</p>
+        <button type="submit" :disabled="pending || !selectedAddress" class="rounded-xl bg-secondary px-5 py-3 text-sm font-semibold text-secondary-foreground hover:bg-secondary-hover disabled:opacity-50">{{ pending ? 'در حال ذخیره…' : 'ذخیره اطلاعات تحویل‌گیرنده' }}</button>
+      </div>
       <template v-if="!pickup">
         <div class="grid gap-4 sm:grid-cols-2">
           <div class="flex min-w-0 flex-col gap-2 text-sm text-text-secondary">

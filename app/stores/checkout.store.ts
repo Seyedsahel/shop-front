@@ -44,6 +44,7 @@ export const useCheckoutStore = defineStore('checkout', () => {
     previewing.value = true
     try {
       const result = await api.post<CheckoutPreview>('/checkout/preview', input)
+      console.log('checkout preview result', result)
       if (generation !== previewGeneration) return null
       preview.value = result
       return result

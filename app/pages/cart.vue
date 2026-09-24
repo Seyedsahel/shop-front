@@ -38,10 +38,11 @@ async function applyCoupon() {
     if (!pickup) throw new ApiError('روش تحویل حضوری برای بررسی کد تخفیف در دسترس نیست.')
     if (!addresses.loaded) await addresses.fetchAll()
     const address = addresses.items[0]
+    if (!address) throw new ApiError('برای بررسی کد تخفیف ابتدا یک نشانی در حساب کاربری ذخیره کنید.')
     const input: CheckoutInput = {
+      address_id: address.id,
       cart_id: cartStore.cart.id,
       shipping_method_id: pickup.id,
-      ...(address ? { address_id: address.id } : {}),
       coupon_code: candidate,
     }
     const result = await checkoutStore.fetchPreview(input)

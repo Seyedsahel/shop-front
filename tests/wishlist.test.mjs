@@ -19,7 +19,7 @@ globalThis.ApiError = (await load('app/utils/api-error.ts')).ApiError
 const { useWishlistStore } = await load('app/stores/wishlist.store.ts')
 const fixture = () => ({
   id: 'list', guest_id: 'guest', user_id: '',
-  products: { item: { id: 'item', product_id: 'product', variant_id: 'variant', name: 'Product', slug: 'product', stock: 2, image_url: null,
+  products: { item: { id: 'item', product_id: 'product', variant_id: 'variant', variant_name: '10 Tablets', name: 'Product', slug: 'product', stock: 2, image_url: null,
     price: { original: 20, final: 15, discount: 5, discount_percent: 25 } } },
 })
 
@@ -50,6 +50,7 @@ test('wishlist uses the shopping session and preserves distinct variant entries'
   await store.fetchWishlist()
   assert.equal(store.itemCount, 2)
   assert.equal(store.findItem('product', 'variant').id, 'item')
+  assert.equal(store.findItem('product', 'variant').variant_name, '10 Tablets')
   assert.equal(store.findItem('product', null).id, 'other')
   assert.deepEqual(calls, [['session', false], ['get', '/wishlist']])
 })
@@ -122,7 +123,9 @@ test('GET keeps keyed items and delete routes address the item or whole wishlist
     return path === '/api/wishlist' && !options.method ? fixture() : undefined
   }
   const response = await request(get, 'GET')
-  assert.equal((await response.json()).products.item.price.final, 15)
+  const body = await response.json()
+  assert.equal(body.products.item.price.final, 15)
+  assert.equal(body.products.item.variant_name, '10 Tablets')
   assert.equal(response.headers.get('cache-control'), 'no-store')
   await request(remove, 'DELETE')
   await request(clear, 'DELETE')

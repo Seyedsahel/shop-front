@@ -16,6 +16,7 @@ const emit = defineEmits<{ remove: []; addToCart: [] }>()
           <UiBadge :variant="item.stock > 0 ? 'stock' : 'discount'">{{ item.stock === 0 ? 'ناموجود' : 'موجود و آماده ارسال' }}</UiBadge>
         </div>
         <NuxtLink :to="`/products/${item.slug}`" class="line-clamp-2 text-sm font-semibold leading-7 text-text-primary hover:text-primary sm:text-base">{{ item.name }}</NuxtLink>
+        <p v-if="item.variant_name" class="mt-1 line-clamp-2 text-xs leading-6 text-text-secondary">گزینه: {{ item.variant_name }}</p>
       </div>
       <div class="text-end">
         <div v-if="item.price.discount > 0" class="text-xs text-text-muted line-through">{{ formatMoney(item.price.original) }}</div>

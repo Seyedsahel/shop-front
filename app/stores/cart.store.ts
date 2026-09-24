@@ -84,7 +84,6 @@ export const useCartStore = defineStore('cart', () => {
         }
       })
     } catch (caught) {
-      stale.value = true
       error.value = caught instanceof ApiError ? caught.message : 'تغییر سبد خرید ناموفق بود.'
       throw caught
     } finally {

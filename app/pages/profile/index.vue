@@ -4,6 +4,7 @@ definePageMeta({ middleware: 'auth' })
 const auth = useAuthStore()
 const addresses = useAddressStore()
 const locations = useShippingLocationsStore()
+const orders = useOrderStore()
 const toast = useAppToast()
 const editingId = ref<string | null>(null)
 const formOpen = ref(false)
@@ -84,6 +85,7 @@ async function removeAddress(address: Address) {
 onMounted(() => {
   void addresses.fetchAll().catch(() => {})
   void locations.fetchAll().catch(() => {})
+  void orders.fetchAll().catch(() => {})
 })
 </script>
 
@@ -108,6 +110,17 @@ onMounted(() => {
       <ProfileAddressForm v-if="formOpen" v-model="draft" :provinces="locations.provinces" :errors="errors" :pending="addresses.mutating || addresses.loading" :editing="!!editingId" @submit="saveAddress" @cancel="formOpen = false" />
     </section>
 
-    <!-- TODO: Add the orders section when the orders API and profile flow are available. -->
+    <section aria-labelledby="orders-title" class="mt-10 space-y-5">
+      <div><h2 id="orders-title" class="text-xl font-bold text-text-primary">سفارش‌های من</h2><p class="mt-1 text-sm text-text-secondary">سفارش‌های ثبت‌شده و وضعیت آن‌ها را ببینید.</p></div>
+      <p v-if="orders.error" role="alert" class="rounded-xl border border-danger-border p-4 text-sm text-danger">{{ orders.error }} <button type="button" class="underline" :disabled="orders.loading" @click="orders.fetchAll(orders.page).catch(() => {})">تلاش دوباره</button></p>
+      <p v-if="orders.loading && !orders.loaded" role="status" class="p-8 text-center text-text-secondary">در حال دریافت سفارش‌ها…</p>
+      <ProfileOrderList v-else-if="orders.items.length" :orders="orders.items" />
+      <div v-else-if="orders.loaded && !orders.error" class="rounded-2xl border border-dashed border-border-strong bg-card p-8 text-center text-text-secondary">هنوز سفارشی ثبت نکرده‌اید.</div>
+      <nav v-if="orders.total > orders.limit" aria-label="صفحه‌های سفارش" class="flex items-center justify-center gap-4 text-sm">
+        <button type="button" class="rounded-xl border border-border px-4 py-2 text-text-primary disabled:opacity-50" :disabled="orders.loading || orders.page <= 1" @click="orders.fetchAll(orders.page - 1).catch(() => {})">صفحه قبل</button>
+        <span class="text-text-secondary">صفحه {{ orders.page }} از {{ Math.ceil(orders.total / orders.limit) }}</span>
+        <button type="button" class="rounded-xl border border-border px-4 py-2 text-text-primary disabled:opacity-50" :disabled="orders.loading || orders.page >= Math.ceil(orders.total / orders.limit)" @click="orders.fetchAll(orders.page + 1).catch(() => {})">صفحه بعد</button>
+      </nav>
+    </section>
   </div>
 </template>

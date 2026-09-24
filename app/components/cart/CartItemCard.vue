@@ -19,8 +19,7 @@ const hasDiscount = computed(() => props.item.pricing.discount > 0)
           <UiBadge :variant="item.stock > 0 ? 'stock' : 'discount'">{{ item.stock === 0 ? 'ناموجود' : item.stock > 3 ? 'موجود و آماده ارسال' : `تنها ${item.stock.toLocaleString('fa-IR')} عدد باقی مانده` }}</UiBadge>
         </div>
         <NuxtLink :to="`/products/${item.slug}`" class="line-clamp-2 text-sm font-semibold leading-7 text-text-primary hover:text-primary sm:text-base">{{ item.name }}</NuxtLink>
-        <!-- TODO: Use the variant label supplied by the Cart API once the backend adds it. -->
-        <p v-if="item.variant_id" class="mt-1 line-clamp-2 text-xs leading-6 text-text-secondary">گزینه: {{ item.variant_id }}</p>
+        <p v-if="item.variant_name" class="mt-1 line-clamp-2 text-xs leading-6 text-text-secondary">گزینه: {{ item.variant_name }}</p>
       </div>
       <div class="flex items-center justify-between gap-4 sm:flex-col sm:items-end">
         <div class="text-end">

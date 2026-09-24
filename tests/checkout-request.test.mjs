@@ -19,15 +19,14 @@ async function request(body) {
 }
 
 test('checkout accepts backend string IDs and trims an optional coupon', async () => {
-  const response = await request({ address_id: 'address-1', cart_id: 'cart-1', shipping_method_id: 'method-1', coupon_code: ' SAVE ', recipient_name: ' Customer ', phone: '09123456789', province_code: 1, city_code: 331, address: ' Street ', postal_code: '1234567890' })
+  const response = await request({ address_id: 'address-1', cart_id: 'cart-1', shipping_method_id: 'method-1', coupon_code: ' SAVE ', recipient_name: 'ignored', city_code: 331 })
   assert.equal(response.status, 200)
-  assert.deepEqual(response.body, { address_id: 'address-1', cart_id: 'cart-1', shipping_method_id: 'method-1', coupon_code: 'SAVE', recipient_name: 'Customer', phone: '09123456789', province_code: 1, city_code: 331, address: 'Street', postal_code: '1234567890' })
+  assert.deepEqual(response.body, { address_id: 'address-1', cart_id: 'cart-1', shipping_method_id: 'method-1', coupon_code: 'SAVE' })
 })
 
-test('pickup request can omit address while retaining cart and shipping method', async () => {
+test('checkout request requires an address ID', async () => {
   const response = await request({ cart_id: 'cart-1', shipping_method_id: 'pickup' })
-  assert.equal(response.status, 200)
-  assert.deepEqual(response.body, { cart_id: 'cart-1', shipping_method_id: 'pickup' })
+  assert.equal(response.status, 400)
 })
 
 test('checkout rejects empty required IDs', async () => {

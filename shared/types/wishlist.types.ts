@@ -2,6 +2,7 @@ export interface WishlistItem {
   id: string
   product_id: string
   variant_id: string
+  variant_name: string
   name: string
   slug: string
   stock: number

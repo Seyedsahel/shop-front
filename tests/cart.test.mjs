@@ -19,7 +19,7 @@ globalThis.ApiError = (await load('app/utils/api-error.ts')).ApiError
 const { useCartStore } = await load('app/stores/cart.store.ts')
 const fixture = () => ({
   id: 'cart', guest_id: 'guest', user_id: '',
-  products: { item: { id: 'item', product_id: 'product', variant_id: 'variant', quantity: 2,
+  products: { item: { id: 'item', product_id: 'product', variant_id: 'variant', variant_name: '10 Tablets', quantity: 2,
     name: 'Real product', slug: 'real-product', stock: 4, image_url: '/photo',
     pricing: { original_unit: 200, final_unit: 150, original_total: 400, discount: 100, total: 300 } } },
   pricing: { subtotal_original: 400, discount: 100, subtotal: 300, total: 300 },
@@ -58,6 +58,7 @@ test('keyed items, variants and pricing remain backend authoritative', async () 
   assert.equal(store.items[0].id, 'item')
   assert.equal(store.items[0].stock, 4)
   assert.equal(store.items[0].variant_id, 'variant')
+  assert.equal(store.items[0].variant_name, '10 Tablets')
   assert.equal(store.itemCount, 1)
   assert.equal(store.total, 300)
   assert.equal(store.subtotalOriginal, 400)
@@ -119,6 +120,19 @@ test('successful write plus failed refresh becomes stale and retries GET only', 
   api.get = async () => fixture()
   await store.fetchCart()
   assert.equal(writes, 1)
+  assert.equal(store.stale, false)
+})
+
+test('rejected cart write leaves the cart usable for a retry', async () => {
+  const { store, api } = setup()
+  await store.fetchCart()
+  api.post = async () => { throw new ApiError('Out of stock', 409) }
+  await assert.rejects(store.addItem('product', 1, 'variant'))
+  assert.equal(store.stale, false)
+  assert.equal(store.busy, false)
+  assert.equal(store.error, 'Out of stock')
+  api.post = async () => {}
+  await store.addItem('product', 1, 'variant')
   assert.equal(store.stale, false)
 })
 
@@ -215,6 +229,7 @@ test('GET proxy makes one cart request and normalizes only supplied image paths'
   assert.equal(response.status, 200)
   assert.equal(body.pricing.total, 300)
   assert.equal(body.products.item.name, 'Real product')
+  assert.equal(body.products.item.variant_name, '10 Tablets')
   assert.equal(body.products.item.image_url, '/photo')
   assert.deepEqual(calls, ['/api/cart'])
   assert.equal(response.headers.get('cache-control'), 'no-store')
