@@ -7,7 +7,7 @@ import { Toaster } from 'vue-sonner'
     <NuxtLayout>
       <NuxtPage />
     </NuxtLayout>
-    <Toaster rich-colors position="top-left" dir="rtl" />
+    <Toaster rich-colors position="top-center" dir="rtl" />
     <UiConfirmDialog />
   </div>
 </template>
