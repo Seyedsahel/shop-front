@@ -1,5 +1,6 @@
 <script setup lang="ts">
 const cartStore = useCartStore()
+const wishlistStore = useWishlistStore()
 const toast = useAppToast()
 const props = defineProps<{ product: ProductDetail }>()
 
@@ -16,6 +17,9 @@ const canShowDiscount = computed(() =>
 )
 const isInStock = computed(() => availableStock.value !== null && availableStock.value > 0)
 const totalPrice = computed(() => unitPrice.value * quantity.value)
+const favoriteItem = computed(() => wishlistStore.findItem(props.product.id, selectedVariant.value?.variantId))
+
+onMounted(() => { void wishlistStore.fetchWishlist().catch(() => {}) })
 
 watch(
   () => props.product.id,
@@ -39,8 +43,20 @@ async function addToCart() {
   }
 }
 
-function toggleFavorite() {
-  // TODO: Connect this product to the favorites API when favorites are implemented.
+async function toggleFavorite() {
+  if (wishlistStore.busy || wishlistStore.stale || (props.product.purchaseVariants.length && !selectedVariant.value)) return
+  try {
+    if (favoriteItem.value) {
+      if (!(await useConfirm('این کالا از علاقه‌مندی‌ها حذف شود؟'))) return
+      await wishlistStore.remove(favoriteItem.value.id)
+      toast.success('محصول از علاقه‌مندی‌ها حذف شد.')
+    } else {
+      await wishlistStore.addItem(props.product.id, selectedVariant.value?.variantId)
+      toast.success('محصول به علاقه‌مندی‌ها اضافه شد.')
+    }
+  } catch (error) {
+    toast.error(error instanceof ApiError ? error.message : 'تغییر علاقه‌مندی‌ها ناموفق بود.')
+  }
 }
 </script>
 
@@ -79,6 +95,7 @@ function toggleFavorite() {
     />
 
     <div v-if="cartStore.stale" role="alert" class="text-sm text-danger">{{ cartStore.error }} <NuxtLink to="/cart" class="underline">بررسی و دریافت دوباره سبد</NuxtLink></div>
+    <div v-if="wishlistStore.stale" role="alert" class="text-sm text-danger">{{ wishlistStore.error }} <button type="button" class="underline" :disabled="wishlistStore.busy" @click="wishlistStore.fetchWishlist().catch(() => {})">دریافت دوباره علاقه‌مندی‌ها</button></div>
     <div class="flex flex-col gap-3 sm:flex-row">
       <div class="flex h-12 w-full items-center justify-between rounded-xl border border-border-strong bg-card sm:w-36">
         <button type="button" class="grid size-11 place-items-center text-text-secondary hover:text-primary 
@@ -95,8 +112,8 @@ function toggleFavorite() {
           <UIcon name="solar:cart-large-2-outline" class="size-5 shrink-0" />
           <span class="truncate">{{ cartStore.isMutating ? 'در حال افزودن به سبد…' : availableStock === null ? 'گزینه محصول را انتخاب کنید' : isInStock ? `افزودن به سبد · ${formatMoney(totalPrice)}` : 'این محصول ناموجود است' }}</span>
         </button>
-        <button type="button" class="inline-flex size-12 shrink-0 items-center justify-center rounded-xl border border-secondary bg-primary-subtle text-text-primary transition-colors hover:bg-secondary-subtle hover:text-primary" aria-label="افزودن به علاقه‌مندی‌ها" @click="toggleFavorite">
-          <UIcon name="solar:heart-outline" class="size-5" />
+        <button type="button" class="inline-flex size-12 shrink-0 items-center justify-center rounded-xl border border-secondary bg-primary-subtle text-danger transition-colors hover:bg-secondary-subtle hover:text-primary disabled:cursor-not-allowed disabled:opacity-50" :disabled="wishlistStore.busy || wishlistStore.stale || (product.purchaseVariants.length > 0 && !selectedVariant)" :aria-label="favoriteItem ? 'حذف از علاقه‌مندی‌ها' : 'افزودن به علاقه‌مندی‌ها'" :aria-pressed="!!favoriteItem" @click="toggleFavorite">
+          <UIcon :name="favoriteItem ? 'solar:heart-bold' : 'solar:heart-outline'" class="size-5" />
         </button>
       </div>
     </div>

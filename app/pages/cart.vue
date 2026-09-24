@@ -1,5 +1,6 @@
 <script setup lang="ts">
 const cartStore = useCartStore()
+const wishlistStore = useWishlistStore()
 const toast = useAppToast()
 onMounted(() => { void cartStore.fetchCart().catch(() => {}) })
 async function run(action: () => Promise<unknown>, message: string) {
@@ -15,6 +16,25 @@ function changeQuantity(item: CartItem, amount: number) {
 }
 async function clear() {
   if (await useConfirm('همه کالاهای سبد حذف شوند؟')) void run(cartStore.clear, 'سبد خرید خالی شد.')
+}
+async function moveToWishlist(item: CartItem) {
+  if (cartStore.busy || cartStore.stale || wishlistStore.busy) return
+  let savedToWishlist = false
+  try {
+    if (!wishlistStore.loaded || wishlistStore.stale) await wishlistStore.fetchWishlist()
+    if (!wishlistStore.findItem(item.product_id, item.variant_id)) {
+      await wishlistStore.addItem(item.product_id, item.variant_id)
+    }
+    savedToWishlist = true
+    await cartStore.remove(item.id)
+    toast.success('کالا به علاقه‌مندی‌ها منتقل شد.')
+  } catch (error) {
+    if (savedToWishlist) {
+      toast.error('کالا به علاقه‌مندی‌ها اضافه شد، اما حذف آن از سبد خرید ناموفق بود. دوباره تلاش کنید.')
+    } else {
+      toast.error(error instanceof ApiError ? error.message : 'انتقال کالا به علاقه‌مندی‌ها ناموفق بود.')
+    }
+  }
 }
 function checkout() {
   if (cartStore.items.length && !cartStore.busy && !cartStore.stale) navigateTo('/checkout')
@@ -35,7 +55,7 @@ function checkout() {
             <div class="flex items-center gap-2"><h1 class="text-lg font-bold text-text-primary">سبد خرید شما</h1><span class="rounded-full bg-surface px-2 py-1 text-[10px] text-text-secondary">{{ cartStore.itemCount.toLocaleString('fa-IR') }} کالا</span></div>
             <button type="button" class="inline-flex items-center gap-1 text-xs text-text-secondary transition-colors hover:text-danger" :disabled="cartStore.busy || cartStore.stale" @click="clear"><UIcon name="solar:trash-bin-trash-outline" class="size-4" />خالی کردن سبد</button>
           </div>
-          <CartItemCard v-for="item in cartStore.items" :key="item.id" :item="item" :disabled="cartStore.busy || cartStore.stale" @increase="changeQuantity(item, 1)" @decrease="changeQuantity(item, -1)" @remove="remove(item.id)" />
+          <CartItemCard v-for="item in cartStore.items" :key="item.id" :item="item" :disabled="cartStore.busy || cartStore.stale || wishlistStore.busy" @increase="changeQuantity(item, 1)" @decrease="changeQuantity(item, -1)" @remove="remove(item.id)" @move-to-wishlist="moveToWishlist(item)" />
           <div class="flex gap-3 rounded-2xl border border-warning-border bg-warning-subtle p-4"><UIcon name="solar:verified-check-outline" class="size-6 shrink-0 text-warning" /><div><h2 class="text-sm font-semibold text-text-primary">خرید مطمئن از فروشگاه</h2><p class="mt-1 text-xs leading-6 text-text-secondary">جزئیات زمان و هزینه ارسال پس از انتخاب آدرس نمایش داده می‌شود.</p></div></div>
         </section>
         <div class="lg:col-span-4 lg:sticky lg:top-24"><CartOrderSummary :item-count="cartStore.itemCount" :subtotal-original="cartStore.subtotalOriginal" :total="cartStore.total" :disabled="cartStore.busy || cartStore.stale" :discount="cartStore.discount" @checkout="checkout" /></div>

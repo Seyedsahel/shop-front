@@ -10,7 +10,8 @@
     "postinstall": "nuxt prepare",
     "typecheck": "nuxt typecheck",
     "test:session": "node tests/session.test.mjs",
-    "test:cart": "node tests/cart.test.mjs"
+    "test:cart": "node tests/cart.test.mjs",
+    "test:wishlist": "node tests/wishlist.test.mjs"
   },
   "dependencies": {
     "@nuxt/ui": "^4.9.0",

@@ -3,7 +3,11 @@ import { useWindowSize } from '@vueuse/core'
 
 const authStore = useAuthStore()
 const cartStore = useCartStore()
-onMounted(() => { void cartStore.fetchCart().catch(() => {}) })
+const wishlistStore = useWishlistStore()
+onMounted(() => {
+  void cartStore.fetchCart().catch(() => {})
+  void wishlistStore.fetchWishlist().catch(() => {})
+})
 
 const navLinks = [
   { label: 'خانه', href: '/' },
@@ -110,6 +114,14 @@ watch(width, () => {
           <UIcon :name="authStore.isAuthenticated ? 'solar:user-outline' : 'solar:login-2-broken'" class="size-5" />
           <span class="hidden sm:inline">{{ authStore.isAuthenticated ? 'پروفایل' : 'ورود' }}</span>
         </button>
+
+        <NuxtLink to="/wishlist" class="relative inline-flex items-center justify-center rounded-md px-3 py-1.5 text-sm text-text-primary transition-colors hover:bg-surface-hover" aria-label="علاقه‌مندی‌ها">
+          <span class="flex items-center gap-2">
+            <UIcon name="solar:heart-outline" class="size-5" />
+            <span class="hidden sm:inline">علاقه‌مندی‌ها</span>
+            <UiCounterBadge :count="wishlistStore.itemCount" />
+          </span>
+        </NuxtLink>
 
         <button
           type="button"

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 const props = defineProps<{ item: CartItem; disabled?: boolean }>()
-const emit = defineEmits<{ increase: []; decrease: []; remove: [] }>()
+const emit = defineEmits<{ increase: []; decrease: []; remove: []; moveToWishlist: [] }>()
 
 const lineTotal = computed(() => props.item.pricing.total)
 const hasDiscount = computed(() => props.item.pricing.discount > 0)
@@ -36,7 +36,7 @@ const hasDiscount = computed(() => props.item.pricing.discount > 0)
       </div>
     </div>
     <div class="flex justify-end gap-4 border-t border-divider bg-surface/60 px-4 py-2 sm:px-5">
-      <!-- TODO: Favorites API is not available; do not simulate moving/removing items. -->
+      <button type="button" class="inline-flex items-center gap-1.5 text-xs text-text-secondary transition-colors hover:text-primary disabled:opacity-50" :disabled="disabled" @click="emit('moveToWishlist')"><UIcon name="solar:heart-outline" class="size-4" />انتقال به علاقه‌مندی‌ها</button>
       <button type="button" class="inline-flex items-center gap-1.5 text-xs text-text-secondary transition-colors hover:text-danger" :disabled="disabled" @click="emit('remove')"><UIcon name="solar:trash-bin-trash-outline" class="size-4" />حذف از سبد</button>
     </div>
   </article>
