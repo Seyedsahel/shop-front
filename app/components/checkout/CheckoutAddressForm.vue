@@ -40,7 +40,9 @@ function changeProvince(code: number | undefined) {
     <p v-else-if="selectedAddress" class="mt-2 text-xs text-text-secondary">نشانی ذخیره‌شده انتخاب شده است. پس از تغییر اطلاعات، «ذخیره نشانی» را بزنید.</p>
     <form class="mt-5 space-y-4" novalidate @submit.prevent="emit('save')">
       <div class="grid gap-4 sm:grid-cols-2">
-        <UiInput v-model="draft.name" :error="errors.name" label="نام و نام خانوادگی تحویل‌گیرنده *" placeholder="نام دریافت‌کننده" />
+        <UiInput v-model="draft.name" :error="errors.name" label="عنوان نشانی *" placeholder="خانه، محل کار" />
+        <UiInput v-model="draft.first_name" :error="errors.first_name" label="نام تحویل‌گیرنده *" placeholder="نام" />
+        <UiInput v-model="draft.last_name" :error="errors.last_name" label="نام خانوادگی تحویل‌گیرنده *" placeholder="نام خانوادگی" />
         <UiInput v-model="draft.phone" :error="errors.phone" label="شماره موبایل *" inputmode="tel" placeholder="۰۹۱۲۳۴۵۶۷۸۹" />
       </div>
       <div v-if="pickup">

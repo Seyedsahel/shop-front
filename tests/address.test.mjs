@@ -19,7 +19,7 @@ Object.assign(globalThis, await load('server/utils/addressRequest.ts'))
 globalThis.useRuntimeConfig = () => ({ backendUrl: 'https://backend.test' })
 
 const id = '26be8bc1-eb37-4d54-b069-4d2a4a6a2466'
-const input = { name: 'sahel', phone: '09137327400', province_code: 41, city_code: 2, postal_code: '7717933651', address: 'Example address' }
+const input = { name: 'home', first_name: 'sahel', last_name: 'seyedyazdi', phone: '09137327400', province_code: 41, city_code: 2, postal_code: '7717933651', address: 'Example address' }
 
 async function request(handler, method, body, cookie = 'auth_token=user') {
   const app = h3.createApp({ onError() {} }).use(h3.defineEventHandler(event => {
@@ -56,6 +56,7 @@ test('address endpoints reject guest credentials and incomplete writes', async (
   globalThis.$fetch = () => { throw new Error('Backend must not be called') }
   assert.equal((await request(list, 'GET', null, 'guest_token=guest')).status, 401)
   assert.equal((await request(create, 'POST', input, 'guest_token=guest')).status, 401)
+  assert.equal((await request(create, 'POST', { ...input, first_name: '' })).status, 400)
   assert.equal((await request(create, 'POST', { ...input, city_code: 0 })).status, 400)
 })
 

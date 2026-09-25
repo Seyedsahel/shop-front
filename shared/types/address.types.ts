@@ -12,6 +12,8 @@ export interface ShippingProvince {
 export interface Address {
   id: string
   name: string
+  first_name: string
+  last_name: string
   phone_number: string
   user_id: string
   province_code: number
@@ -22,6 +24,8 @@ export interface Address {
 
 export interface AddressInput {
   name: string
+  first_name: string
+  last_name: string
   phone: string
   province_code: number
   city_code: number

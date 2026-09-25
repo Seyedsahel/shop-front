@@ -16,7 +16,7 @@ function location(address: Address) {
       <article v-for="address in addresses" :key="address.id" class="rounded-xl border p-4" :class="address.id === selectedId ? 'border-primary bg-primary-subtle' : 'border-border bg-card'">
         <div class="flex items-start gap-3">
           <input :id="`checkout-address-${address.id}`" type="radio" name="checkout-address" :checked="address.id === selectedId" :disabled="disabled" class="mt-1 accent-primary" @change="$emit('select', address.id)">
-          <label :for="`checkout-address-${address.id}`" class="min-w-0 flex-1 cursor-pointer text-sm leading-7 text-text-secondary"><strong class="block text-text-primary">{{ address.name }} · <bdi>{{ address.phone_number }}</bdi></strong>{{ location(address) }}<span v-if="location(address)">، </span>{{ address.address }}<span v-if="address.postal_code" class="block">کد پستی: <bdi>{{ address.postal_code }}</bdi></span></label>
+          <label :for="`checkout-address-${address.id}`" class="min-w-0 flex-1 cursor-pointer text-sm leading-7 text-text-secondary"><strong class="block text-text-primary">{{ address.name }} · {{ address.first_name }} {{ address.last_name }} · <bdi>{{ address.phone_number }}</bdi></strong>{{ location(address) }}<span v-if="location(address)">، </span>{{ address.address }}<span v-if="address.postal_code" class="block">کد پستی: <bdi>{{ address.postal_code }}</bdi></span></label>
           <button type="button" :disabled="disabled" class="text-xs text-primary disabled:opacity-50" @click="$emit('edit', address)">ویرایش</button>
         </div>
       </article>

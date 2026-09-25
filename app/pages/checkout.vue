@@ -16,7 +16,7 @@ const previewError = ref('')
 const loadError = ref('')
 
 function emptyDraft(): AddressInput {
-  return { name: '', phone: '', province_code: 0, city_code: 0, postal_code: '', address: '' }
+  return { name: '', first_name: '', last_name: '', phone: '', province_code: 0, city_code: 0, postal_code: '', address: '' }
 }
 
 function normalizeDigits(value: string) {
@@ -27,6 +27,8 @@ function normalizeDigits(value: string) {
 function validateAddress(): AddressInput | null {
   const input: AddressInput = {
     name: draft.value.name.trim(),
+    first_name: draft.value.first_name.trim(),
+    last_name: draft.value.last_name.trim(),
     phone: normalizeDigits(draft.value.phone.trim()).replace(/^(?:\+98|0098)/, '0'),
     province_code: draft.value.province_code,
     city_code: draft.value.city_code,
@@ -34,7 +36,9 @@ function validateAddress(): AddressInput | null {
     address: draft.value.address.trim(),
   }
   const next: typeof errors.value = {}
-  if (!input.name) next.name = 'نام تحویل‌گیرنده را وارد کنید.'
+  if (!input.name) next.name = 'عنوان نشانی را وارد کنید.'
+  if (!input.first_name) next.first_name = 'نام تحویل‌گیرنده را وارد کنید.'
+  if (!input.last_name) next.last_name = 'نام خانوادگی تحویل‌گیرنده را وارد کنید.'
   if (!/^09\d{9}$/.test(input.phone)) next.phone = 'شماره موبایل معتبر وارد کنید.'
   const province = locations.provinces.find(item => item.code === input.province_code)
   if (!province) next.province_code = 'استان را انتخاب کنید.'
@@ -57,7 +61,7 @@ function selectAddress(address: Address) {
   editingId.value = address.id
   selectedAddressId.value = address.id
   draft.value = {
-    name: address.name, phone: address.phone_number,
+    name: address.name, first_name: address.first_name, last_name: address.last_name, phone: address.phone_number,
     province_code: address.province_code, city_code: address.city_code,
     postal_code: address.postal_code, address: address.address,
   }
@@ -91,7 +95,7 @@ const pickup = computed(() => selectedMethod.value?.code === 'local_pickup')
 const selectedAddress = computed(() => addresses.items.find(item => item.id === selectedAddressId.value) ?? null)
 const addressSaved = computed(() => {
   const address = selectedAddress.value
-  return !!address && draft.value.name === address.name && draft.value.phone === address.phone_number
+  return !!address && draft.value.name === address.name && draft.value.first_name === address.first_name && draft.value.last_name === address.last_name && draft.value.phone === address.phone_number
     && draft.value.province_code === address.province_code && draft.value.city_code === address.city_code
     && draft.value.postal_code === address.postal_code && draft.value.address === address.address
 })
@@ -99,7 +103,7 @@ const addressReady = computed(() => {
   const address = selectedAddress.value
   const requirements = selectedMethod.value?.address_requirements
   if (!address || !requirements) return false
-  return (!requirements.recipient_name || !!address.name.trim())
+  return (!requirements.recipient_name || !!address.first_name.trim() && !!address.last_name.trim())
     && (!requirements.phone || !!address.phone_number.trim())
     && (!requirements.province_code || address.province_code > 0)
     && (!requirements.city_code || address.city_code > 0)
@@ -112,7 +116,7 @@ const currentInput = computed<CheckoutInput | null>(() => {
   if (!cart.cart?.id || !selectedMethod.value || !selectedAddressId.value || !selectedAddress.value) return null
   if (pickup.value) {
     const phone = normalizeDigits(draft.value.phone.trim()).replace(/^(?:\+98|0098)/, '0')
-    if (!draft.value.name.trim() || !/^09\d{9}$/.test(phone) || !addressSaved.value) return null
+    if (!draft.value.first_name.trim() || !draft.value.last_name.trim() || !/^09\d{9}$/.test(phone) || !addressSaved.value) return null
   } else if (!addressSaved.value || !addressReady.value) return null
   return {
     address_id: selectedAddressId.value,

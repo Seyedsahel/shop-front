@@ -18,6 +18,8 @@ export function addressPath(event: H3Event) {
 export async function readAddressInput(event: H3Event): Promise<AddressInput> {
   const body = await readBody<Partial<AddressInput>>(event)
   if (!body || typeof body.name !== 'string' || !body.name.trim()
+    || typeof body.first_name !== 'string' || !body.first_name.trim()
+    || typeof body.last_name !== 'string' || !body.last_name.trim()
     || typeof body.phone !== 'string' || !body.phone.trim()
     || !Number.isSafeInteger(body.province_code) || body.province_code! <= 0
     || !Number.isSafeInteger(body.city_code) || body.city_code! <= 0
@@ -26,7 +28,7 @@ export async function readAddressInput(event: H3Event): Promise<AddressInput> {
     throw createError({ statusCode: 400, message: 'اطلاعات نشانی کامل نیست.' })
   }
   return {
-    name: body.name.trim(), phone: body.phone.trim(),
+    name: body.name.trim(), first_name: body.first_name.trim(), last_name: body.last_name.trim(), phone: body.phone.trim(),
     province_code: body.province_code!, city_code: body.city_code!,
     postal_code: body.postal_code.trim(), address: body.address.trim(),
   }

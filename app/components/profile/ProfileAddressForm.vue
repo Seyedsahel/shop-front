@@ -41,7 +41,9 @@ function changeCity(code: number | undefined) {
       <button type="button" class="text-sm text-text-secondary hover:text-text-primary" @click="emit('cancel')">انصراف</button>
     </div>
     <div class="grid gap-4 sm:grid-cols-2">
-      <UiInput v-model="draft.name" :error="errors.name" label="نام تحویل‌گیرنده *" placeholder="نام و نام خانوادگی" />
+      <UiInput v-model="draft.name" :error="errors.name" label="عنوان نشانی *" placeholder="خانه، محل کار" />
+      <UiInput v-model="draft.first_name" :error="errors.first_name" label="نام تحویل‌گیرنده *" placeholder="نام" />
+      <UiInput v-model="draft.last_name" :error="errors.last_name" label="نام خانوادگی تحویل‌گیرنده *" placeholder="نام خانوادگی" />
       <UiInput v-model="draft.phone" :error="errors.phone" label="شماره موبایل *" inputmode="tel" placeholder="۰۹۱۲۳۴۵۶۷۸۹" />
     </div>
     <div class="grid gap-4 sm:grid-cols-2">

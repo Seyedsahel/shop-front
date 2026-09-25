@@ -13,7 +13,7 @@ const draft = ref<AddressInput>(emptyDraft())
 const errors = ref<Partial<Record<keyof AddressInput, string>>>({})
 
 function emptyDraft(): AddressInput {
-  return { name: '', phone: '', province_code: 0, city_code: 0, postal_code: '', address: '' }
+  return { name: '', first_name: '', last_name: '', phone: '', province_code: 0, city_code: 0, postal_code: '', address: '' }
 }
 
 function normalizeDigits(value: string) {
@@ -23,12 +23,15 @@ function normalizeDigits(value: string) {
 
 function validate(): AddressInput | null {
   const input: AddressInput = {
-    name: draft.value.name.trim(), phone: normalizeDigits(draft.value.phone.trim()).replace(/^(?:\+98|0098)/, '0'),
+    name: draft.value.name.trim(), first_name: draft.value.first_name.trim(), last_name: draft.value.last_name.trim(),
+    phone: normalizeDigits(draft.value.phone.trim()).replace(/^(?:\+98|0098)/, '0'),
     province_code: draft.value.province_code, city_code: draft.value.city_code,
     postal_code: normalizeDigits(draft.value.postal_code.trim()), address: draft.value.address.trim(),
   }
   const next: typeof errors.value = {}
-  if (!input.name) next.name = 'نام تحویل‌گیرنده را وارد کنید.'
+  if (!input.name) next.name = 'عنوان نشانی را وارد کنید.'
+  if (!input.first_name) next.first_name = 'نام تحویل‌گیرنده را وارد کنید.'
+  if (!input.last_name) next.last_name = 'نام خانوادگی تحویل‌گیرنده را وارد کنید.'
   if (!/^(?:\+98|0098|0)?9\d{9}$/.test(input.phone)) next.phone = 'شماره موبایل معتبر وارد کنید.'
   const province = locations.provinces.find(item => item.code === input.province_code)
   if (!province) next.province_code = 'استان را انتخاب کنید.'
@@ -49,7 +52,7 @@ function addAddress() {
 function editAddress(address: Address) {
   editingId.value = address.id
   draft.value = {
-    name: address.name, phone: address.phone_number,
+    name: address.name, first_name: address.first_name, last_name: address.last_name, phone: address.phone_number,
     province_code: address.province_code, city_code: address.city_code,
     postal_code: address.postal_code, address: address.address,
   }
