@@ -6,6 +6,7 @@ const addresses = useAddressStore()
 const locations = useShippingLocationsStore()
 const orders = useOrderStore()
 const toast = useAppToast()
+const loggingOut = ref(false)
 const editingId = ref<string | null>(null)
 const formOpen = ref(false)
 const draft = ref<AddressInput>(emptyDraft())
@@ -82,6 +83,17 @@ async function removeAddress(address: Address) {
   }
 }
 
+async function logout() {
+  if (loggingOut.value) return
+  loggingOut.value = true
+  try {
+    await auth.logout()
+    if (!auth.isAuthenticated) await navigateTo('/')
+  } finally {
+    loggingOut.value = false
+  }
+}
+
 onMounted(() => {
   void addresses.fetchAll().catch(() => {})
   void locations.fetchAll().catch(() => {})
@@ -92,7 +104,10 @@ onMounted(() => {
 <template>
   <div class="mx-auto max-w-7xl px-4 py-7 sm:px-6 sm:py-10 lg:px-8">
     <header class="mb-6 rounded-2xl bg-primary-subtle p-6 sm:p-8">
-      <div class="flex items-center gap-3"><span class="grid size-12 place-items-center rounded-full bg-card text-primary"><UIcon name="solar:user-outline" class="size-7" /></span><div><h1 class="text-2xl font-bold text-text-primary">حساب کاربری</h1><p class="mt-1 text-sm text-text-secondary">{{ auth.user?.name || auth.user?.phone || 'خوش آمدید' }}</p></div></div>
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-3"><span class="grid size-12 place-items-center rounded-full bg-card text-primary"><UIcon name="solar:user-outline" class="size-7" /></span><div><h1 class="text-2xl font-bold text-text-primary">حساب کاربری</h1><p class="mt-1 text-sm text-text-secondary">{{ auth.user?.name || auth.user?.phone || 'خوش آمدید' }}</p></div></div>
+        <button type="button" :disabled="loggingOut" class="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold text-text-primary hover:border-primary disabled:opacity-50" @click="logout"><UIcon name="solar:logout-2-outline" class="size-5" />{{ loggingOut ? 'در حال خروج…' : 'خروج از حساب' }}</button>
+      </div>
     </header>
 
     <nav aria-label="میانبرهای حساب کاربری" class="mb-8 grid gap-4 sm:grid-cols-2">

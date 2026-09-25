@@ -22,6 +22,8 @@ export const useCheckoutStore = defineStore('checkout', () => {
     loadingMethods.value = true
     try {
       methods.value = (await api.get<ShippingMethod[]>('/shipping/methods')).filter(method => method.enabled)
+    } catch (cause) {
+      throw withApiErrorContext(cause, 'checkout')
     } finally {
       loadingMethods.value = false
     }
@@ -48,6 +50,8 @@ export const useCheckoutStore = defineStore('checkout', () => {
       if (generation !== previewGeneration) return null
       preview.value = result
       return result
+    } catch (cause) {
+      throw withApiErrorContext(cause, 'checkout')
     } finally {
       if (generation === previewGeneration) previewing.value = false
     }
@@ -63,6 +67,8 @@ export const useCheckoutStore = defineStore('checkout', () => {
       order.value = result
       clearPreview()
       return result
+    } catch (cause) {
+      throw withApiErrorContext(cause, 'checkout')
     } finally {
       submitting.value = false
     }

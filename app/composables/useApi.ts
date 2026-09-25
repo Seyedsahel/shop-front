@@ -26,9 +26,12 @@ export const useApi = () => {
         },
       }) as T
     } catch (error: any) {
+      const status = error.response?.status ?? error.statusCode ?? error.status
       const code = error.data?.data?.code
+      const timeout = error.name === 'TimeoutError' || error.code === 'ETIMEDOUT'
+      const kind = timeout ? 'timeout' : typeof status === 'number' ? 'http' : 'network'
       if (revision === authStore.sessionRevision) authStore.handleSessionError(code)
-      throw new ApiError(error.data?.message ?? 'خطای غیرمنتظره رخ داد.', error.response?.status, code)
+      throw createTransportApiError(typeof status === 'number' ? status : undefined, code, kind)
     }
   }
 

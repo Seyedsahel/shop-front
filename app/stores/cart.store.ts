@@ -84,8 +84,9 @@ export const useCartStore = defineStore('cart', () => {
         }
       })
     } catch (caught) {
-      error.value = caught instanceof ApiError ? caught.message : 'تغییر سبد خرید ناموفق بود.'
-      throw caught
+      const contextualError = withApiErrorContext(caught, 'cartMutation')
+      error.value = getUserFriendlyApiErrorMessage(contextualError, 'cartMutation')
+      throw contextualError
     } finally {
       isMutating.value = false
     }

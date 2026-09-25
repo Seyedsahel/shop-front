@@ -15,7 +15,7 @@ async function load(path) {
   return import('data:text/javascript;base64,' + Buffer.from(outputText).toString('base64'))
 }
 Object.assign(globalThis, h3, { ref, computed, watch, defineStore })
-globalThis.ApiError = (await load('app/utils/api-error.ts')).ApiError
+Object.assign(globalThis, await load('app/utils/api-error.ts'))
 const { useCartStore } = await load('app/stores/cart.store.ts')
 const fixture = () => ({
   id: 'cart', guest_id: 'guest', user_id: '',
@@ -126,11 +126,11 @@ test('successful write plus failed refresh becomes stale and retries GET only', 
 test('rejected cart write leaves the cart usable for a retry', async () => {
   const { store, api } = setup()
   await store.fetchCart()
-  api.post = async () => { throw new ApiError('Out of stock', 409) }
+  api.post = async () => { throw new ApiError('Out of stock', 409, undefined, 'transport') }
   await assert.rejects(store.addItem('product', 1, 'variant'))
   assert.equal(store.stale, false)
   assert.equal(store.busy, false)
-  assert.equal(store.error, 'Out of stock')
+  assert.equal(store.error, 'تغییر سبد خرید با وضعیت فعلی کالا امکان‌پذیر نیست. لطفاً سبد خرید را دوباره بررسی کنید.')
   api.post = async () => {}
   await store.addItem('product', 1, 'variant')
   assert.equal(store.stale, false)

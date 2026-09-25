@@ -2,19 +2,14 @@ import type { H3Event } from 'h3'
 import type { NitroFetchOptions, NitroFetchRequest } from 'nitropack'
 import { clearCredential, resolveCredential, type AuthorizationMode } from './session'
 
-function backendErrorMessage(data: unknown): string | null {
-  if (typeof data === 'string') return data.trim() || null
-  if (!data || typeof data !== 'object') return null
+function backendErrorCode(data: unknown): string | undefined {
+  if (!data || typeof data !== 'object') return undefined
   const body = data as Record<string, unknown>
-  for (const key of ['message', 'error', 'detail', 'title']) {
-    const value = body[key]
-    if (typeof value === 'string' && value.trim()) return value.trim()
-    if (value && typeof value === 'object') {
-      const nested = backendErrorMessage(value)
-      if (nested) return nested
-    }
+  if (typeof body.code === 'string') return body.code
+  if (body.data && typeof body.data === 'object' && typeof (body.data as Record<string, unknown>).code === 'string') {
+    return (body.data as Record<string, unknown>).code as string
   }
-  return null
+  return undefined
 }
 
 export const backendFetch = async <T = unknown>(
@@ -33,7 +28,8 @@ export const backendFetch = async <T = unknown>(
   try {
     return await $fetch<T>(url, { baseURL: config.backendUrl, ...options, headers }) as T
   } catch (error: any) {
-    if (error.response?.status === 401 && event && credential) {
+    const status = error.response?.status ?? error.statusCode ?? error.status
+    if (status === 401 && event && credential) {
       clearCredential(event, credential.kind)
       throw createError({
         statusCode: 401,
@@ -41,14 +37,12 @@ export const backendFetch = async <T = unknown>(
         data: { code: credential.kind === 'user' ? 'AUTH_SESSION_EXPIRED' : 'GUEST_SESSION_EXPIRED' },
       })
     }
-    const status = error.response?.status
     if (typeof status === 'number' && status >= 400 && status < 600) {
+      const code = backendErrorCode(error.data)
       throw createError({
         statusCode: status,
-        message: status < 500
-          ? backendErrorMessage(error.data) ?? 'درخواست توسط سرویس رد شد.'
-          : 'سرویس در حال حاضر پاسخ‌گو نیست.',
-        ...(status < 500 ? { data: { upstream: error.data ?? null } } : {}),
+        message: 'درخواست به سرویس انجام نشد.',
+        ...(code ? { data: { code } } : {}),
       })
     }
     throw error

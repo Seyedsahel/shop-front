@@ -69,7 +69,7 @@ export const useAuthStore = defineStore('auth', () => {
       step.value = 'otp'
       otpRequestedAt.value = new Date(Date.now() + 60_000).toISOString()
     } catch (e) {
-      useAppToast().error(e instanceof ApiError ? e.message : 'خطا در ارسال کد، دوباره تلاش کنید.')
+      useAppToast().error(getUserFriendlyApiErrorMessage(e, 'auth'))
     } finally {
       isLoading.value = false
     }
@@ -95,8 +95,9 @@ export const useAuthStore = defineStore('auth', () => {
       })
       toast.success('ورود با موفقیت انجام شد.')
     } catch (e) {
-      toast.error(e instanceof ApiError ? e.message : 'کد وارد شده صحیح نیست.')
-      throw e
+      const contextualError = withApiErrorContext(e, 'auth')
+      toast.error(getUserFriendlyApiErrorMessage(contextualError, 'auth'))
+      throw contextualError
     } finally {
       isLoading.value = false
     }
@@ -125,7 +126,7 @@ export const useAuthStore = defineStore('auth', () => {
       })
       toast.success('با موفقیت خارج شدید.')
     } catch (e) {
-      toast.error(e instanceof ApiError ? e.message : 'خطا در خروج از حساب.')
+      toast.error(getUserFriendlyApiErrorMessage(e, 'auth'))
     }
   }
 
