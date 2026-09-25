@@ -29,6 +29,12 @@ export const backendFetch = async <T = unknown>(
     return await $fetch<T>(url, { baseURL: config.backendUrl, ...options, headers }) as T
   } catch (error: any) {
     const status = error.response?.status ?? error.statusCode ?? error.status
+    console.log('Backend request failed:', {
+      url,
+      status,
+      data: error.data ?? error.response?._data,
+      message: error.message,
+    })
     if (status === 401 && event && credential) {
       clearCredential(event, credential.kind)
       throw createError({
