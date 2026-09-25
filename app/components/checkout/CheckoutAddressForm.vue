@@ -37,7 +37,7 @@ function changeProvince(code: number | undefined) {
       </div>
     </div>
     <p v-if="pickup" class="mt-2 text-sm text-text-secondary">برای تحویل حضوری فقط نام و شماره تماس را وارد کنید.</p>
-    <p v-else-if="selectedAddress" class="mt-2 text-xs text-text-secondary">نشانی ذخیره‌شده انتخاب شده است. پس از تغییر اطلاعات، «ذخیره نشانی» را بزنید.</p>
+    <p v-else-if="selectedAddress" class="mt-2 text-xs text-text-secondary">نشانی ذخیره‌شده انتخاب شده است. پس از تغییر اطلاعات، «ثبت» را بزنید.</p>
     <form class="mt-5 space-y-4" novalidate @submit.prevent="emit('save')">
       <div class="grid gap-4 sm:grid-cols-2">
         <UiInput v-model="draft.name" :error="errors.name" label="عنوان نشانی *" placeholder="خانه، محل کار" />
@@ -64,7 +64,7 @@ function changeProvince(code: number | undefined) {
         </div>
         <UiTextarea v-model="draft.address" :error="errors.address" label="نشانی دقیق *" :rows="3" placeholder="خیابان، کوچه، پلاک و واحد" />
         <div class="sm:max-w-xs"><UiInput v-model="draft.postal_code" :error="errors.postal_code" label="کد پستی *" inputmode="numeric" placeholder="کد پستی ۱۰ رقمی" /></div>
-        <button type="submit" :disabled="pending" class="rounded-xl bg-secondary px-5 py-3 text-sm font-semibold text-secondary-foreground hover:bg-secondary-hover disabled:opacity-50">{{ pending ? 'در حال ذخیره…' : 'ذخیره نشانی' }}</button>
+        <button type="submit" :disabled="pending" class="rounded-xl bg-secondary px-5 py-3 text-sm font-semibold text-secondary-foreground hover:bg-secondary-hover disabled:opacity-50">{{ pending ? 'در حال ذخیره…' : selectedAddress ? 'ثبت' : 'ذخیره نشانی' }}</button>
       </template>
     </form>
   </section>
