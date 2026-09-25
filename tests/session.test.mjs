@@ -24,6 +24,7 @@ Object.assign(globalThis, await load('server/utils/backendFetch.ts'))
 Object.assign(globalThis, await load('server/utils/readSession.ts'))
 const guest = (await load('server/api/auth/guest.post.ts')).default
 const login = (await load('server/api/auth/verify-otp.post.ts')).default
+const refresh = (await load('server/api/auth/refresh.post.ts')).default
 const logout = (await load('server/api/auth/logout.post.ts')).default
 const me = (await load('server/api/auth/me.get.ts')).default
 
@@ -89,7 +90,7 @@ test('authenticated identity wins and guest issuance is skipped', async () => {
   assert.match(response.headers.get('set-cookie'), /guest_token=; Max-Age=0/)
 })
 
-test('login forwards the guest bearer token, replaces guest identity, and logout clears both cookies', async () => {
+test('login forwards the guest bearer token, replaces guest identity, refresh replaces the token, and logout clears both cookies', async () => {
   globalThis.$fetch = async (_, options) => {
     assert.equal(options.headers.get('authorization'), 'Bearer guest')
     return { token: 'new-user' }
@@ -100,6 +101,15 @@ test('login forwards the guest bearer token, replaces guest identity, and logout
   assert.match(response.headers.get('set-cookie'), /guest_token=; Max-Age=0/)
   globalThis.$fetch = async (_, options) => {
     assert.equal(options.headers.get('authorization'), 'Bearer new-user')
+    return { token: 'refreshed-user' }
+  }
+  const refreshed = await request(refresh, 'auth_token=new-user')
+  assert.deepEqual(await refreshed.json(), { success: true })
+  assert.match(refreshed.headers.get('set-cookie'), /auth_token=refreshed-user/)
+  globalThis.$fetch = async (url, options) => {
+    assert.equal(url, '/api/auth/logout')
+    assert.equal(options.headers.get('authorization'), 'Bearer new-user')
+    assert.equal(options.body, undefined)
     return { status: 'logged_out' }
   }
   const out = await request(logout, 'auth_token=new-user; guest_token=guest')

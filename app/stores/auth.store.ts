@@ -113,6 +113,17 @@ export const useAuthStore = defineStore('auth', () => {
     })
   }
 
+  function refreshSession() {
+    const api = useApi()
+    return withSessionLock(async () => {
+      if (!isAuthenticated.value) return null
+      await api.post<RefreshTokenResponse>('/auth/refresh')
+      const session = await api.get<SessionResponse>('/auth/me')
+      applySession(session)
+      return session
+    })
+  }
+
   async function logout() {
     const api = useApi()
     const toast = useAppToast()
@@ -148,5 +159,5 @@ export const useAuthStore = defineStore('auth', () => {
     return target
   }
 
-  return { identity, withShoppingSession, hasGuestSession, sessionRevision, ensureShoppingSession, handleSessionError, step, phone, isLoading, isAuthenticated, user, sessionChecked, otpRequestedAt, requestOtp, verifyOtp, resendOtp, fetchSession, logout, goBackToPhone, requireAuth, consumeReturnTo }
+  return { identity, withShoppingSession, hasGuestSession, sessionRevision, ensureShoppingSession, handleSessionError, step, phone, isLoading, isAuthenticated, user, sessionChecked, otpRequestedAt, requestOtp, verifyOtp, resendOtp, fetchSession, refreshSession, logout, goBackToPhone, requireAuth, consumeReturnTo }
 })

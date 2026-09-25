@@ -20,8 +20,12 @@ export interface BackendOtpVerifyResponse {
   token: string
 }
 
-export interface BackendLogoutPayload {
-  refresh_token: string
+export interface BackendRefreshResponse {
+  token: string
+}
+
+export interface RefreshTokenResponse {
+  success: boolean
 }
 
 export interface BackendLogoutResponse {

@@ -5,10 +5,18 @@ export default defineNuxtPlugin(async (nuxtApp) => {
     try { await authStore.fetchSession() } catch {}
   }
   if (import.meta.client) {
-    const refresh = () => {
-      if (document.visibilityState === 'visible') void authStore.fetchSession().catch(() => {})
+    const refreshOnVisibility = () => {
+      if (document.visibilityState !== 'visible') return
+      void (authStore.isAuthenticated ? authStore.refreshSession() : authStore.fetchSession()).catch(() => {})
     }
-    document.addEventListener('visibilitychange', refresh)
-    nuxtApp.vueApp.onUnmount(() => document.removeEventListener('visibilitychange', refresh))
+    const refreshToken = () => {
+      if (document.visibilityState === 'visible') void authStore.refreshSession().catch(() => {})
+    }
+    const refreshInterval = window.setInterval(refreshToken, 10 * 60 * 1_000)
+    document.addEventListener('visibilitychange', refreshOnVisibility)
+    nuxtApp.vueApp.onUnmount(() => {
+      window.clearInterval(refreshInterval)
+      document.removeEventListener('visibilitychange', refreshOnVisibility)
+    })
   }
 })
