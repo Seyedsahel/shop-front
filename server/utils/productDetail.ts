@@ -14,6 +14,7 @@ export function mapProductDetail(raw: any): ProductDetail {
       .sort((first: ProductDescriptionBlock, second: ProductDescriptionBlock) => first.sortOrder - second.sortOrder),
     basePrice: Number(raw.base_price ?? 0),
     baseStock: Number(raw.base_stock ?? 0),
+    maxPerOrder: Number(raw.max_per_order ?? 0),
     price: {
       original: Number(raw.price?.original ?? raw.base_price ?? 0),
       final: Number(raw.price?.final ?? raw.base_price ?? 0),

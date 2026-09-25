@@ -20,7 +20,7 @@ const { useCartStore } = await load('app/stores/cart.store.ts')
 const fixture = () => ({
   id: 'cart', guest_id: 'guest', user_id: '',
   products: { item: { id: 'item', product_id: 'product', variant_id: 'variant', variant_name: '10 Tablets', quantity: 2,
-    name: 'Real product', slug: 'real-product', stock: 4, image_url: '/photo',
+    name: 'Real product', slug: 'real-product', stock: 4, max_per_order: 3, image_url: '/photo',
     pricing: { original_unit: 200, final_unit: 150, original_total: 400, discount: 100, total: 300 } } },
   pricing: { subtotal_original: 400, discount: 100, subtotal: 300, total: 300 },
 })
@@ -93,6 +93,13 @@ test('quantity updates, removal and clear use item IDs and refetch', async () =>
   assert.equal(calls.filter(call => call[0] === 'get').length, 4)
   assert.equal(store.items.length, 0)
   assert.equal(store.total, 0)
+})
+
+test('quantity updates reject an amount above the endpoint-supplied order limit', async () => {
+  const { store, calls } = setup()
+  await store.fetchCart()
+  await assert.rejects(store.updateQuantity('item', 4), /شما به محدودیت تعداد انتخابی برای سفارش این محصول رسیدید\./)
+  assert.equal(calls.some(call => call[0] === 'patch'), false)
 })
 
 test('duplicate actions are rejected while mutation and reconciliation are pending', async () => {

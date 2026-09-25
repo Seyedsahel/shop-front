@@ -6,5 +6,6 @@ import { toast } from 'vue-sonner'
 // means editing only this file.
 export const useAppToast = () => ({
   success: (message: string) => toast.success(message),
+  warning: (message: string) => toast.warning(message),
   error: (message: string) => toast.error(message),
 })

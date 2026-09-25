@@ -20,6 +20,8 @@ export interface Product {
   basePrice: number
   price: ProductPrice
   stock: number
+  /** Zero means this product has no per-order quantity limit. */
+  maxPerOrder: number
   createdAt?: number
   updatedAt?: number
 }
@@ -115,6 +117,8 @@ export interface ProductDetail {
   descriptionBlocks: ProductDescriptionBlock[]
   basePrice: number
   baseStock: number
+  /** Zero means this product has no per-order quantity limit. */
+  maxPerOrder: number
   price: ProductDetailPrice
   brand: ProductDetailBrand | null
   images: ProductDetailImage[]

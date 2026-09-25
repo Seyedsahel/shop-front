@@ -64,9 +64,18 @@ async function run(action: () => Promise<unknown>, message: string) {
 async function remove(id: string) {
   if (await useConfirm('این کالا از سبد حذف شود؟')) void run(() => cartStore.remove(id), 'کالا از سبد حذف شد.')
 }
-function changeQuantity(item: CartItem, amount: number) {
+async function changeQuantity(item: CartItem, amount: number) {
   if (item.quantity + amount < 1) return remove(item.id)
-  void run(() => cartStore.updateQuantity(item.id, item.quantity + amount), 'تعداد کالا به‌روزرسانی شد.')
+  try {
+    await cartStore.updateQuantity(item.id, item.quantity + amount)
+    if (amount > 0 && item.max_per_order > 0 && item.quantity + amount === item.max_per_order) {
+      toast.warning('شما به محدودیت تعداد انتخابی برای سفارش این محصول رسیدید.')
+    } else {
+      toast.success('تعداد کالا به‌روزرسانی شد.')
+    }
+  } catch (error) {
+    toast.error(error instanceof ApiError ? error.message : 'عملیات ناموفق بود.')
+  }
 }
 async function clear() {
   if (await useConfirm('همه کالاهای سبد حذف شوند؟')) void run(cartStore.clear, 'سبد خرید خالی شد.')

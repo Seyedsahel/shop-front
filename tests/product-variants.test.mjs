@@ -28,8 +28,8 @@ function variant(variantId, stock, options) {
   }
 }
 
-test('detail mapper keeps purchase combination IDs and nested option fields', () => {
-  const detail = mapProductDetail({ id: 'product', price: { final: 12 }, purchase_variants: [{
+test('detail mapper keeps purchase combination IDs, max order limit, and nested option fields', () => {
+  const detail = mapProductDetail({ id: 'product', max_per_order: 3, price: { final: 12 }, purchase_variants: [{
     variant_id: 'purchase-id', sku: 'sku-1', final_price: 15, price_adjustment: 3, stock: 2,
     options: [{ variant_option_id: 'option-id', attribute_id: 'attribute-id', slug: 'pack-size', name: 'Pack Size', value: '100 ml' }],
   }] })
@@ -37,6 +37,7 @@ test('detail mapper keeps purchase combination IDs and nested option fields', ()
     variantId: 'purchase-id', sku: 'sku-1', finalPrice: 15, priceAdjustment: 3, stock: 2,
     options: [{ variantOptionId: 'option-id', attributeId: 'attribute-id', slug: 'pack-size', name: 'Pack Size', value: '100 ml' }],
   })
+  assert.equal(detail.maxPerOrder, 3)
 })
 
 test('selectors deduplicate values and constrain combinations in either order', () => {
@@ -95,21 +96,22 @@ test('duplicate or incomplete combinations never resolve an arbitrary cart ID', 
 
 test('purchase panel hides stock until resolved and sends only the purchase variant ID', async () => {
   const props = reactive({ product: {
-    id: 'product', baseStock: 100, price: { final: 12, original: 12, discountPercent: 0 },
+    id: 'product', baseStock: 100, maxPerOrder: 3, price: { final: 12, original: 12, discountPercent: 0 },
     purchaseVariants: [
       variant('purchase-blue', 5, { size: '100', color: 'blue' }),
       variant('purchase-red', 4, { size: '200', color: 'red' }),
     ],
   } })
   const calls = []
+  const warnings = []
   globalThis.useCartStore = () => ({ busy: false, stale: false, async addItem(...args) { calls.push(args) } })
   globalThis.useWishlistStore = () => ({ findItem: () => undefined, fetchWishlist: async () => {} })
-  globalThis.useAppToast = () => ({ success() {}, error(message) { throw new Error(message) } })
+  globalThis.useAppToast = () => ({ success() {}, warning(message) { warnings.push(message) }, error(message) { throw new Error(message) } })
   globalThis.defineProps = () => props
 
   const source = (await readFile(new URL('../app/components/product/ProductPurchasePanel.vue', import.meta.url), 'utf8'))
     .match(/<script setup lang="ts">([\s\S]*?)<\/script>/)[1]
-  const { outputText } = ts.transpileModule(source + '\nexport { addToCart, quantity, select, selectedVariant, availableStock }', {
+  const { outputText } = ts.transpileModule(source + '\nexport { addToCart, increaseQuantity, quantity, select, selectedVariant, availableStock }', {
     compilerOptions: { target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext },
   })
   const panel = await import('data:text/javascript;base64,' + Buffer.from(outputText).toString('base64'))
@@ -127,13 +129,16 @@ test('purchase panel hides stock until resolved and sends only the purchase vari
   assert.equal(panel.quantity.value, 1)
   await panel.addToCart()
   assert.deepEqual(calls, [['product', 1, 'purchase-red']])
+  panel.increaseQuantity()
+  panel.increaseQuantity()
+  assert.deepEqual(warnings, ['شما به محدودیت تعداد انتخابی برای سفارش این محصول رسیدید.'])
 })
 
 test('quick add uses the same nested variant selection and cart ID', async () => {
   const open = ref(true)
-  const props = reactive({ product: { id: 'quick-product', slug: 'quick-product', price: { final: 12 } } })
+  const props = reactive({ product: { id: 'quick-product', slug: 'quick-product', maxPerOrder: 3, price: { final: 12 } } })
   const detailStore = reactive({ bySlug: {}, async loadBySlug(slug) {
-    const detail = { baseStock: 20, price: { final: 12 }, purchaseVariants: [
+    const detail = { baseStock: 20, maxPerOrder: 3, price: { final: 12 }, purchaseVariants: [
       variant('sold-out', 0, { size: '100' }),
       variant('available-purchase-id', 4, { size: '200' }),
     ] }
@@ -141,18 +146,19 @@ test('quick add uses the same nested variant selection and cart ID', async () =>
     return detail
   } })
   const calls = []
+  const warnings = []
   globalThis.useProductDetailStore = () => detailStore
   globalThis.useCartStore = () => ({
     busy: false, stale: false, itemsForProduct: () => [],
     async addItem(...args) { calls.push(args) },
   })
-  globalThis.useAppToast = () => ({ success() {}, error(message) { throw new Error(message) } })
+  globalThis.useAppToast = () => ({ success() {}, warning(message) { warnings.push(message) }, error(message) { throw new Error(message) } })
   globalThis.defineProps = () => props
   globalThis.defineModel = () => open
 
   const source = (await readFile(new URL('../app/components/product/ProductQuickAdd.vue', import.meta.url), 'utf8'))
     .match(/<script setup lang="ts">([\s\S]*?)<\/script>/)[1]
-  const { outputText } = ts.transpileModule(source + '\nexport { add, quantity, selectedVariant, loading }', {
+  const { outputText } = ts.transpileModule(source + '\nexport { add, increaseQuantity, quantity, selectedVariant, loading }', {
     compilerOptions: { target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext },
   })
   const quickAdd = await import('data:text/javascript;base64,' + Buffer.from(outputText).toString('base64'))
@@ -163,4 +169,8 @@ test('quick add uses the same nested variant selection and cart ID', async () =>
   await quickAdd.add()
   assert.deepEqual(calls, [['quick-product', 3, 'available-purchase-id']])
   assert.equal(open.value, false)
+  quickAdd.quantity.value = 1
+  quickAdd.increaseQuantity()
+  quickAdd.increaseQuantity()
+  assert.deepEqual(warnings, ['شما به محدودیت تعداد انتخابی برای سفارش این محصول رسیدید.'])
 })

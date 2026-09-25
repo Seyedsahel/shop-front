@@ -4,6 +4,7 @@ const emit = defineEmits<{ increase: []; decrease: []; remove: []; moveToWishlis
 
 const lineTotal = computed(() => props.item.pricing.total)
 const hasDiscount = computed(() => props.item.pricing.discount > 0)
+const orderLimitReached = computed(() => props.item.max_per_order > 0 && props.item.quantity >= props.item.max_per_order)
 </script>
 
 <template>
@@ -28,12 +29,13 @@ const hasDiscount = computed(() => props.item.pricing.discount > 0)
           <div class="text-xs text-text-muted">هر عدد {{ formatMoney(item.pricing.final_unit) }}</div>
         </div>
         <div class="flex h-10 items-center rounded-xl bg-surface p-1">
-          <button type="button" class="grid size-8 place-items-center rounded-lg bg-card text-text-secondary transition-colors hover:bg-primary hover:text-primary-foreground disabled:cursor-not-allowed disabled:opacity-40" :disabled="disabled || item.quantity >= item.stock" aria-label="افزایش تعداد" @click="emit('increase')"><UIcon name="solar:add-circle-outline" class="size-5" /></button>
+          <button type="button" class="grid size-8 place-items-center rounded-lg bg-card text-text-secondary transition-colors hover:bg-primary hover:text-primary-foreground disabled:cursor-not-allowed disabled:opacity-40" :disabled="disabled || item.quantity >= item.stock || orderLimitReached" aria-label="افزایش تعداد" @click="emit('increase')"><UIcon name="solar:add-circle-outline" class="size-5" /></button>
           <span class="w-9 text-center text-sm font-bold text-text-primary">{{ item.quantity.toLocaleString('fa-IR') }}</span>
           <button type="button" class="grid size-8 place-items-center rounded-lg bg-card text-text-secondary transition-colors hover:bg-danger hover:text-danger-foreground" :disabled="disabled" aria-label="کاهش تعداد" @click="emit('decrease')"><UIcon name="solar:minus-circle-outline" class="size-5" /></button>
         </div>
       </div>
     </div>
+    <p v-if="orderLimitReached" role="status" class="px-4 pb-3 text-xs text-danger-subtle sm:px-5">شما به محدودیت تعداد انتخابی برای سفارش این محصول رسیدید.</p>
     <div class="flex justify-end gap-4 border-t border-divider bg-surface/60 px-4 py-2 sm:px-5">
       <button type="button" class="inline-flex items-center gap-1.5 text-xs text-text-secondary transition-colors hover:text-primary disabled:opacity-50" :disabled="disabled" @click="emit('moveToWishlist')"><UIcon name="solar:heart-outline" class="size-4" />انتقال به علاقه‌مندی‌ها</button>
       <button type="button" class="inline-flex items-center gap-1.5 text-xs text-text-secondary transition-colors hover:text-danger" :disabled="disabled" @click="emit('remove')"><UIcon name="solar:trash-bin-trash-outline" class="size-4" />حذف از سبد</button>

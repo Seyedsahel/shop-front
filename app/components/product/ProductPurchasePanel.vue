@@ -16,6 +16,7 @@ const canShowDiscount = computed(() =>
   && props.product.price.original > props.product.price.final,
 )
 const isInStock = computed(() => availableStock.value !== null && availableStock.value > 0)
+const orderLimitReached = computed(() => props.product.maxPerOrder > 0 && quantity.value >= props.product.maxPerOrder)
 const totalPrice = computed(() => unitPrice.value * quantity.value)
 const favoriteItem = computed(() => wishlistStore.findItem(props.product.id, selectedVariant.value?.variantId))
 
@@ -31,6 +32,14 @@ watch(
 )
 
 watch(() => selectedVariant.value?.variantId, () => { quantity.value = 1 })
+
+function increaseQuantity() {
+  const nextQuantity = quantity.value + 1
+  quantity.value = nextQuantity
+  if (props.product.maxPerOrder > 0 && nextQuantity === props.product.maxPerOrder) {
+    toast.warning('شما به محدودیت تعداد انتخابی برای سفارش این محصول رسیدید.')
+  }
+}
 
 async function addToCart() {
   if (!isInStock.value || cartStore.busy || cartStore.stale) return
@@ -96,14 +105,15 @@ async function toggleFavorite() {
 
     <div v-if="cartStore.stale" role="alert" class="text-sm text-danger">{{ cartStore.error }} <NuxtLink to="/cart" class="underline">بررسی و دریافت دوباره سبد</NuxtLink></div>
     <div v-if="wishlistStore.stale" role="alert" class="text-sm text-danger">{{ wishlistStore.error }} <button type="button" class="underline" :disabled="wishlistStore.busy" @click="wishlistStore.fetchWishlist().catch(() => {})">دریافت دوباره علاقه‌مندی‌ها</button></div>
-    <div class="flex flex-col gap-3 sm:flex-row">
+    <div class="flex flex-col gap-3">
+      <div class="flex flex-col gap-3 sm:flex-row">
       <div class="flex h-12 w-full items-center justify-between rounded-xl border border-border-strong bg-card sm:w-36">
         <button type="button" class="grid size-11 place-items-center text-text-secondary hover:text-primary 
        disabled:opacity-40" :disabled="quantity <= 1" aria-label="کاهش تعداد" @click="quantity--">
           <UIcon name="solar:minus-circle-outline" class="size-5" />
         </button>
         <span class="text-sm font-semibold text-text-primary">{{ quantity.toLocaleString('fa-IR') }}</span>
-        <button type="button" class="grid size-11 place-items-center text-text-secondary hover:text-primary disabled:opacity-40" :disabled="!isInStock || availableStock === null || quantity >= availableStock" aria-label="افزایش تعداد" @click="quantity++">
+        <button type="button" class="grid size-11 place-items-center text-text-secondary hover:text-primary disabled:opacity-40" :disabled="!isInStock || availableStock === null || quantity >= availableStock || orderLimitReached" aria-label="افزایش تعداد" @click="increaseQuantity">
           <UIcon name="solar:add-circle-outline" class="size-5" />
         </button>
       </div>
@@ -116,6 +126,8 @@ async function toggleFavorite() {
           <UIcon :name="favoriteItem ? 'solar:heart-bold' : 'solar:heart-outline'" class="size-5" />
         </button>
       </div>
+      </div>
+      <p v-if="orderLimitReached" role="status" class="text-sm text-danger-subtle">شما به محدودیت تعداد انتخابی برای سفارش این محصول رسیدید.</p>
     </div>
 
     <!-- TODO: Replace with backend-backed delivery and support promises when available. -->

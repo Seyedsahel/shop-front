@@ -18,6 +18,8 @@ const stock = computed(() => detail.value?.purchaseVariants.length
   : detail.value?.baseStock ?? null)
 const unitPrice = computed(() => selectedVariant.value?.finalPrice ?? detail.value?.price.final ?? props.product.price.final)
 const ready = computed(() => !loading.value && !loadError.value && !!detail.value && stock.value !== null && stock.value > 0)
+const orderLimitReached = computed(() => (detail.value?.maxPerOrder ?? props.product.maxPerOrder) > 0
+  && quantity.value >= (detail.value?.maxPerOrder ?? props.product.maxPerOrder))
 
 async function load() {
   const active = ++requestId
@@ -44,6 +46,15 @@ watch(() => [open.value, props.product.slug] as const, ([visible]) => {
 }, { immediate: true })
 watch(() => selectedVariant.value?.variantId, () => { quantity.value = 1 })
 
+function increaseQuantity() {
+  const nextQuantity = quantity.value + 1
+  quantity.value = nextQuantity
+  const maxPerOrder = detail.value?.maxPerOrder ?? props.product.maxPerOrder
+  if (maxPerOrder > 0 && nextQuantity === maxPerOrder) {
+    toast.warning('شما به محدودیت تعداد انتخابی برای سفارش این محصول رسیدید.')
+  }
+}
+
 async function add() {
   if (!ready.value || submitting.value || cart.busy || cart.stale) return
   if (detail.value?.purchaseVariants.length && !selectedVariant.value) return
@@ -69,7 +80,11 @@ async function changeCartLineQuantity(item: CartItem, amount: number) {
       return
     }
     await cart.updateQuantity(item.id, item.quantity + amount)
-    toast.success('تعداد کالا به‌روزرسانی شد.')
+    if (amount > 0 && item.max_per_order > 0 && item.quantity + amount === item.max_per_order) {
+      toast.warning('شما به محدودیت تعداد انتخابی برای سفارش این محصول رسیدید.')
+    } else {
+      toast.success('تعداد کالا به‌روزرسانی شد.')
+    }
   } catch (caught) {
     error.value = caught instanceof ApiError ? caught.message : 'به‌روزرسانی سبد ناموفق بود.'
   }
@@ -103,9 +118,10 @@ async function retry() {
           <div class="flex shrink-0 items-center gap-3 rounded-lg bg-card p-1">
             <button type="button" aria-label="کاهش تعداد" class="size-9 rounded-md disabled:opacity-40" :disabled="cart.busy || cart.stale" @click="changeCartLineQuantity(item, -1)">−</button>
             <output class="min-w-5 text-center text-sm font-semibold">{{ item.quantity.toLocaleString('fa-IR') }}</output>
-            <button type="button" aria-label="افزایش تعداد" class="size-9 rounded-md disabled:opacity-40" :disabled="cart.busy || cart.stale || item.quantity >= item.stock" @click="changeCartLineQuantity(item, 1)">+</button>
+            <button type="button" aria-label="افزایش تعداد" class="size-9 rounded-md disabled:opacity-40" :disabled="cart.busy || cart.stale || item.quantity >= item.stock || (item.max_per_order > 0 && item.quantity >= item.max_per_order)" @click="changeCartLineQuantity(item, 1)">+</button>
           </div>
         </div>
+        <p v-if="cartLines.some(item => item.max_per_order > 0 && item.quantity >= item.max_per_order)" role="status" class="text-xs text-danger-subtle">شما به محدودیت تعداد انتخابی برای سفارش این محصول رسیدید.</p>
       </section>
       <ProductVariantSelectors
         v-if="detail.purchaseVariants.length"
@@ -115,17 +131,20 @@ async function retry() {
         :disabled="submitting"
         @select="select"
       />
-      <div class="mb-5 flex items-center justify-between gap-3">
-        <span class="text-sm">تعداد <span v-if="stock !== null" class="text-xs text-text-muted">({{ stock.toLocaleString('fa-IR') }} عدد موجود)</span></span>
-        <div class="flex items-center gap-4 rounded-xl bg-surface p-1">
-          <button type="button" aria-label="کاهش تعداد" class="size-10 rounded-lg bg-card disabled:opacity-40" :disabled="quantity <= 1 || submitting" @click="quantity--">−</button>
-          <output class="min-w-5 text-center">{{ quantity.toLocaleString('fa-IR') }}</output>
-          <button type="button" aria-label="افزایش تعداد" class="size-10 rounded-lg bg-card disabled:opacity-40" :disabled="stock === null || quantity >= stock || submitting" @click="quantity++">+</button>
+      <div class="space-y-5">
+        <div class="flex items-center justify-between gap-3">
+          <span class="text-sm">تعداد <span v-if="stock !== null" class="text-xs text-text-muted">({{ stock.toLocaleString('fa-IR') }} عدد موجود)</span></span>
+          <div class="flex items-center gap-4 rounded-xl bg-surface p-1">
+            <button type="button" aria-label="کاهش تعداد" class="size-10 rounded-lg bg-card disabled:opacity-40" :disabled="quantity <= 1 || submitting" @click="quantity--">−</button>
+            <output class="min-w-5 text-center">{{ quantity.toLocaleString('fa-IR') }}</output>
+            <button type="button" aria-label="افزایش تعداد" class="size-10 rounded-lg bg-card disabled:opacity-40" :disabled="stock === null || quantity >= stock || orderLimitReached || submitting" @click="increaseQuantity">+</button>
+          </div>
         </div>
+        <button type="button" class="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50" :disabled="!ready || submitting || cart.busy || cart.stale" @click="add">
+          {{ submitting ? 'در حال افزودن…' : stock === null ? 'گزینه محصول را انتخاب کنید' : stock <= 0 ? 'ناموجود' : `افزودن به سبد · ${formatMoney(unitPrice * quantity)}` }}
+        </button>
       </div>
-      <button type="button" class="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50" :disabled="!ready || submitting || cart.busy || cart.stale" @click="add">
-        {{ submitting ? 'در حال افزودن…' : stock === null ? 'گزینه محصول را انتخاب کنید' : stock <= 0 ? 'ناموجود' : `افزودن به سبد · ${formatMoney(unitPrice * quantity)}` }}
-      </button>
+      <p v-if="orderLimitReached" role="status" class="mt-3 text-sm text-warning">شما به محدودیت تعداد انتخابی برای سفارش این محصول رسیدید.</p>
     </template>
   </UiModal>
 </template>

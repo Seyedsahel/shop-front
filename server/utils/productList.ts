@@ -21,6 +21,7 @@ export function mapProductListResponse(raw: any): ProductListResponse {
           discountPercent: Number(product.price?.discount_percent ?? 0),
         },
         stock: Number(product.stock ?? 0),
+        maxPerOrder: Number(product.max_per_order ?? 0),
         createdAt: product.created_at,
         updatedAt: product.updated_at,
       } satisfies Product

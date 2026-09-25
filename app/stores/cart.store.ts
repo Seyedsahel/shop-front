@@ -99,6 +99,9 @@ export const useCartStore = defineStore('cart', () => {
   function updateQuantity(id: string, quantity: number) {
     const item = cart.value?.products[id]
     if (!item || !Number.isSafeInteger(quantity) || quantity < 1) return Promise.reject(new ApiError('کالا یا تعداد معتبر نیست.'))
+    if (item.max_per_order > 0 && quantity > item.max_per_order) {
+      return Promise.reject(new ApiError('شما به محدودیت تعداد انتخابی برای سفارش این محصول رسیدید.'))
+    }
     return mutate(() => api.patch(`/cart/items/${encodeURIComponent(id)}`, {
       product_id: item.product_id, variant_id: item.variant_id?.trim() || null, quantity,
     } satisfies CartItemPayload))
