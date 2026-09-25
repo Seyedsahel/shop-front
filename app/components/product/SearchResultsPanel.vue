@@ -12,6 +12,7 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits<{
   close: []
+  select: []
 }>()
 
 const productListStore = useProductListStore()
@@ -53,6 +54,11 @@ function productPrice(product: Product) {
 
 function close() {
   emit('close')
+}
+
+function selectProduct() {
+  emit('select')
+  close()
 }
 </script>
 
@@ -129,7 +135,7 @@ function close() {
         :key="product.id"
         :to="`/products/${product.slug}`"
         class="group flex items-center justify-between gap-3 p-4 text-right transition-colors hover:bg-surface/70"
-        @click="close"
+        @click="selectProduct"
       >
         <div class="min-w-0 flex-1">
           <h4 class="line-clamp-2 text-xs font-semibold leading-6 text-text-primary transition-colors group-hover:text-accent-foreground sm:text-sm">

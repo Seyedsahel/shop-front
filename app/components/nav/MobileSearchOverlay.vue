@@ -34,7 +34,12 @@ watch(open, value => {
             <UIcon name="solar:close-circle-broken" class="size-6" />
           </button>
         </div>
-        <ProductSearchResultsPanel :query="query" mode="mobile" @close="close" />
+        <ProductSearchResultsPanel
+          :query="query"
+          mode="mobile"
+          @close="close"
+          @select="query = ''; close()"
+        />
       </div>
     </Transition>
   </Teleport>

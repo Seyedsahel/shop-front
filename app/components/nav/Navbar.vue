@@ -97,6 +97,7 @@ watch(width, () => {
             class="fixed left-1/2 z-50 w-[min(56rem,calc(100vw-2rem))] -translate-x-1/2"
             :style="{ top: `${desktopSearchPanelTop}px` }"
             @close="desktopSearchOpen = false"
+            @select="desktopSearchQuery = ''; desktopSearchOpen = false"
           />
         </Transition>
       </div>
