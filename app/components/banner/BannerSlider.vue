@@ -5,20 +5,48 @@ onMounted(() => bannerStore.fetchBanners())
 
 const active = ref(0)
 const hovered = ref<number | null>(null)
+const touchStart = ref<{ x: number, y: number } | null>(null)
 let timer: ReturnType<typeof setInterval> | undefined
 
 function start() {
   stop()
+  if (bannerStore.homeTop.length < 2) return
+
   timer = setInterval(() => {
-    active.value = (active.value + 1) % bannerStore.homeTop.length
+    goNext()
   }, 2000)
 }
 function stop() {
-  if (timer) clearInterval(timer)
+  if (timer) {
+    clearInterval(timer)
+    timer = undefined
+  }
 }
 function goTo(i: number) {
   active.value = i
   start() // reset timer on manual interaction
+}
+function goNext() {
+  goTo((active.value + 1) % bannerStore.homeTop.length)
+}
+function goPrevious() {
+  goTo((active.value - 1 + bannerStore.homeTop.length) % bannerStore.homeTop.length)
+}
+function handleTouchStart(event: TouchEvent) {
+  const touch = event.touches[0]
+  if (touch) touchStart.value = { x: touch.clientX, y: touch.clientY }
+}
+function handleTouchEnd(event: TouchEvent) {
+  const startPosition = touchStart.value
+  const touch = event.changedTouches[0]
+  touchStart.value = null
+  if (!startPosition || !touch) return
+
+  const deltaX = touch.clientX - startPosition.x
+  const deltaY = touch.clientY - startPosition.y
+  if (Math.abs(deltaX) < 50 || Math.abs(deltaX) <= Math.abs(deltaY)) return
+
+  deltaX < 0 ? goNext() : goPrevious()
 }
 
 watch(() => bannerStore.homeTop.length, (len) => {
@@ -32,7 +60,11 @@ onBeforeUnmount(stop)
     <div v-if="bannerStore.isLoading" class="w-full bg-loading aspect-video sm:aspect-21/7 rounded-2xl animate-pulse" />
 
     <div v-else class="w-full">
-      <div class="relative w-full aspect-video sm:aspect-21/7 rounded-2xl overflow-hidden">
+      <div
+        class="relative w-full aspect-video sm:aspect-21/7 rounded-2xl overflow-hidden"
+        @touchstart.passive="handleTouchStart"
+        @touchend="handleTouchEnd"
+      >
         <a
           v-for="(banner, i) in bannerStore.homeTop"
           :key="banner.id"
@@ -44,6 +76,26 @@ onBeforeUnmount(stop)
         >
           <img :src="banner.imageUrl" alt="" class="size-full object-cover" />
         </a>
+
+        <button
+          v-if="bannerStore.homeTop.length > 1"
+          type="button"
+          class="absolute inset-y-0 right-3 z-20 m-auto hidden size-10 items-center justify-center rounded-full bg-surface/90 text-text-primary shadow-sm transition-colors hover:bg-surface sm:flex"
+          aria-label="بنر قبلی"
+          @click="goPrevious"
+        >
+          <UIcon name="solar:arrow-right-broken" class="size-5" />
+        </button>
+
+        <button
+          v-if="bannerStore.homeTop.length > 1"
+          type="button"
+          class="absolute inset-y-0 left-3 z-20 m-auto hidden size-10 items-center justify-center rounded-full bg-surface/90 text-text-primary shadow-sm transition-colors hover:bg-surface sm:flex"
+          aria-label="بنر بعدی"
+          @click="goNext"
+        >
+          <UIcon name="solar:arrow-left-broken" class="size-5" />
+        </button>
       </div>
 
       <!-- Dots — manual navigation + hover preview -->

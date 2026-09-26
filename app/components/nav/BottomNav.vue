@@ -3,9 +3,9 @@ const route = useRoute()
 
 const navItems = [
   { label: 'خانه', to: '/', icon: 'solar:home-2-broken' },
-  { label: 'دسته‌ها', to: '/consultation', icon: 'solar:widget-broken' },
+  { label: 'فروشگاه', to: '/products', icon: 'solar:widget-broken' },
   { label: 'سبد خرید', to: '/cart', icon: 'solar:cart-4-outline' },
-  { label: 'پروفایل', to: '/consultation', icon: 'solar:user-broken' },
+  { label: 'پروفایل', to: '/profile', icon: 'solar:user-broken' },
 ]
 
 function isActive(to: string) {

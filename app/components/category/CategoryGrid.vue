@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const categoryStore = useCategoryStore()
 const productListStore = useProductListStore()
+const displayedCategories = computed(() => categoryStore.items.slice(0, 15))
 
 onMounted(() => {
   categoryStore.fetchCategories()
@@ -36,7 +37,7 @@ onMounted(() => {
         </NuxtLink>
 
         <NuxtLink
-          v-for="category in categoryStore.items"
+          v-for="category in displayedCategories"
           :key="category.id"
           :to="`/products?category=${category.slug}`"
           class="flex flex-col items-center gap-2 group"
