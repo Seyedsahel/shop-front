@@ -23,7 +23,7 @@ Object.assign(globalThis, await load('server/utils/session.ts'))
 Object.assign(globalThis, await load('server/utils/backendFetch.ts'))
 Object.assign(globalThis, await load('server/utils/readSession.ts'))
 const guest = (await load('server/api/auth/guest.post.ts')).default
-const login = (await load('server/api/auth/verify-otp.post.ts')).default
+const login = (await load('server/api/auth/otp/verify.post.ts')).default
 const refresh = (await load('server/api/auth/refresh.post.ts')).default
 const logout = (await load('server/api/auth/logout.post.ts')).default
 const me = (await load('server/api/auth/me.get.ts')).default
@@ -58,7 +58,7 @@ test('central transport enforces precedence, absence, and explicit auth modes', 
 test('guest creation persists a private 30-day cookie, then reuses it', async () => {
   let creations = 0
   globalThis.$fetch = async (url, options) => {
-    if (url === '/api/auth/guest') {
+    if (url === '/auth/guest') {
       creations++
       assert.equal(options.headers.get('authorization'), null)
       return { token: 'guest-jwt' }
@@ -81,7 +81,7 @@ test('guest creation persists a private 30-day cookie, then reuses it', async ()
 
 test('authenticated identity wins and guest issuance is skipped', async () => {
   globalThis.$fetch = async (url, options) => {
-    assert.equal(url, '/api/auth/validate')
+    assert.equal(url, '/auth/validate')
     assert.equal(options.headers.get('authorization'), 'Bearer user')
     return { valid: true, role: 'user', user_id: 'user-id' }
   }
@@ -107,7 +107,7 @@ test('login forwards the guest bearer token, replaces guest identity, refresh re
   assert.deepEqual(await refreshed.json(), { success: true })
   assert.match(refreshed.headers.get('set-cookie'), /auth_token=refreshed-user/)
   globalThis.$fetch = async (url, options) => {
-    assert.equal(url, '/api/auth/logout')
+    assert.equal(url, '/auth/logout')
     assert.equal(options.headers.get('authorization'), 'Bearer new-user')
     assert.equal(options.body, undefined)
     return { status: 'logged_out' }
@@ -120,7 +120,7 @@ test('login forwards the guest bearer token, replaces guest identity, refresh re
 test('expired guest can be replaced; expired user cannot silently become guest', async () => {
   let creations = 0
   globalThis.$fetch = async url => {
-    if (url === '/api/auth/validate') throw expired()
+    if (url === '/auth/validate') throw expired()
     creations++
     return { token: 'fresh-guest' }
   }
@@ -180,7 +180,7 @@ test('concurrent guest requests are deduplicated and login waits for cookie crea
   assert.deepEqual(calls, ['/auth/guest'])
   completeGuest({ identity: 'guest', isAuthenticated: false, hasGuestSession: true })
   await Promise.all([first, second, login])
-  assert.deepEqual(calls, ['/auth/guest', '/auth/verify-otp'])
+  assert.deepEqual(calls, ['/auth/guest', '/auth/otp/verify'])
   assert.equal(store.isAuthenticated, true)
   assert.equal(store.hasGuestSession, false)
 })
@@ -233,5 +233,5 @@ test('login waits until the shopping operation and refresh release the shared se
   assert.deepEqual(calls, ['cart-write'])
   release()
   await Promise.all([operation, login])
-  assert.deepEqual(calls, ['cart-write', 'cart-refresh', '/auth/verify-otp'])
+  assert.deepEqual(calls, ['cart-write', 'cart-refresh', '/auth/otp/verify'])
 })

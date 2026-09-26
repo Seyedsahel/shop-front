@@ -1,10 +1,17 @@
 export function mapProductDetail(raw: any): ProductDetail {
+  if (!raw || typeof raw !== 'object' || typeof raw.id !== 'string' || typeof raw.name !== 'string' || typeof raw.slug !== 'string') {
+    throw createError({ statusCode: 502, message: 'Invalid product detail response from backend' })
+  }
+  const array = (value: unknown, field: string): any[] => {
+    if (!Array.isArray(value)) throw createError({ statusCode: 502, message: `Invalid product ${field} from backend` })
+    return value
+  }
   return {
     id: raw.id,
     name: raw.name,
     slug: raw.slug,
-    description: raw.description,
-    descriptionBlocks: (raw.description_blocks ?? [])
+    description: typeof raw.description === 'string' ? raw.description : '',
+    descriptionBlocks: array(raw.description_blocks ?? [], 'description blocks')
       .map((block: any) => ({
         type: block.type,
         title: block.title ?? '',
@@ -28,19 +35,19 @@ export function mapProductDetail(raw: any): ProductDetail {
       fileId: raw.brand.file_id ?? null,
       description: raw.brand.description ?? '',
     } : null,
-    images: (raw.images ?? []).map((img: any) => ({
+    images: array(raw.images ?? [], 'images').map((img: any) => ({
       imageUrl: toBackendImageUrl(img.image_url),
       sortOrder: img.sort_order,
       isThumbnail: img.is_thumbnail,
     })),
-    categories: (raw.categories ?? []).map((c: any) => ({ id: c.id, name: c.name, slug: c.slug })),
-    specifications: (raw.specifications ?? []).map((s: any) => ({
+    categories: array(raw.categories ?? [], 'categories').map((c: any) => ({ id: c.id, name: c.name, slug: c.slug })),
+    specifications: array(raw.specifications ?? [], 'specifications').map((s: any) => ({
       attributeId: s.attribute_id, slug: s.slug, name: s.name, dataType: s.data_type, unit: s.unit, value: s.value,
     })),
-    purchaseVariants: (raw.purchase_variants ?? []).map((v: any) => ({
+    purchaseVariants: array(raw.purchase_variants ?? [], 'purchase variants').map((v: any) => ({
       variantId: v.variant_id, sku: v.sku,
       priceAdjustment: v.price_adjustment, finalPrice: v.final_price, stock: v.stock,
-      options: (v.options ?? []).map((option: any) => ({
+      options: array(v.options ?? [], 'variant options').map((option: any) => ({
         variantOptionId: option.variant_option_id,
         attributeId: option.attribute_id,
         slug: option.slug,

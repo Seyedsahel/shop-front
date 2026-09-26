@@ -10,20 +10,26 @@ export default defineEventHandler(async (event): Promise<FiltersResponse> => {
     },
   })
 
+  if (!raw || typeof raw !== 'object') throw createError({ statusCode: 502, message: 'Invalid filters response from backend' })
+  const array = (value: unknown, field: string): any[] => {
+    if (!Array.isArray(value)) throw createError({ statusCode: 502, message: `Invalid filters ${field} from backend` })
+    return value
+  }
+
   return {
-    attributes: (raw.attributes ?? []).filter((f: any) => f.slug !== 'brand').map((f: any) => ({
+    attributes: array(raw.attributes ?? [], 'attributes').filter((f: any) => f.slug !== 'brand').map((f: any) => ({
       slug: f.slug,
       name: f.name,
       dataType: f.data_type,
-      availableValues: f.available_values,
+      availableValues: Array.isArray(f.available_values) ? f.available_values.filter((value: unknown): value is string => typeof value === 'string') : [],
     })),
-    brands: (raw.brands ?? []).map((brand: any) => ({
+    brands: array(raw.brands ?? [], 'brands').map((brand: any) => ({
       id: brand.id,
       name: brand.name,
       slug: brand.slug,
       imageUrl: toBackendImageUrl(brand.image_url),
     })),
-    categories: (raw.categories ?? []).map((category: any) => ({
+    categories: array(raw.categories ?? [], 'categories').map((category: any) => ({
       id: category.id,
       parentId: category.parent_id ?? '',
       name: category.name,

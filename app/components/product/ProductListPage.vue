@@ -27,7 +27,7 @@ async function loadProductsFromRoute() {
   })
   if (route.query.sort) productListStore.sort = route.query.sort as string
   productListStore.setListSearch(typeof route.query.search === 'string' ? route.query.search.trim() : '')
-  productListStore.fetchList({ page: Number(route.query.page) || 1 })
+  await productListStore.fetchList({ page: Number(route.query.page) || 1 })
 }
 
 onMounted(loadProductsFromRoute)

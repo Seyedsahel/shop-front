@@ -10,8 +10,10 @@ export const useFilterStore = defineStore('filter', () => {
   const selectedPriceMax = ref<number | null>(null)
   const isLoading = ref(false)
   const discountId = ref<string | null>(null)
+  let requestId = 0
 
   async function fetchFilters(params: Pick<ProductFiltersRequest, 'categoryIds' | 'discountId' | 'limit'> = {}) {
+    const activeRequest = ++requestId
     isLoading.value = true
     try {
       const res = await useApi().post<FiltersResponse>('/products/filters', {
@@ -19,6 +21,7 @@ export const useFilterStore = defineStore('filter', () => {
         discountId: params.discountId ?? discountId.value ?? undefined,
         limit: params.limit ?? 20,
       } satisfies ProductFiltersRequest)
+      if (activeRequest !== requestId) return
       if (params.discountId !== undefined) discountId.value = params.discountId || null
       definitions.value = res.attributes
       brands.value = res.brands
@@ -37,9 +40,9 @@ export const useFilterStore = defineStore('filter', () => {
         }
       }
     } catch (e) {
-      useAppToast().error(e instanceof ApiError ? e.message : 'خطا در دریافت فیلترها.')
+      if (activeRequest === requestId) useAppToast().error(e instanceof ApiError ? e.message : 'خطا در دریافت فیلترها.')
     } finally {
-      isLoading.value = false
+      if (activeRequest === requestId) isLoading.value = false
     }
   }
 
@@ -106,7 +109,7 @@ export const useFilterStore = defineStore('filter', () => {
   const activeCount = computed(() => {
     const attributeCount = definitions.value.filter(filter => {
       const value = values[filter.slug]
-      return value !== null && value !== undefined && value !== false && !(Array.isArray(value) && value.length === 0)
+      return value !== null && value !== undefined && !(Array.isArray(value) && value.length === 0)
     }).length
     return attributeCount + selectedBrandIds.value.length + selectedCategoryIds.value.length + (hasCustomPrice.value ? 1 : 0)
   })

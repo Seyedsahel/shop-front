@@ -24,9 +24,10 @@ export default defineEventHandler(async (event): Promise<CommentsResponse> => {
     throw createError({ statusCode: 400, message: 'Invalid comment target' })
   }
 
-  const comments = await backendFetch<BackendComment[]>('/comments', {
+  const comments = await backendFetch<unknown>('/comments', {
     query: { comment_type: targetType, reference_id: targetId },
     authorization: 'none',
   }, event)
+  if (!Array.isArray(comments)) throw createError({ statusCode: 502, message: 'Invalid comments response from backend' })
   return { items: comments.map(mapComment) }
 })

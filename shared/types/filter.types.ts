@@ -48,4 +48,4 @@ export interface ProductFiltersRequest {
 // select/string → radio (backend calls them different types but both are single-choice from a fixed list)
 // multiselect → checkbox
 // boolean → toggle, values are literally "true"/"false" strings
-export type FilterValue = string | string[] | boolean | null
+export type FilterValue = string | string[] | null

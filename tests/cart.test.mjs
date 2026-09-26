@@ -203,10 +203,10 @@ async function request(handler, method, body, cookie = 'guest_token=guest') {
 test('all mutation proxies preserve methods/payloads and central guest/user precedence', async () => {
   const payload = { product_id: 'product', quantity: 2, variant_id: null }
   for (const [file, method, path, status] of [
-    ['items/index.post', 'POST', '/api/cart/items', 201],
-    ['items/[itemId].patch', 'PATCH', '/api/cart/items/item', 200],
-    ['items/[itemId].delete', 'DELETE', '/api/cart/items/item', 200],
-    ['index.delete', 'DELETE', '/api/cart', 200],
+    ['items/index.post', 'POST', '/cart/items', 201],
+    ['items/[itemId].patch', 'PATCH', '/cart/items/item', 200],
+    ['items/[itemId].delete', 'DELETE', '/cart/items/item', 200],
+    ['index.delete', 'DELETE', '/cart', 200],
   ]) {
     const handler = (await load(`server/api/cart/${file}.ts`)).default
     for (const cookie of ['guest_token=guest', 'auth_token=user; guest_token=guest']) {
@@ -228,7 +228,7 @@ test('GET proxy makes one cart request and normalizes only supplied image paths'
   const calls = []
   globalThis.$fetch = async url => {
     calls.push(url)
-    if (url === '/api/cart') return fixture()
+    if (url === '/cart') return fixture()
     throw new Error('Unexpected URL')
   }
   const response = await request(handler, 'GET')
@@ -238,7 +238,7 @@ test('GET proxy makes one cart request and normalizes only supplied image paths'
   assert.equal(body.products.item.name, 'Real product')
   assert.equal(body.products.item.variant_name, '10 Tablets')
   assert.equal(body.products.item.image_url, '/photo')
-  assert.deepEqual(calls, ['/api/cart'])
+  assert.deepEqual(calls, ['/cart'])
   assert.equal(response.headers.get('cache-control'), 'no-store')
 })
 
@@ -253,7 +253,7 @@ test('cart proxies reject absent identity and invalid quantities before backend 
 test('GET proxy does not request product data when the cart includes a variant', async () => {
   const handler = (await load('server/api/cart/index.get.ts')).default
   globalThis.$fetch = async url => {
-    assert.equal(url, '/api/cart')
+    assert.equal(url, '/cart')
     return fixture()
   }
   const response = await request(handler, 'GET')

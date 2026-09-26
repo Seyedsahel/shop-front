@@ -1,6 +1,12 @@
 export function mapProductListResponse(raw: any): ProductListResponse {
+  if (!raw || typeof raw !== 'object' || !Array.isArray(raw.items)) {
+    throw createError({ statusCode: 502, message: 'Invalid product list response from backend' })
+  }
   return {
-    items: (raw.items ?? []).map((product: any) => {
+    items: raw.items.map((product: any) => {
+      if (!product || typeof product !== 'object' || typeof product.id !== 'string' || typeof product.name !== 'string' || typeof product.slug !== 'string') {
+        throw createError({ statusCode: 502, message: 'Invalid product in backend response' })
+      }
       const originalPrice = Number(product.price?.original ?? product.base_price ?? 0)
       const finalPrice = Number(product.price?.final ?? product.base_price ?? originalPrice)
 
@@ -12,7 +18,7 @@ export function mapProductListResponse(raw: any): ProductListResponse {
         brandId: product.brand_id ?? '',
         thumbnailUrl: product.thumbnail_url,
         imageUrl: toBackendImageUrl(product.thumbnail_url),
-        description: product.description,
+        description: typeof product.description === 'string' ? product.description : '',
         basePrice: Number(product.base_price ?? originalPrice),
         price: {
           original: originalPrice,

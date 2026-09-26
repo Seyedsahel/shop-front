@@ -96,7 +96,7 @@ test('POST sends text/plain JSON and uses guest or auth bearer from shared sessi
   const handler = (await load('server/api/wishlist/items/index.post.ts')).default
   for (const cookie of ['guest_token=guest', 'auth_token=user; guest_token=guest']) {
     globalThis.$fetch = async (path, options) => {
-      assert.equal(path, '/api/wishlist/items')
+      assert.equal(path, '/wishlist/items')
       assert.equal(options.headers.get('Authorization'), cookie.startsWith('auth') ? 'Bearer user' : 'Bearer guest')
       assert.equal(options.headers.get('Content-Type'), 'text/plain')
       assert.deepEqual(JSON.parse(options.body), { product_id: 'product' })
@@ -120,7 +120,7 @@ test('GET keeps keyed items and delete routes address the item or whole wishlist
   globalThis.$fetch = async (path, options) => {
     paths.push([options?.method ?? 'GET', path])
     assert.equal(options.headers.get('Authorization'), 'Bearer guest')
-    return path === '/api/wishlist' && !options.method ? fixture() : undefined
+    return path === '/wishlist' && !options.method ? fixture() : undefined
   }
   const response = await request(get, 'GET')
   const body = await response.json()
@@ -129,5 +129,5 @@ test('GET keeps keyed items and delete routes address the item or whole wishlist
   assert.equal(response.headers.get('cache-control'), 'no-store')
   await request(remove, 'DELETE')
   await request(clear, 'DELETE')
-  assert.deepEqual(paths, [['GET', '/api/wishlist'], ['DELETE', '/api/wishlist/items/item'], ['DELETE', '/api/wishlist']])
+  assert.deepEqual(paths, [['GET', '/wishlist'], ['DELETE', '/wishlist/items/item'], ['DELETE', '/wishlist']])
 })

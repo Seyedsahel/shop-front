@@ -1,5 +1,6 @@
 export default defineEventHandler(async (event): Promise<CategoriesResponse> => {
-  const raw = await backendFetch<any[]>('/categories')
+  const raw = await backendFetch<unknown>('/categories')
+  if (!Array.isArray(raw)) throw createError({ statusCode: 502, message: 'Invalid categories response from backend' })
 
   return {
     items: raw.map(c => ({

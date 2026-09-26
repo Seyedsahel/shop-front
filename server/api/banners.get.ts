@@ -34,10 +34,11 @@ function mapBanners(banners: BackendBanner[]) {
 }
 
 async function fetchPlacement(placement: BannerPlacement) {
-  const banners = await backendFetch<BackendBanner[]>('/banners', {
+  const banners = await backendFetch<unknown>('/banners', {
     query: { placement },
     authorization: 'none',
   })
+  if (!Array.isArray(banners)) throw createError({ statusCode: 502, message: 'Invalid banners response from backend' })
   return mapBanners(banners)
 }
 

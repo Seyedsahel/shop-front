@@ -1,5 +1,6 @@
 export default defineEventHandler(async (event): Promise<BrandsResponse> => {
-  const raw = await backendFetch<any[]>('/brands')
+  const raw = await backendFetch<unknown>('/brands')
+  if (!Array.isArray(raw)) throw createError({ statusCode: 502, message: 'Invalid brands response from backend' })
 
   return {
     items: raw.map(brand => ({
