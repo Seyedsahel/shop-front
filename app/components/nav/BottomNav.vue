@@ -3,7 +3,7 @@ const route = useRoute()
 
 const navItems = [
   { label: 'خانه', to: '/', icon: 'solar:home-2-broken' },
-  { label: 'فروشگاه', to: '/products', icon: 'solar:widget-broken' },
+  { label: 'فروشگاه', to: '/products', icon: 'solar:shop-2-linear' },
   { label: 'سبد خرید', to: '/cart', icon: 'solar:cart-4-outline' },
   { label: 'پروفایل', to: '/profile', icon: 'solar:user-broken' },
 ]
