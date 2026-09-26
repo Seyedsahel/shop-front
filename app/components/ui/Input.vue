@@ -33,8 +33,9 @@ defineExpose({ validate: runValidation })
         :maxlength="maxlength"
         v-model="model"
         :placeholder="placeholder"
+        :dir="inputmode === 'tel' ? 'ltr' : undefined"
         class="w-full bg-transparent outline-none text-text-primary placeholder:text-text-muted"
-        :class="centered ? 'text-center tracking-widest' : ''"
+        :class="centered ? 'text-center tracking-widest' : inputmode === 'tel' ? 'text-left' : ''"
         @blur="runValidation"
       />
     </div>

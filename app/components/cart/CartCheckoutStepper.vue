@@ -11,8 +11,9 @@ const steps = [
 <template>
   <section class="border-y border-divider bg-surface py-4 sm:py-5">
     <ol class="relative mx-auto flex max-w-2xl items-start justify-between px-4 sm:px-8">
-      <div class="absolute top-5 inset-x-12 h-px bg-border-strong sm:inset-x-18" />
-      <div class="absolute top-5 inset-s-12 h-px bg-primary transition-all sm:inset-s-18" :style="{ width: `${((step - 1) / 2) * 100}%` }" />
+      <div class="absolute top-5 inset-x-12 h-px bg-border-strong sm:inset-x-18">
+        <div class="h-full w-full origin-right bg-primary transition-transform" :style="{ transform: `scaleX(${(step - 1) / 2})` }" />
+      </div>
       <li v-for="item in steps" :key="item.id" class="relative z-10 w-20 text-center sm:w-28">
         <NuxtLink v-if="item.id < step && item.to" :to="item.to" class="flex flex-col items-center gap-2 rounded-lg outline-none transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface">
           <span class="grid size-10 place-items-center rounded-full border-4 border-surface bg-primary text-primary-foreground transition-colors">

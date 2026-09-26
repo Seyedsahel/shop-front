@@ -6,8 +6,9 @@ const props = defineProps<{
   errors: Partial<Record<keyof AddressInput, string>>
   pending?: boolean
   selectedAddress?: Address | null
+  open?: boolean
 }>()
-const emit = defineEmits<{ chooseAddress: []; save: []; newAddress: [] }>()
+const emit = defineEmits<{ chooseAddress: []; changeAddress: []; save: []; newAddress: [] }>()
 const fieldId = useId()
 const cities = computed(() => props.provinces.find(item => item.code === draft.value.province_code)?.cities ?? [])
 const provinceItems = computed(() => props.provinces.map(item => ({ label: item.title.trim(), value: item.code })))
@@ -29,16 +30,33 @@ function changeProvince(code: number | undefined) {
 
 <template>
   <section class="rounded-2xl border border-border bg-card p-5 sm:p-6">
-    <div class="flex flex-wrap items-center justify-between gap-3">
-      <h2 class="text-lg font-bold text-text-primary">{{ pickup ? 'اطلاعات تحویل‌گیرنده حضوری' : 'مشخصات تحویل‌گیرنده و نشانی' }}</h2>
-      <div v-if="!pickup" class="flex gap-4 text-xs font-semibold text-primary">
-        <button type="button" @click="emit('chooseAddress')">انتخاب از آدرس‌های ذخیره‌شده</button>
-        <button type="button" @click="emit('newAddress')">نشانی جدید</button>
+    <template v-if="!pickup && !open">
+      <div class="flex items-center gap-2"><UIcon name="solar:map-point-outline" class="size-6 text-primary" /><h2 class="text-lg font-bold text-text-primary">انتخاب نشانی تحویل</h2></div>
+      <p class="mt-2 text-sm leading-7 text-text-secondary">برای ادامه، یک نشانی ذخیره‌شده را انتخاب کنید یا نشانی جدیدی وارد کنید.</p>
+      <div class="mt-5 grid gap-3 sm:grid-cols-2">
+        <button type="button" class="relative rounded-xl border border-border bg-card p-4 text-start transition-colors hover:border-border-strong" @click="emit('chooseAddress')">
+          <span class="grid size-10 place-items-center rounded-xl bg-surface text-primary"><UIcon name="solar:map-point-outline" class="size-6" /></span>
+          <span class="mt-3 block text-sm font-semibold text-text-primary">انتخاب از آدرس‌های ذخیره‌شده</span>
+          <span class="mt-2 block text-xs text-text-secondary">اطلاعات نشانی قبلی را بررسی یا ویرایش کنید.</span>
+        </button>
+        <button type="button" class="relative rounded-xl border border-border bg-card p-4 text-start transition-colors hover:border-border-strong" @click="emit('newAddress')">
+          <span class="grid size-10 place-items-center rounded-xl bg-surface text-primary"><UIcon name="solar:add-circle-outline" class="size-6" /></span>
+          <span class="mt-3 block text-sm font-semibold text-text-primary">نشانی جدید</span>
+          <span class="mt-2 block text-xs text-text-secondary">نشانی و اطلاعات تحویل‌گیرنده را وارد کنید.</span>
+        </button>
       </div>
-    </div>
-    <p v-if="pickup" class="mt-2 text-sm text-text-secondary">برای تحویل حضوری فقط نام و شماره تماس را وارد کنید.</p>
-    <p v-else-if="selectedAddress" class="mt-2 text-xs text-text-secondary">نشانی ذخیره‌شده انتخاب شده است. پس از تغییر اطلاعات، «ثبت» را بزنید.</p>
-    <form class="mt-5 space-y-4" novalidate @submit.prevent="emit('save')">
+    </template>
+    <template v-else>
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <h2 class="text-lg font-bold text-text-primary">{{ pickup ? 'اطلاعات تحویل‌گیرنده حضوری' : 'مشخصات تحویل‌گیرنده و نشانی' }}</h2>
+        <div v-if="!pickup" class="flex flex-wrap items-center gap-4 text-sm font-semibold text-primary">
+          <button type="button" @click="emit('newAddress')">افزودن نشانی جدید</button>
+          <button type="button" @click="emit('changeAddress')">انتخاب نشانی دیگر</button>
+        </div>
+      </div>
+      <p v-if="pickup" class="mt-2 text-sm text-text-secondary">برای تحویل حضوری فقط نام و شماره تماس را وارد کنید.</p>
+      <p v-else-if="selectedAddress" class="mt-2 text-xs text-text-secondary">نشانی ذخیره‌شده انتخاب شده است. پس از تغییر اطلاعات، «ثبت» را بزنید.</p>
+      <form class="mt-5 space-y-4" novalidate @submit.prevent="emit('save')">
       <div class="grid gap-4 sm:grid-cols-2">
         <UiInput v-model="draft.name" :error="errors.name" label="عنوان نشانی *" placeholder="خانه، محل کار" />
         <UiInput v-model="draft.first_name" :error="errors.first_name" label="نام تحویل‌گیرنده *" placeholder="نام" />
@@ -66,6 +84,7 @@ function changeProvince(code: number | undefined) {
         <div class="sm:max-w-xs"><UiInput v-model="draft.postal_code" :error="errors.postal_code" label="کد پستی *" inputmode="numeric" placeholder="کد پستی ۱۰ رقمی" /></div>
         <button type="submit" :disabled="pending" class="rounded-xl bg-secondary px-5 py-3 text-sm font-semibold text-secondary-foreground hover:bg-secondary-hover disabled:opacity-50">{{ pending ? 'در حال ذخیره…' : selectedAddress ? 'ثبت' : 'ذخیره نشانی' }}</button>
       </template>
-    </form>
+      </form>
+    </template>
   </section>
 </template>

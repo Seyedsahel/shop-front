@@ -20,7 +20,7 @@ const displayedTotal = computed(() => props.preview?.total_amount ?? props.cartT
     <p v-if="!preview" class="mt-2 text-xs text-text-muted">مبلغ نهایی پس از پیش‌نمایش سفارش مشخص می‌شود.</p>
     <CartCouponInput v-model="coupon" class="mt-5" :disabled="couponDisabled" :apply-disabled="disabled" :pending="pending" :applied="couponApplied" @apply="$emit('applyCoupon')" />
     <p v-if="coupon.trim() && !couponApplied" class="mt-2 text-xs text-warning">این کد هنوز در مبلغ بالا اعمال نشده است.</p>
-    <button type="button" class="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50" :disabled="disabled || pending || !preview" @click="$emit('continue')">{{ pending ? 'در حال بررسی سفارش…' : 'ثبت سفارش' }}<UIcon name="solar:arrow-left-outline" class="size-5" /></button>
+    <button type="button" class="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50" :disabled="pending" @click="$emit('continue')">{{ pending ? 'در حال بررسی سفارش…' : 'ثبت سفارش' }}<UIcon name="solar:arrow-left-outline" class="size-5" /></button>
     <NuxtLink to="/cart" class="mt-3 block text-center text-xs text-text-secondary hover:text-primary">بازگشت به سبد خرید</NuxtLink>
   </aside>
 </template>

@@ -9,6 +9,7 @@ const toast = useAppToast()
 const selectedAddressId = ref<string | null>(null)
 const selectedMethodId = ref('')
 const addressSheetOpen = ref(false)
+const addressFormOpen = ref(false)
 const editingId = ref<string | null>(null)
 const draft = ref<AddressInput>(emptyDraft())
 const errors = ref<Partial<Record<keyof AddressInput, string>>>({})
@@ -55,6 +56,7 @@ function addAddress() {
   draft.value = emptyDraft()
   errors.value = {}
   addressSheetOpen.value = false
+  addressFormOpen.value = true
 }
 
 function selectAddress(address: Address) {
@@ -67,6 +69,7 @@ function selectAddress(address: Address) {
   }
   errors.value = {}
   addressSheetOpen.value = false
+  addressFormOpen.value = true
 }
 
 async function saveAddress() {
@@ -163,6 +166,14 @@ async function applyCoupon(): Promise<boolean> {
 
 async function submitOrder() {
   if (checkout.submitting || cart.busy || cart.stale) return
+  if (!selectedMethod.value) {
+    toast.error('ابتدا شیوه تحویل را انتخاب کنید.')
+    return
+  }
+  if (!selectedAddress.value) {
+    toast.error('ابتدا یک نشانی تحویل را انتخاب یا ثبت کنید.')
+    return
+  }
   if (!currentInput.value) {
     toast.error(pickup.value ? 'نام و شماره تماس معتبر وارد کنید.' : 'نشانی را ذخیره و روش تحویل را انتخاب کنید.')
     return
@@ -193,10 +204,6 @@ onMounted(() => {
 
 watch(() => addresses.items.map(item => item.id), ids => {
   if (selectedAddressId.value && !ids.includes(selectedAddressId.value)) addAddress()
-  else if (!selectedAddressId.value && !editingId.value && ids.length && !draft.value.name && !draft.value.address) {
-    const first = addresses.items[0]
-    if (first) selectAddress(first)
-  }
 })
 watch(() => checkout.methods.map(item => item.id), ids => {
   if (!ids.includes(selectedMethodId.value)) selectedMethodId.value = ''
@@ -228,7 +235,7 @@ watch(() => [cart.loaded, cart.busy, cart.itemCount, cart.error] as const, ([loa
           <main class="space-y-6 lg:col-span-8">
             <CheckoutDeliveryMethods v-model="selectedMethodId" :methods="checkout.methods" :loading="checkout.loadingMethods" />
             <p v-if="addresses.error || locations.error" role="alert" class="rounded-xl border border-danger-border p-4 text-sm text-danger">{{ addresses.error || locations.error }} <button type="button" class="underline" @click="loadCheckout">تلاش دوباره</button></p>
-            <CheckoutAddressForm v-model="draft" :pickup="pickup" :provinces="locations.provinces" :errors="errors" :pending="addresses.mutating || !locations.loaded" :selected-address="selectedAddress" @choose-address="addressSheetOpen = true" @new-address="addAddress" @save="saveAddress" />
+            <CheckoutAddressForm v-model="draft" :pickup="pickup" :open="addressFormOpen" :provinces="locations.provinces" :errors="errors" :pending="addresses.mutating || !locations.loaded" :selected-address="selectedAddress" @choose-address="addressSheetOpen = true" @change-address="addressSheetOpen = true" @new-address="addAddress" @save="saveAddress" />
             <p v-if="selectedMethod && !pickup && selectedAddress && !addressReady" class="rounded-xl border border-warning-border bg-warning-subtle p-4 text-sm text-text-secondary">اطلاعات این نشانی برای روش ارسال انتخاب‌شده کامل نیست. آن را تکمیل و ذخیره کنید.</p>
             <p v-if="checkout.previewing" role="status" class="text-sm text-text-secondary">در حال محاسبه هزینه سفارش…</p>
             <p v-if="previewError" role="alert" class="rounded-xl border border-danger-border p-4 text-sm text-danger">{{ previewError }} <button type="button" class="underline" @click="refreshPreview">محاسبه دوباره</button></p>
