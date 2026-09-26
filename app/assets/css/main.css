@@ -39,3 +39,22 @@
     outline: none;
   }
 }
+
+/* Keep Vue Sonner's dismiss control within the toast with a comfortable tap target. */
+[data-sonner-toaster] [data-sonner-toast].app-toast[data-styled='true'] {
+  padding-left: 48px;
+}
+
+[data-sonner-toaster] [data-sonner-toast].app-toast[data-styled='true'] [data-close-button] {
+  
+  inset:10px auto auto 10px;
+  width: 28px;
+  height: 28px;
+  transform: none;
+  fill: var(--color-danger);
+}
+
+[data-sonner-toaster] [data-sonner-toast].app-toast[data-styled='true'] [data-close-button] svg {
+  width: 16px;
+  height: 16px;
+}

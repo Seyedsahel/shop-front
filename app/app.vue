@@ -7,7 +7,15 @@ import { Toaster } from 'vue-sonner'
     <NuxtLayout>
       <NuxtPage />
     </NuxtLayout>
-    <Toaster rich-colors position="top-center" dir="rtl" />
+    <Toaster
+      rich-colors
+      position="top-center"
+      dir="rtl"
+      offset="48px"
+      close-button
+      :swipe-directions="['top', 'left', 'right']"
+      :toast-options="{ class: 'app-toast font-sans' }"
+    />
     <UiConfirmDialog />
   </div>
 </template>
