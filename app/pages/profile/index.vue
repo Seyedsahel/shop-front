@@ -7,6 +7,8 @@ const locations = useShippingLocationsStore()
 const orders = useOrderStore()
 const toast = useAppToast()
 const loggingOut = ref(false)
+const addressesOpen = ref(false)
+const ordersOpen = ref(false)
 const editingId = ref<string | null>(null)
 const formOpen = ref(false)
 const draft = ref<AddressInput>(emptyDraft())
@@ -118,27 +120,37 @@ onMounted(() => {
       <NuxtLink to="/wishlist" class="flex items-center justify-between rounded-2xl border border-border bg-card p-5 text-text-primary hover:border-primary"><span class="flex items-center gap-3 font-semibold"><UIcon name="solar:heart-outline" class="size-6 text-primary" />علاقه‌مندی‌ها</span><UIcon name="solar:arrow-left-outline" class="size-5" /></NuxtLink>
     </nav>
 
-    <section aria-labelledby="addresses-title" class="space-y-5">
-      <div class="flex flex-wrap items-center justify-between gap-3"><div><h2 id="addresses-title" class="text-xl font-bold text-text-primary">نشانی‌های من</h2><p class="mt-1 text-sm text-text-secondary">نشانی‌های تحویل خود را مدیریت کنید.</p></div><button type="button" :disabled="addresses.loading || locations.loading || !locations.loaded" class="rounded-xl bg-secondary px-4 py-3 text-sm font-semibold text-secondary-foreground hover:bg-secondary-hover disabled:opacity-50" @click="addAddress">افزودن نشانی</button></div>
-      <p v-if="addresses.error" role="alert" class="rounded-xl border border-danger-border p-4 text-sm text-danger">{{ addresses.error }} <button type="button" class="underline" :disabled="addresses.loading" @click="addresses.fetchAll().catch(() => {})">تلاش دوباره</button></p>
-      <p v-if="locations.error" role="alert" class="rounded-xl border border-danger-border p-4 text-sm text-danger">{{ locations.error }} <button type="button" class="underline" :disabled="locations.loading" @click="locations.fetchAll().catch(() => {})">تلاش دوباره</button></p>
-      <p v-if="addresses.loading && !addresses.loaded" role="status" class="p-8 text-center text-text-secondary">در حال دریافت نشانی‌ها…</p>
-      <ProfileAddressList v-else-if="addresses.items.length" :addresses="addresses.items" :provinces="locations.provinces" :disabled="addresses.mutating || addresses.loading || !locations.loaded" @edit="editAddress" @remove="removeAddress" />
-      <div v-else-if="addresses.loaded && !addresses.error" class="rounded-2xl border border-dashed border-border-strong bg-card p-8 text-center text-text-secondary">هنوز نشانی ثبت نکرده‌اید.</div>
-      <ProfileAddressForm v-if="formOpen" v-model="draft" :provinces="locations.provinces" :errors="errors" :pending="addresses.mutating || addresses.loading" :editing="!!editingId" @submit="saveAddress" @cancel="formOpen = false" />
+    <section aria-labelledby="addresses-title">
+      <button id="addresses-toggle" type="button" aria-controls="addresses-panel" :aria-expanded="addressesOpen" class="flex w-full items-center justify-between rounded-2xl border border-border bg-card p-5 text-text-primary hover:border-primary" @click="addressesOpen = !addressesOpen">
+        <span class="flex items-center gap-3 font-semibold"><UIcon name="solar:map-point-outline" class="size-6 text-primary" /><h2 id="addresses-title">نشانی‌های من</h2></span><UIcon name="solar:arrow-left-outline" class="size-5 transition-transform" :class="addressesOpen ? '-rotate-90' : ''" />
+      </button>
+      <div id="addresses-panel" v-show="addressesOpen" role="region" aria-labelledby="addresses-toggle" class="mt-5 space-y-5">
+        <div class="flex flex-wrap items-center justify-between gap-3"><p class="text-sm text-text-secondary">نشانی‌های تحویل خود را مدیریت کنید.</p><button type="button" :disabled="addresses.loading || locations.loading || !locations.loaded" class="rounded-xl bg-secondary px-4 py-3 text-sm font-semibold text-secondary-foreground hover:bg-secondary-hover disabled:opacity-50" @click="addAddress">افزودن نشانی</button></div>
+        <p v-if="addresses.error" role="alert" class="rounded-xl border border-danger-border p-4 text-sm text-danger">{{ addresses.error }} <button type="button" class="underline" :disabled="addresses.loading" @click="addresses.fetchAll().catch(() => {})">تلاش دوباره</button></p>
+        <p v-if="locations.error" role="alert" class="rounded-xl border border-danger-border p-4 text-sm text-danger">{{ locations.error }} <button type="button" class="underline" :disabled="locations.loading" @click="locations.fetchAll().catch(() => {})">تلاش دوباره</button></p>
+        <p v-if="addresses.loading && !addresses.loaded" role="status" class="p-8 text-center text-text-secondary">در حال دریافت نشانی‌ها…</p>
+        <ProfileAddressList v-else-if="addresses.items.length" :addresses="addresses.items" :provinces="locations.provinces" :disabled="addresses.mutating || addresses.loading || !locations.loaded" @edit="editAddress" @remove="removeAddress" />
+        <div v-else-if="addresses.loaded && !addresses.error" class="rounded-2xl border border-dashed border-border-strong bg-card p-8 text-center text-text-secondary">هنوز نشانی ثبت نکرده‌اید.</div>
+        <ProfileAddressForm v-if="formOpen" v-model="draft" :provinces="locations.provinces" :errors="errors" :pending="addresses.mutating || addresses.loading" :editing="!!editingId" @submit="saveAddress" @cancel="formOpen = false" />
+      </div>
     </section>
 
-    <section aria-labelledby="orders-title" class="mt-10 space-y-5">
-      <div><h2 id="orders-title" class="text-xl font-bold text-text-primary">سفارش‌های من</h2><p class="mt-1 text-sm text-text-secondary">سفارش‌های ثبت‌شده و وضعیت آن‌ها را ببینید.</p></div>
-      <p v-if="orders.error" role="alert" class="rounded-xl border border-danger-border p-4 text-sm text-danger">{{ orders.error }} <button type="button" class="underline" :disabled="orders.loading" @click="orders.fetchAll(orders.page).catch(() => {})">تلاش دوباره</button></p>
-      <p v-if="orders.loading && !orders.loaded" role="status" class="p-8 text-center text-text-secondary">در حال دریافت سفارش‌ها…</p>
-      <ProfileOrderList v-else-if="orders.items.length" :orders="orders.items" />
-      <div v-else-if="orders.loaded && !orders.error" class="rounded-2xl border border-dashed border-border-strong bg-card p-8 text-center text-text-secondary">هنوز سفارشی ثبت نکرده‌اید.</div>
-      <nav v-if="orders.total > orders.limit" aria-label="صفحه‌های سفارش" class="flex items-center justify-center gap-4 text-sm">
-        <button type="button" class="rounded-xl border border-border px-4 py-2 text-text-primary disabled:opacity-50" :disabled="orders.loading || orders.page <= 1" @click="orders.fetchAll(orders.page - 1).catch(() => {})">صفحه قبل</button>
-        <span class="text-text-secondary">صفحه {{ orders.page }} از {{ Math.ceil(orders.total / orders.limit) }}</span>
-        <button type="button" class="rounded-xl border border-border px-4 py-2 text-text-primary disabled:opacity-50" :disabled="orders.loading || orders.page >= Math.ceil(orders.total / orders.limit)" @click="orders.fetchAll(orders.page + 1).catch(() => {})">صفحه بعد</button>
-      </nav>
+    <section aria-labelledby="orders-title" class="mt-5">
+      <button id="orders-toggle" type="button" aria-controls="orders-panel" :aria-expanded="ordersOpen" class="flex w-full items-center justify-between rounded-2xl border border-border bg-card p-5 text-text-primary hover:border-primary" @click="ordersOpen = !ordersOpen">
+        <span class="flex items-center gap-3 font-semibold"><UIcon name="solar:box-outline" class="size-6 text-primary" /><h2 id="orders-title">سفارش‌های من</h2></span><UIcon name="solar:arrow-left-outline" class="size-5 transition-transform" :class="ordersOpen ? '-rotate-90' : ''" />
+      </button>
+      <div id="orders-panel" v-show="ordersOpen" role="region" aria-labelledby="orders-toggle" class="mt-5 space-y-5">
+        <p class="text-sm text-text-secondary">سفارش‌های ثبت‌شده و وضعیت آن‌ها را ببینید.</p>
+        <p v-if="orders.error" role="alert" class="rounded-xl border border-danger-border p-4 text-sm text-danger">{{ orders.error }} <button type="button" class="underline" :disabled="orders.loading" @click="orders.fetchAll(orders.page).catch(() => {})">تلاش دوباره</button></p>
+        <p v-if="orders.loading && !orders.loaded" role="status" class="p-8 text-center text-text-secondary">در حال دریافت سفارش‌ها…</p>
+        <ProfileOrderList v-else-if="orders.items.length" :orders="orders.items" />
+        <div v-else-if="orders.loaded && !orders.error" class="rounded-2xl border border-dashed border-border-strong bg-card p-8 text-center text-text-secondary">هنوز سفارشی ثبت نکرده‌اید.</div>
+        <nav v-if="orders.total > orders.limit" aria-label="صفحه‌های سفارش" class="flex items-center justify-center gap-4 text-sm">
+          <button type="button" class="rounded-xl border border-border px-4 py-2 text-text-primary disabled:opacity-50" :disabled="orders.loading || orders.page <= 1" @click="orders.fetchAll(orders.page - 1).catch(() => {})">صفحه قبل</button>
+          <span class="text-text-secondary">صفحه {{ orders.page }} از {{ Math.ceil(orders.total / orders.limit) }}</span>
+          <button type="button" class="rounded-xl border border-border px-4 py-2 text-text-primary disabled:opacity-50" :disabled="orders.loading || orders.page >= Math.ceil(orders.total / orders.limit)" @click="orders.fetchAll(orders.page + 1).catch(() => {})">صفحه بعد</button>
+        </nav>
+      </div>
     </section>
   </div>
 </template>
