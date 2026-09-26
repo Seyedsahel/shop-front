@@ -14,7 +14,7 @@ export const useBannerStore = defineStore('banner', () => {
     pendingRequest = (async () => {
       isLoading.value = true
       try {
-        const res = await useApi().get<BannersResponse>('/engagement/banners')
+        const res = await useApi().get<BannersResponse>('/banners')
         homeHero.value = res.homeHero
         homeTop.value = res.homeTop
         homeMiddle.value = res.homeMiddle

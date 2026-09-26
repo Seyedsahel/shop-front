@@ -16,7 +16,7 @@ export const useStoryStore = defineStore('story', () => {
 
     isLoading.value = true
     error.value = null
-    listRequest = useApi().get<StoriesResponse>('/engagement/stories')
+    listRequest = useApi().get<StoriesResponse>('/stories')
       .then((res) => {
         items.value = res.items
         fetched.value = true
@@ -41,7 +41,7 @@ export const useStoryStore = defineStore('story', () => {
     isDetailLoading.value = true
     error.value = null
     try {
-      const story = await useApi().get<StoryItem>(`/engagement/stories/${encodeURIComponent(id)}`)
+      const story = await useApi().get<StoryItem>(`/stories/${encodeURIComponent(id)}`)
       const index = items.value.findIndex(item => item.id === story.id)
       if (index === -1) items.value.push(story)
       else items.value.splice(index, 1, story)

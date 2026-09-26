@@ -24,6 +24,4 @@ export default defineEventHandler(async (event): Promise<ProductListResponse> =>
     console.error('Backend product-list error:', e.data ?? e.message)
     throw e
   }
-
-
 })

@@ -19,7 +19,7 @@ export const useCommentStore = defineStore('comment', () => {
   async function fetchComments(targetType: CommentTargetType, targetId: string) {
     isLoading.value = true
     try {
-      const res = await useApi().get<CommentsResponse>(`/engagement/comments?targetType=${targetType}&targetId=${targetId}`)
+      const res = await useApi().get<CommentsResponse>(`/comments?targetType=${targetType}&targetId=${targetId}`)
       byTarget.value[keyFor(targetType, targetId)] = res.items
       const approvedIds = new Set(res.items.map(comment => comment.id))
       pendingByTarget.value[keyFor(targetType, targetId)] = (pendingByTarget.value[keyFor(targetType, targetId)] ?? [])
@@ -43,7 +43,7 @@ export const useCommentStore = defineStore('comment', () => {
 
     isSubmitting.value = true
     try {
-      const created = await useApi().post<CreatedCommentResponse>('/engagement/comments', {
+      const created = await useApi().post<CreatedCommentResponse>('/comments', {
         targetType, targetId, content: content.trim(), parentId,
       } satisfies SubmitCommentPayload)
       const key = keyFor(targetType, targetId)

@@ -5,7 +5,6 @@ export default defineEventHandler(async (event): Promise<CreatedCommentResponse>
     throw createError({ statusCode: 400, message: 'Invalid comment' })
   }
 
-
   return await backendFetch<CreatedCommentResponse>('/api/comments', {
     method: 'POST',
     authorization: 'user',

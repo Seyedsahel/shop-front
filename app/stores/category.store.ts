@@ -6,7 +6,7 @@ export const useCategoryStore = defineStore('category', () =>{
         if (items.value.length) return
         isLoading.value = true
         try {
-            const res = await useApi().get<CategoriesResponse>('/catalog/categories')
+            const res = await useApi().get<CategoriesResponse>('/categories')
             items.value = res.items
         } catch (e){
             useAppToast().error(e instanceof ApiError ? e.message : 'خطا در دریافت دسته بندی ها')

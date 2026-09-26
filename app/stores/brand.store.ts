@@ -7,7 +7,7 @@ export const useBrandStore = defineStore('brand', () => {
     if (fetched) return
     isLoading.value = true
     try {
-      const res = await useApi().get<BrandsResponse>('/catalog/brands')
+      const res = await useApi().get<BrandsResponse>('/brands')
       items.value = res.items
       fetched = true
     } catch (e) {

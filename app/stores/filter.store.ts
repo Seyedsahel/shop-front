@@ -14,7 +14,7 @@ export const useFilterStore = defineStore('filter', () => {
   async function fetchFilters(params: Pick<ProductFiltersRequest, 'categoryIds' | 'discountId' | 'limit'> = {}) {
     isLoading.value = true
     try {
-      const res = await useApi().post<FiltersResponse>('/catalog/filters', {
+      const res = await useApi().post<FiltersResponse>('/products/filters', {
         categoryIds: params.categoryIds,
         discountId: params.discountId ?? discountId.value ?? undefined,
         limit: params.limit ?? 20,

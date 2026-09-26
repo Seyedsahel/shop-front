@@ -12,7 +12,7 @@ export const useProductDetailStore = defineStore('productDetail', () => {
     const existing = pending.get(key)
     if (existing) return existing
     const api = useApi()
-    const request = api.get<ProductDetail>(`/catalog/product-detail/${encodeURIComponent(key)}`)
+    const request = api.get<ProductDetail>(`/products/${encodeURIComponent(key)}/detail`)
       .then(product => { bySlug.value[key] = product; return product })
       .catch(cause => { throw withApiErrorContext(cause, 'productDetail') })
       .finally(() => { pending.delete(key) })

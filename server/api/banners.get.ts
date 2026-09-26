@@ -42,7 +42,6 @@ async function fetchPlacement(placement: BannerPlacement) {
 }
 
 export default defineEventHandler(async (): Promise<BannersResponse> => {
-
   const [homeHero, homeTop, homeMiddle] = await Promise.all([
     fetchPlacement('home_hero'),
     fetchPlacement('home_top'),

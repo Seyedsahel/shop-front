@@ -19,7 +19,7 @@ export const useOfferStore = defineStore('offer', () => {
         return
       }
 
-      const res = await useApi().post<ProductListResponse>('/catalog/product-list', {
+      const res = await useApi().post<ProductListResponse>('/products/list', {
         discountId: homepageDiscount.id,
         page: 1,
         limit: 20,

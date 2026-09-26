@@ -1,7 +1,6 @@
 export default defineEventHandler(async (event) => {
   const body = await readBody<VerifyOtpPayload>(event)
 
-
   const res = await backendFetch<BackendOtpVerifyResponse>('api/auth/otp/verify', {
     method: 'POST',
     // Preserve the guest bearer credential so the backend can merge its cart

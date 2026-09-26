@@ -64,7 +64,7 @@ export const useAuthStore = defineStore('auth', () => {
   async function requestOtp(value: string) {
     isLoading.value = true
     try {
-      await useApi().post<RequestOtpResponse>('/auth/request-otp', { phone: value } satisfies RequestOtpPayload)
+      await useApi().post<RequestOtpResponse>('/auth/otp/request', { phone: value } satisfies RequestOtpPayload)
       phone.value = value
       step.value = 'otp'
       otpRequestedAt.value = new Date(Date.now() + 60_000).toISOString()
@@ -85,7 +85,7 @@ export const useAuthStore = defineStore('auth', () => {
     isLoading.value = true
     try {
       await withSessionLock(async () => {
-        await api.post<VerifyOtpResponse>('/auth/verify-otp', { phone: phone.value, code } satisfies VerifyOtpPayload)
+        await api.post<VerifyOtpResponse>('/auth/otp/verify', { phone: phone.value, code } satisfies VerifyOtpPayload)
         identity.value = null
         hasGuestSession.value = false
         sessionRevision.value++

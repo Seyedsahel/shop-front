@@ -36,7 +36,7 @@ export const useProductListStore = defineStore('productList', () => {
       const filterStore = useFilterStore()
       const sortOption = sortOptions.find(o => o.id === sort.value)
 
-      const res = await useApi().post<ProductListResponse>(discountedOnly.value ? '/discounts/products' : '/catalog/product-list', {
+      const res = await useApi().post<ProductListResponse>(discountedOnly.value ? '/discounts/products' : '/products/list', {
         ...filterStore.toProductListRequest(),
         discountId: discountId.value ?? undefined,
         discountedOnly: discountedOnly.value || undefined,
@@ -144,7 +144,7 @@ export const useProductListStore = defineStore('productList', () => {
     isSearchLoading.value = true
 
     try {
-      const res = await useApi().post<ProductListResponse>('/catalog/product-list', {
+      const res = await useApi().post<ProductListResponse>('/products/list', {
         search: normalizedSearch,
         page: params.page ?? 1,
         limit: params.limit ?? searchLimit.value,
@@ -185,7 +185,7 @@ export const useProductListStore = defineStore('productList', () => {
   async function fetchPreview(categoryId: string) {
     previewLoading.value[categoryId] = true
     try {
-      const res = await useApi().post<ProductListResponse>('/catalog/product-list', {
+      const res = await useApi().post<ProductListResponse>('/products/list', {
         categoryIds: [categoryId],
         page: 1,
         limit: 12,
