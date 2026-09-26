@@ -10,7 +10,7 @@ export default defineEventHandler(async (event): Promise<SessionResponse> => {
     }
   }
 
-  const response = await backendFetch<BackendGuestResponse>('/api/auth/guest', {
+  const response = await backendFetch<BackendGuestResponse>('/auth/guest', {
     method: 'POST', authorization: 'none', retry: 0,
   }, event)
   if (!response.token?.trim()) throw createError({ statusCode: 502, message: 'Invalid guest session response' })

@@ -24,7 +24,7 @@ export default defineEventHandler(async (event): Promise<CommentsResponse> => {
     throw createError({ statusCode: 400, message: 'Invalid comment target' })
   }
 
-  const comments = await backendFetch<BackendComment[]>('/api/comments', {
+  const comments = await backendFetch<BackendComment[]>('/comments', {
     query: { comment_type: targetType, reference_id: targetId },
     authorization: 'none',
   }, event)

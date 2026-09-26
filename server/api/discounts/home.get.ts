@@ -1,5 +1,5 @@
 export default defineEventHandler(async (): Promise<HomepageDiscount | null> => {
-  const raw = await backendFetch<any>('/api/discounts/home')
+  const raw = await backendFetch<any>('/discounts/home')
 
   if (!raw) return null
 

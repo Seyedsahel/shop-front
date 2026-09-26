@@ -26,7 +26,7 @@ export const backendFetch = async <T = unknown>(
   if (credential) headers.set('Authorization', `Bearer ${credential.token}`)
 
   try {
-    return await $fetch<T>(url, { baseURL: config.backendUrl, ...options, headers }) as T
+    return await $fetch<T>(url, { baseURL: `${config.backendUrl.replace(/\/$/, '')}/tbt`, ...options, headers }) as T
   } catch (error: any) {
     const status = error.response?.status ?? error.statusCode ?? error.status
     console.log('Backend request failed:', {

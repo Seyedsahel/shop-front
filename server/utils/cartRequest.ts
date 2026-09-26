@@ -17,5 +17,5 @@ export async function readCartItemPayload(event: H3Event): Promise<CartItemPaylo
 export function cartItemPath(event: H3Event) {
   const id = getRouterParam(event, 'itemId')
   if (!id) throw createError({ statusCode: 400, message: 'Cart item ID required' })
-  return `/api/cart/items/${encodeURIComponent(id)}`
+  return `/cart/items/${encodeURIComponent(id)}`
 }

@@ -34,7 +34,7 @@ function mapBanners(banners: BackendBanner[]) {
 }
 
 async function fetchPlacement(placement: BannerPlacement) {
-  const banners = await backendFetch<BackendBanner[]>('/api/banners', {
+  const banners = await backendFetch<BackendBanner[]>('/banners', {
     query: { placement },
     authorization: 'none',
   })

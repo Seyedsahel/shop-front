@@ -2,7 +2,7 @@ export default defineEventHandler(async (event) => {
   const authToken = getCookie(event, 'auth_token')
 
   if (authToken) {
-    const response = await backendFetch<BackendLogoutResponse>('/api/auth/logout', {
+    const response = await backendFetch<BackendLogoutResponse>('/auth/logout', {
       method: 'POST',
       authorization: 'user',
       retry: 0,

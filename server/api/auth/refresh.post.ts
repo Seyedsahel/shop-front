@@ -1,5 +1,5 @@
 export default defineEventHandler(async (event) => {
-  const response = await backendFetch<BackendRefreshResponse>('/api/auth/refresh', {
+  const response = await backendFetch<BackendRefreshResponse>('/auth/refresh', {
     method: 'POST',
     authorization: 'user',
     retry: 0,

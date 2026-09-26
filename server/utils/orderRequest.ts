@@ -12,5 +12,5 @@ export function orderPath(event: H3Event) {
   if (!id || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
     throw createError({ statusCode: 400, message: 'شناسه سفارش معتبر نیست.' })
   }
-  return `/api/orders/${encodeURIComponent(id)}`
+  return `/orders/${encodeURIComponent(id)}`
 }

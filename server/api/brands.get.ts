@@ -1,5 +1,5 @@
 export default defineEventHandler(async (event): Promise<BrandsResponse> => {
-  const raw = await backendFetch<any[]>('/api/brands')
+  const raw = await backendFetch<any[]>('/brands')
 
   return {
     items: raw.map(brand => ({

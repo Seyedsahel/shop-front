@@ -7,7 +7,7 @@ export async function readSession(event: H3Event): Promise<SessionResponse> {
   if (!credential) return { identity: null, isAuthenticated: false, hasGuestSession: false }
 
   try {
-    const validation = await backendFetch<BackendAuthValidateResponse>('/api/auth/validate', {}, event)
+    const validation = await backendFetch<BackendAuthValidateResponse>('/auth/validate', {}, event)
     const expectedRole = credential.kind === 'guest' ? 'guest' : 'user'
     if (!validation.valid || validation.role !== expectedRole) {
       clearCredential(event, credential.kind)

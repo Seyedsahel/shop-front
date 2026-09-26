@@ -6,5 +6,5 @@ export default defineEventHandler((event): Promise<OrderListResponse> => {
   if (!Number.isSafeInteger(page) || page < 1) {
     throw createError({ statusCode: 400, message: 'شماره صفحه معتبر نیست.' })
   }
-  return backendFetch<OrderListResponse>(`/api/orders?page=${page}&limit=20`, { authorization: 'user' }, event)
+  return backendFetch<OrderListResponse>(`/orders?page=${page}&limit=20`, { authorization: 'user' }, event)
 })

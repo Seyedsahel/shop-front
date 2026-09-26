@@ -25,5 +25,5 @@ export async function readWishlistItemPayload(event: H3Event): Promise<WishlistI
 export function wishlistItemPath(event: H3Event) {
   const id = getRouterParam(event, 'itemId')
   if (!id) throw createError({ statusCode: 400, message: 'Wishlist item ID required' })
-  return `/api/wishlist/items/${encodeURIComponent(id)}`
+  return `/wishlist/items/${encodeURIComponent(id)}`
 }
