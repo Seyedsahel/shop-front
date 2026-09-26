@@ -8,6 +8,7 @@ export const useAuthStore = defineStore('auth', () => {
   const otpRequestedAt = ref<string | null>(null)
   const returnTo = ref<string | null>(null)
   const identity = ref<string | null>(null)
+  const sessionScope = ref<string | null>(null)
   const hasGuestSession = ref(false)
   const sessionRevision = ref(0)
   let sessionQueue: Promise<unknown> = Promise.resolve()
@@ -26,6 +27,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   function applySession(session: SessionResponse) {
     identity.value = session.identity
+    sessionScope.value = session.scope ?? session.identity
     isAuthenticated.value = session.isAuthenticated
     hasGuestSession.value = session.hasGuestSession
     user.value = session.user ?? null
@@ -35,9 +37,9 @@ export const useAuthStore = defineStore('auth', () => {
 
   function handleSessionError(code?: string) {
     if (code === 'AUTH_SESSION_EXPIRED') {
-      applySession({ identity: null, isAuthenticated: false, hasGuestSession: false })
+      applySession({ identity: null, scope: null, isAuthenticated: false, hasGuestSession: false })
     } else if (code === 'GUEST_SESSION_EXPIRED' && !isAuthenticated.value) {
-      applySession({ identity: null, isAuthenticated: false, hasGuestSession: false })
+      applySession({ identity: null, scope: null, isAuthenticated: false, hasGuestSession: false })
     }
   }
 
@@ -87,6 +89,7 @@ export const useAuthStore = defineStore('auth', () => {
       await withSessionLock(async () => {
         await api.post<VerifyOtpResponse>('/auth/otp/verify', { phone: phone.value, code } satisfies VerifyOtpPayload)
         identity.value = null
+        sessionScope.value = null
         hasGuestSession.value = false
         sessionRevision.value++
         const session = await api.get<SessionResponse>('/auth/me')
@@ -130,7 +133,7 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       await withSessionLock(async () => {
         await api.post('/auth/logout')
-        applySession({ identity: null, isAuthenticated: false, hasGuestSession: false })
+        applySession({ identity: null, scope: null, isAuthenticated: false, hasGuestSession: false })
         step.value = 'phone'
         phone.value = ''
         otpRequestedAt.value = null
@@ -159,5 +162,5 @@ export const useAuthStore = defineStore('auth', () => {
     return target
   }
 
-  return { identity, withShoppingSession, hasGuestSession, sessionRevision, ensureShoppingSession, handleSessionError, step, phone, isLoading, isAuthenticated, user, sessionChecked, otpRequestedAt, requestOtp, verifyOtp, resendOtp, fetchSession, refreshSession, logout, goBackToPhone, requireAuth, consumeReturnTo }
+  return { identity, sessionScope, withShoppingSession, hasGuestSession, sessionRevision, ensureShoppingSession, handleSessionError, step, phone, isLoading, isAuthenticated, user, sessionChecked, otpRequestedAt, requestOtp, verifyOtp, resendOtp, fetchSession, refreshSession, logout, goBackToPhone, requireAuth, consumeReturnTo }
 })

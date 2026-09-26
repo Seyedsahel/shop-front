@@ -9,7 +9,7 @@ export const useAddressStore = defineStore('addresses', () => {
   let generation = 0
   let listRevision = 0
 
-  watch(() => auth.identity, () => {
+  watch(() => auth.sessionScope ?? auth.identity, () => {
     generation++
     listRevision++
     items.value = []

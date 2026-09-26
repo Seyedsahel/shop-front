@@ -165,6 +165,15 @@ test('same identity validation keeps cart; ownership change clears and reloads i
   assert.equal(calls.filter(call => call[0] === 'get').length, 1)
 })
 
+test('token rotation within the same resource scope keeps cart state', async () => {
+  const { store, auth } = setup('token-before-refresh')
+  auth.sessionScope = 'user-scope'
+  await store.fetchCart()
+  auth.identity = 'token-after-refresh'
+  assert.equal(store.itemCount, 1)
+  assert.equal(store.loaded, true)
+})
+
 test('cart lines retain the endpoint-supplied presentation fields', async () => {
   const { store, respond } = setup()
   respond(fixture())

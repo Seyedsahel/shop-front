@@ -50,7 +50,10 @@ export interface BackendGuestResponse {
 }
 
 export interface SessionResponse {
+  // Token-derived and allowed to change during a refresh.
   identity: string | null
+  // Stable for an authenticated user; unique to a guest credential.
+  scope: string | null
   hasGuestSession: boolean
   isAuthenticated: boolean
   user?: User

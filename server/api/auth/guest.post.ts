@@ -15,5 +15,6 @@ export default defineEventHandler(async (event): Promise<SessionResponse> => {
   }, event)
   if (!response.token?.trim()) throw createError({ statusCode: 502, message: 'Invalid guest session response' })
   setCookie(event, 'guest_token', response.token, sessionCookieOptions)
-  return { identity: sessionIdentity(response.token), isAuthenticated: false, hasGuestSession: true }
+  const identity = sessionIdentity(response.token)
+  return { identity, scope: identity, isAuthenticated: false, hasGuestSession: true }
 })

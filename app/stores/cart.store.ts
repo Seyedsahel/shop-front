@@ -21,7 +21,7 @@ export const useCartStore = defineStore('cart', () => {
     return items.value.filter(item => item.product_id === productId)
   }
 
-  watch(() => auth.identity, () => {
+  watch(() => auth.sessionScope ?? auth.identity, () => {
     epoch++
     cart.value = null
     loaded.value = false
@@ -68,10 +68,11 @@ export const useCartStore = defineStore('cart', () => {
     if (stale.value) throw new ApiError('ابتدا سبد خرید را دوباره دریافت کنید.')
     isMutating.value = true
     error.value = ''
-    const startingIdentity = auth.identity
+    const startingScope = auth.sessionScope ?? auth.identity
     try {
       await auth.withShoppingSession(create, async session => {
-        if (!session.identity || (!create && session.identity !== startingIdentity)) {
+        const sessionScope = session.scope ?? session.identity
+        if (!sessionScope || (!create && sessionScope !== startingScope)) {
           throw new ApiError('نشست خرید تغییر کرده است؛ سبد را دوباره دریافت کنید.')
         }
         const activeEpoch = epoch

@@ -15,7 +15,7 @@ export const useOrderStore = defineStore('orders', () => {
   let listRequest = 0
   let detailRequest = 0
 
-  watch(() => auth.identity, () => {
+  watch(() => auth.sessionScope ?? auth.identity, () => {
     generation++
     listRequest++
     detailRequest++

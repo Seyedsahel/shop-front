@@ -67,7 +67,9 @@ test('guest creation persists a private 30-day cookie, then reuses it', async ()
     return { valid: true, role: 'guest', user_id: 'guest-id' }
   }
   const response = await request(guest)
-  assert.deepEqual(await response.json(), { identity: sessionIdentity('guest-jwt'), isAuthenticated: false, hasGuestSession: true })
+  assert.deepEqual(await response.json(), {
+    identity: sessionIdentity('guest-jwt'), scope: sessionIdentity('guest-jwt'), isAuthenticated: false, hasGuestSession: true,
+  })
   const cookie = response.headers.get('set-cookie')
   assert.match(cookie, /guest_token=guest-jwt/)
   assert.match(cookie, /Max-Age=2592000/)
@@ -115,6 +117,19 @@ test('login forwards the guest bearer token, replaces guest identity, refresh re
   const out = await request(logout, 'auth_token=new-user; guest_token=guest')
   assert.match(out.headers.get('set-cookie'), /auth_token=; Max-Age=0/)
   assert.match(out.headers.get('set-cookie'), /guest_token=; Max-Age=0/)
+})
+
+test('token rotation retains the authenticated resource scope', async () => {
+  globalThis.$fetch = async (url, options) => {
+    assert.equal(url, '/auth/validate')
+    assert.match(options.headers.get('authorization'), /^Bearer /)
+    return { valid: true, role: 'user', user_id: 'user-id' }
+  }
+  const before = await (await request(me, 'auth_token=before-refresh')).json()
+  const after = await (await request(me, 'auth_token=after-refresh')).json()
+  assert.notEqual(before.identity, after.identity)
+  assert.equal(before.scope, sessionIdentity('user:user-id'))
+  assert.equal(after.scope, before.scope)
 })
 
 test('expired guest can be replaced; expired user cannot silently become guest', async () => {

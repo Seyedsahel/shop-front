@@ -17,7 +17,7 @@ export const useWishlistStore = defineStore('wishlist', () => {
     return items.value.find(item => item.product_id === productId && (item.variant_id || '') === (variantId || ''))
   }
 
-  watch(() => auth.identity, () => {
+  watch(() => auth.sessionScope ?? auth.identity, () => {
     epoch++
     wishlist.value = null
     loaded.value = false
@@ -64,10 +64,11 @@ export const useWishlistStore = defineStore('wishlist', () => {
     if (stale.value) throw new ApiError('ابتدا علاقه‌مندی‌ها را دوباره دریافت کنید.')
     isMutating.value = true
     error.value = ''
-    const startingIdentity = auth.identity
+    const startingScope = auth.sessionScope ?? auth.identity
     try {
       await auth.withShoppingSession(create, async session => {
-        if (!session.identity || (!create && session.identity !== startingIdentity)) {
+        const sessionScope = session.scope ?? session.identity
+        if (!sessionScope || (!create && sessionScope !== startingScope)) {
           throw new ApiError('نشست خرید تغییر کرده است؛ علاقه‌مندی‌ها را دوباره دریافت کنید.')
         }
         const activeEpoch = epoch
