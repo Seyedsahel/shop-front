@@ -3,10 +3,10 @@ import type { H3Event } from 'h3'
 
 export type AuthorizationMode = 'session' | 'user' | 'none'
 export type CredentialKind = 'user' | 'guest'
-
+// secure: process.env.NODE_ENV === 'production',
 export const sessionCookieOptions = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
+  secure: false,
   sameSite: 'lax' as const,
   path: '/',
   maxAge: 60 * 60 * 24 * 30,
