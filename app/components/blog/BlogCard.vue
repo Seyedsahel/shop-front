@@ -2,8 +2,7 @@
 const props = defineProps<{ post: BlogPost }>()
 
 const formattedDate = computed(() =>
-//   new Intl.DateTimeFormat('fa-IR', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(props.post.publishedAt))
-    props.post.publishedAt
+  new Intl.DateTimeFormat('fa-IR', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(props.post.publishedAt * 1000))
 )
 </script>
 
@@ -13,7 +12,7 @@ const formattedDate = computed(() =>
   >
     <NuxtLink :to="`/blog/${post.slug}`" class="block aspect-video bg-surface-hover">
       <img
-        :src="post.imageUrl"
+        :src="post.thumbnailUrl"
         :alt="post.title"
         class="size-full object-cover transition-transform duration-300 hover:scale-105"
       />
@@ -28,7 +27,7 @@ const formattedDate = computed(() =>
       </NuxtLink>
 
       <p class="mt-3 text-sm text-text-secondary line-clamp-3">
-        {{ post.excerpt }}
+        {{ post.summary }}
       </p>
 
       <NuxtLink
