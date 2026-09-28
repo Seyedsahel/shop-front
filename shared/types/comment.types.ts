@@ -1,4 +1,4 @@
-export type CommentTargetType = 'blog' | 'product'
+export type CommentTargetType = 'post' | 'product'
 
 export interface AppComment {
     id: string

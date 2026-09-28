@@ -1,7 +1,7 @@
 export default defineEventHandler(async (event): Promise<CreatedCommentResponse> => {
   const body = await readBody<SubmitCommentPayload>(event)
 
-  if ((body.targetType !== 'product' && body.targetType !== 'blog') || !body.targetId || !body.content?.trim()) {
+  if ((body.targetType !== 'product' && body.targetType !== 'post') || !body.targetId || !body.content?.trim()) {
     throw createError({ statusCode: 400, message: 'Invalid comment' })
   }
 

@@ -20,7 +20,7 @@ function mapComment(comment: BackendComment): AppComment {
 
 export default defineEventHandler(async (event): Promise<CommentsResponse> => {
   const { targetType, targetId } = getQuery(event)
-  if ((targetType !== 'product' && targetType !== 'blog') || typeof targetId !== 'string' || !targetId) {
+  if ((targetType !== 'product' && targetType !== 'post') || typeof targetId !== 'string' || !targetId) {
     throw createError({ statusCode: 400, message: 'Invalid comment target' })
   }
 
