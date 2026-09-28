@@ -102,12 +102,48 @@ export interface ProductDetailBrand {
   description: string
 }
 
-export interface ProductDescriptionBlock {
-  type: string
+export interface ProductDescriptionBlockBase {
   title: string
-  body: string
   sortOrder: number
 }
+
+export interface ProductTextDescriptionBlock extends ProductDescriptionBlockBase {
+  type: 'text'
+  body: string
+}
+
+export interface ProductImageDescriptionBlock extends ProductDescriptionBlockBase {
+  type: 'image'
+  imageUrl: string
+}
+
+export interface ProductQuoteDescriptionBlock extends ProductDescriptionBlockBase {
+  type: 'quote'
+  body: string
+}
+
+export interface ProductVideoDescriptionBlock extends ProductDescriptionBlockBase {
+  type: 'video'
+  body: string
+  videoUrl: string
+}
+
+export interface ProductDescriptionKeyValueItem {
+  title: string
+  body: string
+}
+
+export interface ProductFaqDescriptionBlock extends ProductDescriptionBlockBase {
+  type: 'faq'
+  items: ProductDescriptionKeyValueItem[]
+}
+
+export interface ProductTableDescriptionBlock extends ProductDescriptionBlockBase {
+  type: 'table'
+  items: ProductDescriptionKeyValueItem[]
+}
+
+export type ProductDescriptionBlock = ProductTextDescriptionBlock | ProductImageDescriptionBlock | ProductQuoteDescriptionBlock | ProductVideoDescriptionBlock | ProductFaqDescriptionBlock | ProductTableDescriptionBlock
 
 export interface ProductDetail {
   id: string
