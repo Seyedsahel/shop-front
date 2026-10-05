@@ -1,15 +1,18 @@
 <script setup lang="ts">
 const draft = defineModel<AddressInput>({ required: true })
+const saveToAccount = defineModel<boolean>('saveToAccount', { required: true })
 const props = defineProps<{
   pickup: boolean
+  requirements: ShippingAddressRequirements
   provinces: ShippingProvince[]
   errors: Partial<Record<keyof AddressInput, string>>
   pending?: boolean
   selectedAddress?: Address | null
   open?: boolean
 }>()
-const emit = defineEmits<{ chooseAddress: []; changeAddress: []; save: []; newAddress: [] }>()
+const emit = defineEmits<{ chooseAddress: []; changeAddress: []; submit: []; newAddress: [] }>()
 const fieldId = useId()
+const required = computed(() => ({ ...props.requirements, first_name: !!(props.requirements.first_name || props.requirements.recipient_name), last_name: !!(props.requirements.last_name || props.requirements.recipient_name) }))
 const cities = computed(() => props.provinces.find(item => item.code === draft.value.province_code)?.cities ?? [])
 const provinceItems = computed(() => props.provinces.map(item => ({ label: item.title.trim(), value: item.code })))
 const cityItems = computed(() => cities.value.map(item => ({ label: item.title.trim(), value: item.code })))
@@ -49,41 +52,40 @@ function changeProvince(code: number | undefined) {
     <template v-else>
       <div class="flex flex-wrap items-center justify-between gap-3">
         <h2 class="text-lg font-bold text-text-primary">{{ pickup ? 'اطلاعات تحویل‌گیرنده حضوری' : 'مشخصات تحویل‌گیرنده و نشانی' }}</h2>
-        <div v-if="!pickup" class="flex flex-wrap items-center gap-4 text-sm font-semibold text-primary">
-          <button type="button" @click="emit('newAddress')">افزودن نشانی جدید</button>
-          <button type="button" @click="emit('changeAddress')">انتخاب نشانی دیگر</button>
+        <div class="flex flex-wrap items-center gap-4 text-sm font-semibold text-primary">
+          <button type="button" @click="emit('newAddress')">{{ pickup ? 'اطلاعات تحویل‌گیرنده جدید' : 'افزودن نشانی جدید' }}</button>
+          <button type="button" @click="emit('changeAddress')">{{ pickup ? 'انتخاب اطلاعات ذخیره‌شده' : 'انتخاب از نشانی‌های ذخیره‌شده' }}</button>
         </div>
       </div>
-      <p v-if="pickup" class="mt-2 text-sm text-text-secondary">برای تحویل حضوری فقط نام و شماره تماس را وارد کنید.</p>
-      <p v-else-if="selectedAddress" class="mt-2 text-xs text-text-secondary">نشانی ذخیره‌شده انتخاب شده است. پس از تغییر اطلاعات، «ثبت» را بزنید.</p>
-      <form class="mt-5 space-y-4" novalidate @submit.prevent="emit('save')">
-      <div class="grid gap-4 sm:grid-cols-2">
-        <UiInput v-model="draft.name" :error="errors.name" label="عنوان نشانی *" placeholder="خانه، محل کار" />
-        <UiInput v-model="draft.first_name" :error="errors.first_name" label="نام تحویل‌گیرنده *" placeholder="نام" />
-        <UiInput v-model="draft.last_name" :error="errors.last_name" label="نام خانوادگی تحویل‌گیرنده *" placeholder="نام خانوادگی" />
-        <UiInput v-model="draft.phone" :error="errors.phone" label="شماره موبایل *" inputmode="tel" placeholder="۰۹۱۲۳۴۵۶۷۸۹" />
-      </div>
-      <div v-if="pickup">
-        <p v-if="!selectedAddress" class="mb-3 text-xs text-text-secondary">برای ثبت سفارش، ابتدا یک نشانی در حساب کاربری ذخیره کنید.</p>
-        <button type="submit" :disabled="pending || !selectedAddress" class="rounded-xl bg-secondary px-5 py-3 text-sm font-semibold text-secondary-foreground hover:bg-secondary-hover disabled:opacity-50">{{ pending ? 'در حال ذخیره…' : 'ذخیره اطلاعات تحویل‌گیرنده' }}</button>
-      </div>
-      <template v-if="!pickup">
-        <div class="grid gap-4 sm:grid-cols-2">
-          <div class="flex min-w-0 flex-col gap-2 text-sm text-text-secondary">
+      <p v-if="pickup" class="mt-2 text-sm text-text-secondary">برای تحویل حضوری اطلاعات خواسته‌شده را وارد کنید.</p>
+      <p v-else-if="selectedAddress" class="mt-2 text-xs text-text-secondary">اطلاعات نشانی انتخاب‌شده را بررسی و فیلدهای لازم را تکمیل کنید.</p>
+      <form class="mt-5 space-y-4" novalidate @submit.prevent="emit('submit')">
+        <div v-if="required.first_name || required.last_name || required.phone" class="grid gap-4 sm:grid-cols-2">
+          <UiInput v-if="required.first_name" v-model="draft.first_name" :error="errors.first_name" label="نام تحویل‌گیرنده *" placeholder="نام" />
+          <UiInput v-if="required.last_name" v-model="draft.last_name" :error="errors.last_name" label="نام خانوادگی تحویل‌گیرنده *" placeholder="نام خانوادگی" />
+          <UiInput v-if="required.phone" v-model="draft.phone" :error="errors.phone" label="شماره موبایل *" inputmode="tel" placeholder="۰۹۱۲۳۴۵۶۷۸۹" />
+        </div>
+        <div v-if="required.province_code || required.city_code" class="grid gap-4 sm:grid-cols-2">
+          <div v-if="required.province_code || required.city_code" class="flex min-w-0 flex-col gap-2 text-sm text-text-secondary">
             <span :id="`${fieldId}-province`" class="font-medium text-text-primary">استان *</span>
             <USelect :aria-labelledby="`${fieldId}-province`" :aria-invalid="!!errors.province_code" :model-value="draft.province_code || undefined" :items="provinceItems" placeholder="انتخاب استان" :content="{ collisionPadding: 12 }" :ui="selectUi" @update:model-value="changeProvince" />
             <span v-if="errors.province_code" class="text-xs text-danger">{{ errors.province_code }}</span>
           </div>
-          <div class="flex min-w-0 flex-col gap-2 text-sm text-text-secondary">
+          <div v-if="required.city_code" class="flex min-w-0 flex-col gap-2 text-sm text-text-secondary">
             <span :id="`${fieldId}-city`" class="font-medium text-text-primary">شهر *</span>
             <USelect :aria-labelledby="`${fieldId}-city`" :aria-invalid="!!errors.city_code" :model-value="draft.city_code || undefined" :items="cityItems" :placeholder="draft.province_code ? 'انتخاب شهر' : 'ابتدا استان را انتخاب کنید'" :disabled="!draft.province_code" :content="{ collisionPadding: 12 }" :ui="selectUi" @update:model-value="draft.city_code = $event ?? 0" />
             <span v-if="errors.city_code" class="text-xs text-danger">{{ errors.city_code }}</span>
           </div>
         </div>
-        <UiTextarea v-model="draft.address" :error="errors.address" label="نشانی دقیق *" :rows="3" placeholder="خیابان، کوچه، پلاک و واحد" />
-        <div class="sm:max-w-xs"><UiInput v-model="draft.postal_code" :error="errors.postal_code" label="کد پستی *" inputmode="numeric" placeholder="کد پستی ۱۰ رقمی" /></div>
-        <button type="submit" :disabled="pending" class="rounded-xl bg-secondary px-5 py-3 text-sm font-semibold text-secondary-foreground hover:bg-secondary-hover disabled:opacity-50">{{ pending ? 'در حال ذخیره…' : selectedAddress ? 'ثبت' : 'ذخیره نشانی' }}</button>
-      </template>
+        <UiTextarea v-if="required.address" v-model="draft.address" :error="errors.address" label="نشانی دقیق *" :rows="3" placeholder="خیابان، کوچه، پلاک و واحد" />
+        <div v-if="required.postal_code" class="sm:max-w-xs"><UiInput v-model="draft.postal_code" :error="errors.postal_code" label="کد پستی *" inputmode="numeric" placeholder="کد پستی ۱۰ رقمی" /></div>
+        <div class="flex flex-wrap items-center gap-4">
+          <button type="submit" :disabled="pending" class="rounded-xl bg-secondary px-5 py-3 text-sm font-semibold text-secondary-foreground hover:bg-secondary-hover disabled:opacity-50">{{ pending ? 'در حال بررسی…' : 'تأیید اطلاعات تحویل' }}</button>
+          <div v-if="!pickup" class="flex items-center gap-2">
+            <UiSwitch :id="`${fieldId}-save-switch`" v-model="saveToAccount" role="switch" :aria-checked="saveToAccount" :aria-labelledby="`${fieldId}-save`" :disabled="pending" />
+            <label :id="`${fieldId}-save`" :for="`${fieldId}-save-switch`" class="cursor-pointer text-sm text-text-secondary">ذخیره نشانی در حساب کاربری</label>
+          </div>
+        </div>
       </form>
     </template>
   </section>

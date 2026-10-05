@@ -32,3 +32,6 @@ export interface AddressInput {
   postal_code: string
   address: string
 }
+
+/** Address writes may contain only the fields required by the shipping method. */
+export type AddressWriteInput = Partial<AddressInput>

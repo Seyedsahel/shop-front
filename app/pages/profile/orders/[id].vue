@@ -46,5 +46,6 @@ watch(id, loadOrder, { immediate: true })
         </dl>
       </section>
     </template>
+    <PaymentOrderRetry v-if="orders.detailLoading || (order?.status === 'pending_payment' && order.total_amount > 0)" v-show="!orders.detailLoading" :key="id" :order-id="id" />
   </div>
 </template>

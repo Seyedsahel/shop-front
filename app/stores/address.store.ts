@@ -35,7 +35,7 @@ export const useAddressStore = defineStore('addresses', () => {
     }
   }
 
-  async function create(input: AddressInput) {
+  async function create(input: AddressWriteInput) {
     const current = generation
     mutating.value = true
     try {
@@ -49,7 +49,7 @@ export const useAddressStore = defineStore('addresses', () => {
     }
   }
 
-  async function update(id: string, input: AddressInput) {
+  async function update(id: string, input: AddressWriteInput) {
     const current = generation
     mutating.value = true
     try {

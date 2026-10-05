@@ -34,6 +34,7 @@ const orderPath = computed(() => `/profile/orders/${encodeURIComponent(props.ord
             <div v-if="failureHint && !confirmed" class="flex justify-between gap-4"><dt class="text-text-secondary">پیام اعلام‌شده در بازگشت درگاه</dt><dd class="break-all"><bdi>{{ failureHint }}</bdi></dd></div>
           </dl>
           <NuxtLink :to="orderId ? orderPath : '/profile'" class="mt-8 inline-flex min-h-12 items-center justify-center rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground">{{ authenticated && orderId ? 'مشاهده جزئیات سفارش' : 'ورود و مشاهده سفارش‌ها' }}</NuxtLink>
+          <NuxtLink v-if="order?.status === 'pending_payment'" :to="orderPath" class="mt-4 block text-sm font-semibold text-primary">ادامه پرداخت همین سفارش</NuxtLink>
           <NuxtLink v-if="cancelled" to="/checkout" class="mt-4 block text-sm font-semibold text-primary">شروع سفارش جدید</NuxtLink>
           <NuxtLink to="/" class="mt-4 block text-sm font-semibold text-primary">بازگشت به فروشگاه</NuxtLink>
         </div>

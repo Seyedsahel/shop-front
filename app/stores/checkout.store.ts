@@ -53,8 +53,11 @@ export const useCheckoutStore = defineStore('checkout', () => {
       if (!saved) return
       const parsed = JSON.parse(saved) as CheckoutAttempt
       if (typeof parsed.key !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(parsed.key)
-        || !parsed.input || [parsed.input.cart_id, parsed.input.address_id, parsed.input.shipping_method_id].some(id => typeof id !== 'string' || !id.trim())
+        || !isRecoverableCheckoutInput(parsed.input)
         || (parsed.input.coupon_code !== undefined && typeof parsed.input.coupon_code !== 'string')
+        || (parsed.input.torob_clid !== undefined && typeof parsed.input.torob_clid !== 'string')
+        || (parsed.rejected !== undefined && typeof parsed.rejected !== 'boolean')
+        || (parsed.rejected === true && parsed.orderId !== undefined)
         || (parsed.orderId !== undefined && typeof parsed.orderId !== 'string')
         || (parsed.paymentMethodId !== undefined && typeof parsed.paymentMethodId !== 'string')
         || (parsed.paymentBlocked !== undefined && typeof parsed.paymentBlocked !== 'boolean')
@@ -100,22 +103,33 @@ export const useCheckoutStore = defineStore('checkout', () => {
     if (submitting.value) throw new ApiError('سفارش در حال ثبت است.')
     submitting.value = true
     const scope = auth.sessionScope ?? auth.identity
+    let sent = false
     try {
       if (!attempt.value) restoreAttempt()
-      if (!attempt.value) saveAttempt({ key: createCheckoutKey(), input: { ...input } })
+      if (attempt.value?.rejected && !sameCheckoutInput(attempt.value.input, input)) {
+        saveAttempt({ key: createCheckoutKey(), input: input.address ? { ...input, address: { ...input.address } } : { ...input } })
+      }
+      if (!attempt.value) saveAttempt({ key: createCheckoutKey(), input: input.address ? { ...input, address: { ...input.address } } : { ...input } })
       const saved = attempt.value!
-      if (JSON.stringify(saved.input) !== JSON.stringify(input)) throw new ApiError('اطلاعات تلاش قبلی ثبت سفارش تغییر کرده است. ابتدا وضعیت آن سفارش را بررسی کنید.')
+      if (!sameCheckoutInput(saved.input, input)) throw new ApiError('اطلاعات تلاش قبلی ثبت سفارش تغییر کرده است. ابتدا وضعیت آن سفارش را بررسی کنید.')
       if (saved.orderId) throw new ApiError('سفارش قبلاً ایجاد شده است. پرداخت را از همان سفارش ادامه دهید.')
+      // Persist uncertainty before sending: refreshes and lost responses must replay this body/key.
+      saveAttempt({ ...saved, rejected: false })
+      sent = true
       const result = await api.post<CheckoutOrder>('/checkout', saved.input, { headers: { 'Idempotency-Key': saved.key } })
       if ((auth.sessionScope ?? auth.identity) !== scope) throw new ApiError('نشست کاربری تغییر کرده است؛ وضعیت سفارش را بررسی کنید.')
       order.value = result
-      saveAttempt({ ...saved, orderId: result.id })
+      saveAttempt({ ...saved, rejected: false, orderId: result.id })
       clearPreview()
       return result
     } catch (cause) {
-      // A validation rejection creates no order. Uncertain outcomes keep the original key/body.
-      if ((auth.sessionScope ?? auth.identity) === scope && cause instanceof ApiError
-        && [400, 422].includes(cause.status ?? 0) && !attempt.value?.orderId) forgetAttempt()
+      // A key/body conflict may refer to an existing order; it cannot authorize replacement.
+      if (sent && (auth.sessionScope ?? auth.identity) === scope && cause instanceof ApiError
+        && cause.kind === 'http' && [400, 422].includes(cause.status ?? 0)
+        && cause.validationMessage !== 'idempotency key was used with a different request'
+        && !order.value && attempt.value && !attempt.value.orderId) {
+        saveAttempt({ ...attempt.value, rejected: true })
+      }
       throw withApiErrorContext(cause, 'checkout')
     } finally {
       submitting.value = false

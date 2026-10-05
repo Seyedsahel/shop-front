@@ -22,6 +22,26 @@ const input = { cart_id: 'cart-1', address_id: 'address-1', shipping_method_id: 
 const order = { id: 'a4e39588-64b0-4eaf-b652-09b50f107094', order_number: 'ORD-1', status: 'pending_payment', total_amount: 10000, currency: 'IRR' }
 const key = '17771cda-25fc-4cdb-81d8-a81ab1c13980'
 
+test('inline checkout retry after reload preserves address details and its idempotency key', async () => {
+  const { store, api, calls } = setup()
+  const inline = { cart_id: 'cart-1', shipping_method_id: 'pickup', address: { first_name: 'Ali', last_name: 'Ahmadi', phone: '09130744909' } }
+  const post = api.post
+  api.post = async (...args) => { await post(...args); throw new ApiError('Network failure', undefined, undefined, 'transport', 'network') }
+  await assert.rejects(store.createOrder(inline))
+  const originalKey = calls[0].options.headers['Idempotency-Key']
+  inline.address.phone = '09120000000'
+  assert.equal(store.attempt.input.address.phone, '09130744909')
+  setActivePinia(createPinia())
+  const reloaded = useCheckoutStore()
+  reloaded.restoreAttempt()
+  await assert.rejects(reloaded.createOrder(inline))
+  assert.equal(calls.length, 1)
+  api.post = post
+  await reloaded.createOrder({ shipping_method_id: 'pickup', cart_id: 'cart-1', address: { phone: '09130744909', last_name: 'Ahmadi', first_name: 'Ali' } })
+  assert.equal(calls[1].options.headers['Idempotency-Key'], originalKey)
+  assert.deepEqual(calls[1].body, calls[0].body)
+})
+
 function setup() {
   setActivePinia(createPinia())
   const saved = new Map()
@@ -97,10 +117,96 @@ test('definitive validation rejection permits corrected selections with a new ke
   const post = api.post
   api.post = async (...args) => { await post(...args); throw new ApiError('Invalid address', 400) }
   await assert.rejects(store.createOrder(input))
-  assert.equal(store.attempt, null)
+  assert.equal(store.attempt.rejected, true)
   api.post = post
   await store.createOrder({ ...input, address_id: 'corrected' })
   assert.notEqual(calls[0].options.headers['Idempotency-Key'], calls[1].options.headers['Idempotency-Key'])
+})
+
+test('unchanged definite rejection retries with the same key and exact saved body after reload', async () => {
+  const { store, api, calls } = setup()
+  const post = api.post
+  const body = { ...input, coupon_code: 'SAVE', torob_clid: 'click-1' }
+  api.post = async (...args) => { await post(...args); throw new ApiError('Invalid address', 422) }
+  await assert.rejects(store.createOrder(body))
+  const originalKey = store.attempt.key
+  setActivePinia(createPinia())
+  const reloaded = useCheckoutStore()
+  reloaded.restoreAttempt()
+  assert.equal(reloaded.attempt.rejected, true)
+  api.post = post
+  await reloaded.createOrder({ torob_clid: 'click-1', coupon_code: 'SAVE', shipping_method_id: input.shipping_method_id, address_id: input.address_id, cart_id: input.cart_id })
+  assert.equal(calls[1].options.headers['Idempotency-Key'], originalKey)
+  assert.deepEqual(calls[1].body, calls[0].body)
+})
+
+test('all checkout request fields rotate the key after a definite rejection', async () => {
+  for (const change of [{ address_id: 'other' }, { shipping_method_id: 'other' }, { coupon_code: 'SAVE' }, { cart_id: 'other' }, { torob_clid: 'click-2' }]) {
+    const { store, calls } = setup()
+    store.saveAttempt({ key, input, rejected: true })
+    await store.createOrder({ ...input, ...change })
+    assert.notEqual(calls[0].options.headers['Idempotency-Key'], key)
+  }
+})
+
+test('an uncertain retry stays unresolved on a key/body conflict', async () => {
+  const { store, api } = setup()
+  store.saveAttempt({ key, input })
+  api.post = async () => { throw createTransportApiError(400, undefined, 'http', 'idempotency key was used with a different request') }
+  await assert.rejects(store.createOrder(input))
+  assert.equal(store.attempt.key, key)
+  assert.equal(store.attempt.rejected, false)
+  await assert.rejects(store.createOrder({ ...input, cart_id: 'another' }))
+})
+
+test('a lost retry response revokes permission to change a previously rejected request', async () => {
+  const { store, api } = setup()
+  store.saveAttempt({ key, input, rejected: true })
+  api.post = async () => { throw createTransportApiError(undefined, undefined, 'network') }
+  await assert.rejects(store.createOrder(input))
+  assert.equal(store.attempt.rejected, false)
+  await assert.rejects(store.createOrder({ ...input, coupon_code: 'SAVE' }))
+})
+
+test('an intentionally new identical order receives a fresh key', async () => {
+  const { store, calls } = setup()
+  await store.createOrder(input)
+  store.forgetAttempt()
+  await store.createOrder(input)
+  assert.notEqual(calls[0].options.headers['Idempotency-Key'], calls[1].options.headers['Idempotency-Key'])
+})
+
+test('payment retry checks server status and pays the existing order without checkout', async () => {
+  const { store: checkout, auth, api, calls } = setup()
+  auth.isAuthenticated = true
+  const { usePaymentStore } = await load('app/stores/payment.store.ts')
+  const payments = usePaymentStore()
+  payments.methods = [{ id: 'gateway' }]
+  const redirects = []
+  const events = []
+  const orders = { current: null, async fetchOne(id) { events.push(id); this.current = { ...order } } }
+  api.post = async (path, body) => { calls.push({ path, body }); return { redirect_url: 'https://gateway.test/pay' } }
+  const dependencies = {
+    defineProps: () => ({ orderId: order.id }), ref, onMounted() {},
+    usePaymentStore: () => payments, useOrderStore: () => orders,
+    useCheckoutStore: () => checkout, useAuthStore: () => auth,
+    ApiError, getUserFriendlyApiErrorMessage, window: { location: { assign: url => redirects.push(url) } },
+  }
+  const component = await readFile(new URL('../app/components/payment/PaymentOrderRetry.vue', import.meta.url), 'utf8')
+  const source = component.match(/<script setup lang="ts">([\s\S]*?)<\/script>/)[1]
+    + '\nreturn { methodId, retryPayment, error };'
+  const { outputText } = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ESNext } })
+  const state = new Function(...Object.keys(dependencies), outputText)(...Object.values(dependencies))
+  state.methodId.value = 'gateway'
+  await state.retryPayment()
+  assert.deepEqual(events, [order.id])
+  assert.deepEqual(calls, [{ path: `/orders/${order.id}/payments`, body: { method_id: 'gateway' } }])
+  assert.equal(checkout.attempt, null)
+  assert.equal(redirects.length, 1)
+  orders.fetchOne = async () => { orders.current = { ...order, status: 'cancelled' } }
+  await state.retryPayment()
+  assert.equal(calls.length, 1)
+  assert.ok(state.error.value)
 })
 
 test('payment conflict and original method survive refresh', () => {
@@ -149,16 +255,17 @@ async function request(handler, body, cookie = 'auth_token=user', headers = {}) 
 
 test('checkout proxy forwards user bearer, JSON and idempotency key; accepts minimal order', async () => {
   const handler = (await load('server/api/checkout/index.post.ts')).default
+  const trackedInput = { ...input, torob_clid: 'click-1' }
   globalThis.$fetch = async (path, options) => {
     assert.equal(path, '/checkout')
     assert.equal(options.headers.get('Authorization'), 'Bearer user')
     assert.equal(options.headers.get('Idempotency-Key'), key)
     assert.equal(options.headers.get('Content-Type'), 'application/json')
     assert.equal(options.retry, 0)
-    assert.deepEqual(options.body, input)
+    assert.deepEqual(options.body, trackedInput)
     return order
   }
-  assert.equal((await request(handler, input, undefined, { 'Idempotency-Key': key })).status, 201)
+  assert.equal((await request(handler, trackedInput, undefined, { 'Idempotency-Key': key })).status, 201)
   globalThis.$fetch = () => { throw new Error('Backend must not be called') }
   assert.equal((await request(handler, input)).status, 400)
   assert.equal((await request(handler, input, 'guest_token=guest', { 'Idempotency-Key': key })).status, 401)

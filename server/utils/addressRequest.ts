@@ -15,21 +15,28 @@ export function addressPath(event: H3Event) {
   return `/addresses/${encodeURIComponent(id)}`
 }
 
-export async function readAddressInput(event: H3Event): Promise<AddressInput> {
-  const body = await readBody<Partial<AddressInput>>(event)
-  if (!body || typeof body.name !== 'string' || !body.name.trim()
-    || typeof body.first_name !== 'string' || !body.first_name.trim()
-    || typeof body.last_name !== 'string' || !body.last_name.trim()
-    || typeof body.phone !== 'string' || !body.phone.trim()
-    || !Number.isSafeInteger(body.province_code) || body.province_code! <= 0
-    || !Number.isSafeInteger(body.city_code) || body.city_code! <= 0
-    || typeof body.postal_code !== 'string' || !body.postal_code.trim()
-    || typeof body.address !== 'string' || !body.address.trim()) {
-    throw createError({ statusCode: 400, message: 'اطلاعات نشانی کامل نیست.' })
+export async function readAddressInput(event: H3Event): Promise<AddressWriteInput> {
+  const body = await readBody<AddressWriteInput>(event)
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    throw createError({ statusCode: 400, message: 'اطلاعات نشانی معتبر نیست.' })
   }
-  return {
-    name: body.name.trim(), first_name: body.first_name.trim(), last_name: body.last_name.trim(), phone: body.phone.trim(),
-    province_code: body.province_code!, city_code: body.city_code!,
-    postal_code: body.postal_code.trim(), address: body.address.trim(),
+  const input: AddressWriteInput = {}
+  for (const field of ['name', 'first_name', 'last_name', 'phone', 'postal_code', 'address'] as const) {
+    const value = body[field]
+    if (value === undefined) continue
+    if (typeof value !== 'string' || !value.trim()) {
+      throw createError({ statusCode: 400, message: 'اطلاعات نشانی معتبر نیست.' })
+    }
+    input[field] = value.trim()
   }
+  for (const field of ['province_code', 'city_code'] as const) {
+    const value = body[field]
+    if (value === undefined) continue
+    if (!Number.isSafeInteger(value) || value <= 0) {
+      throw createError({ statusCode: 400, message: 'اطلاعات نشانی معتبر نیست.' })
+    }
+    input[field] = value
+  }
+  if (!Object.keys(input).length) throw createError({ statusCode: 400, message: 'اطلاعات نشانی کامل نیست.' })
+  return input
 }

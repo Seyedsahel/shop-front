@@ -18,48 +18,28 @@ const selectedAddressId = ref<string | null>(null)
 const selectedMethodId = ref('')
 const addressSheetOpen = ref(false)
 const addressFormOpen = ref(false)
-const editingId = ref<string | null>(null)
+const saveToAccount = ref(false)
+const confirmedAddress = ref<AddressInput | null>(null)
 const draft = ref<AddressInput>(emptyDraft())
 const errors = ref<Partial<Record<keyof AddressInput, string>>>({})
 const previewError = ref('')
 const loadError = ref('')
+const recoveringAttempt = computed(() => !!checkout.attempt && !checkout.attempt.rejected)
 
 function emptyDraft(): AddressInput {
   return { name: '', first_name: '', last_name: '', phone: '', province_code: 0, city_code: 0, postal_code: '', address: '' }
 }
 
-function normalizeDigits(value: string) {
-  return value.replace(/[۰-۹]/g, digit => String(digit.charCodeAt(0) - 0x06f0))
-    .replace(/[٠-٩]/g, digit => String(digit.charCodeAt(0) - 0x0660))
-}
-
 function validateAddress(): AddressInput | null {
-  const input: AddressInput = {
-    name: draft.value.name.trim(),
-    first_name: draft.value.first_name.trim(),
-    last_name: draft.value.last_name.trim(),
-    phone: normalizeDigits(draft.value.phone.trim()).replace(/^(?:\+98|0098)/, '0'),
-    province_code: draft.value.province_code,
-    city_code: draft.value.city_code,
-    postal_code: normalizeDigits(draft.value.postal_code.trim()),
-    address: draft.value.address.trim(),
-  }
-  const next: typeof errors.value = {}
-  if (!input.name) next.name = 'عنوان نشانی را وارد کنید.'
-  if (!input.first_name) next.first_name = 'نام تحویل‌گیرنده را وارد کنید.'
-  if (!input.last_name) next.last_name = 'نام خانوادگی تحویل‌گیرنده را وارد کنید.'
-  if (!/^09\d{9}$/.test(input.phone)) next.phone = 'شماره موبایل معتبر وارد کنید.'
-  const province = locations.provinces.find(item => item.code === input.province_code)
-  if (!province) next.province_code = 'استان را انتخاب کنید.'
-  if (!province?.cities.some(item => item.code === input.city_code)) next.city_code = 'شهر را انتخاب کنید.'
-  if (!input.address) next.address = 'نشانی دقیق را وارد کنید.'
-  if (!/^\d{10}$/.test(input.postal_code)) next.postal_code = 'کد پستی باید ۱۰ رقم باشد.'
-  errors.value = next
-  return Object.keys(next).length ? null : input
+  const input = normalizeCheckoutAddress(draft.value)
+  if (!selectedMethod.value) return null
+  errors.value = checkoutAddressErrors(input, addressRequirements.value, locations.provinces)
+  return Object.keys(errors.value).length ? null : input
 }
 
 function addAddress() {
-  editingId.value = null
+  saveToAccount.value = false
+  confirmedAddress.value = null
   selectedAddressId.value = null
   draft.value = emptyDraft()
   errors.value = {}
@@ -68,33 +48,34 @@ function addAddress() {
 }
 
 function selectAddress(address: Address) {
-  editingId.value = address.id
+  saveToAccount.value = false
   selectedAddressId.value = address.id
   draft.value = {
-    name: address.name, first_name: address.first_name, last_name: address.last_name, phone: address.phone_number,
-    province_code: address.province_code, city_code: address.city_code,
-    postal_code: address.postal_code, address: address.address,
+    name: address.name ?? '', first_name: address.first_name ?? '', last_name: address.last_name ?? '', phone: address.phone_number ?? '',
+    province_code: address.province_code ?? 0, city_code: address.city_code ?? 0,
+    postal_code: address.postal_code ?? '', address: address.address ?? '',
   }
-  errors.value = {}
+  errors.value = selectedMethod.value ? checkoutAddressErrors(normalizeCheckoutAddress(draft.value), addressRequirements.value, locations.provinces) : {}
+  confirmedAddress.value = Object.keys(errors.value).length ? null : normalizeCheckoutAddress(draft.value)
   addressSheetOpen.value = false
   addressFormOpen.value = true
 }
 
-async function saveAddress() {
-  if (addresses.mutating || !locations.loaded) return
-  if (pickup.value && !selectedAddressId.value) {
-    toast.error('برای ثبت اطلاعات تحویل‌گیرنده ابتدا یک نشانی در حساب کاربری ذخیره کنید.')
-    return
-  }
+async function submitAddress() {
+  if (addresses.mutating || !selectedMethod.value || (needsLocations.value && !locations.loaded)) return
   const input = validateAddress()
   if (!input) return
+  if (pickup.value || !saveToAccount.value) {
+    confirmedAddress.value = input
+    toast.success('اطلاعات تحویل تأیید شد.')
+    return
+  }
+  const payload = checkoutAddressPayload(input, input.name || methodName.value)
+  const methodId = selectedMethodId.value
   try {
-    const address = editingId.value
-      ? await addresses.update(editingId.value, input)
-      : await addresses.create(input)
-    selectedAddressId.value = address.id
-    editingId.value = address.id
-    selectAddress(address)
+    const address = addressSaved.value && selectedAddress.value
+      ? selectedAddress.value : await addresses.create(payload)
+    if (selectedMethodId.value === methodId && JSON.stringify(normalizeCheckoutAddress(draft.value)) === JSON.stringify(input)) selectAddress(address)
     toast.success('نشانی ذخیره شد.')
   } catch (cause) {
     toast.error(cause instanceof ApiError ? cause.message : 'ذخیره نشانی ناموفق بود.')
@@ -103,37 +84,32 @@ async function saveAddress() {
 
 const selectedMethod = computed(() => checkout.methods.find(item => item.id === selectedMethodId.value))
 const pickup = computed(() => selectedMethod.value?.code === 'local_pickup')
+const addressRequirements = computed<ShippingAddressRequirements>(() => pickup.value
+  ? { first_name: true, last_name: true, phone: true } : selectedMethod.value?.address_requirements ?? {})
 const selectedAddress = computed(() => addresses.items.find(item => item.id === selectedAddressId.value) ?? null)
-const addressSaved = computed(() => {
+const needsLocations = computed(() => !!(addressRequirements.value.province_code || addressRequirements.value.city_code))
+const savedDraft = computed<AddressInput | null>(() => {
   const address = selectedAddress.value
-  return !!address && draft.value.name === address.name && draft.value.first_name === address.first_name && draft.value.last_name === address.last_name && draft.value.phone === address.phone_number
-    && draft.value.province_code === address.province_code && draft.value.city_code === address.city_code
-    && draft.value.postal_code === address.postal_code && draft.value.address === address.address
+  return address ? normalizeCheckoutAddress({ name: address.name ?? '', first_name: address.first_name ?? '', last_name: address.last_name ?? '', phone: address.phone_number ?? '', province_code: address.province_code ?? 0, city_code: address.city_code ?? 0, postal_code: address.postal_code ?? '', address: address.address ?? '' }) : null
 })
-const addressReady = computed(() => {
-  const address = selectedAddress.value
-  const requirements = selectedMethod.value?.address_requirements
-  if (!address || !requirements) return false
-  return (!requirements.recipient_name || !!address.first_name.trim() && !!address.last_name.trim())
-    && (!requirements.phone || !!address.phone_number.trim())
-    && (!requirements.province_code || address.province_code > 0)
-    && (!requirements.city_code || address.city_code > 0)
-    && (!requirements.address || !!address.address.trim())
-    && (!requirements.postal_code || /^\d{10}$/.test(normalizeDigits(address.postal_code)))
-})
+const addressSaved = computed(() => !!savedDraft.value && JSON.stringify(normalizeCheckoutAddress(draft.value)) === JSON.stringify(savedDraft.value))
+const addressReady = computed(() => !!savedDraft.value && !!selectedMethod.value && !Object.keys(checkoutAddressErrors(savedDraft.value, addressRequirements.value, locations.provinces)).length)
 const methodNames: Record<string, string> = { bike_courier: 'پیک موتوری', local_pickup: 'تحویل حضوری', tapin_post: 'پست' }
 const methodName = computed(() => methodNames[selectedMethod.value?.code ?? ''] ?? selectedMethod.value?.name ?? '')
 const currentInput = computed<CheckoutInput | null>(() => {
-  if (!cart.cart?.id || !selectedMethod.value || !selectedAddressId.value || !selectedAddress.value) return null
-  if (pickup.value) {
-    const phone = normalizeDigits(draft.value.phone.trim()).replace(/^(?:\+98|0098)/, '0')
-    if (!draft.value.first_name.trim() || !draft.value.last_name.trim() || !/^09\d{9}$/.test(phone) || !addressSaved.value) return null
-  } else if (!addressSaved.value || !addressReady.value) return null
+  if (!cart.cart?.id || !selectedMethod.value || !confirmedAddress.value) return null
+  const input = normalizeCheckoutAddress(draft.value)
+  if (JSON.stringify(input) !== JSON.stringify(confirmedAddress.value)
+    || Object.keys(checkoutAddressErrors(input, addressRequirements.value, locations.provinces)).length) return null
+  if (!pickup.value && saveToAccount.value && !addressSaved.value) return null
+  const source = !pickup.value && addressSaved.value && addressReady.value && selectedAddressId.value
+    ? { address_id: selectedAddressId.value } : { address: checkoutInlineAddressPayload(input, pickup.value) }
   return {
-    address_id: selectedAddressId.value,
+    ...source,
     cart_id: cart.cart.id,
     shipping_method_id: selectedMethodId.value,
     ...(checkout.couponCode ? { coupon_code: checkout.couponCode } : {}),
+    ...(checkout.attempt?.input.torob_clid !== undefined ? { torob_clid: checkout.attempt.input.torob_clid } : {}),
   }
 })
 
@@ -141,7 +117,7 @@ async function refreshPreview() {
   checkout.clearPreview()
   previewError.value = ''
   const input = currentInput.value
-  if (!input || cart.stale || checkout.attempt || finalizing.value) return
+  if (!input || cart.stale || recoveringAttempt.value || finalizing.value) return
   try {
     await checkout.fetchPreview(input)
   } catch (cause) {
@@ -150,7 +126,7 @@ async function refreshPreview() {
 }
 
 async function applyCoupon(): Promise<boolean> {
-  if (checkout.previewing || checkout.submitting || checkout.attempt) return false
+  if (checkout.previewing || checkout.submitting || recoveringAttempt.value) return false
   const input = currentInput.value
   if (!input) {
     toast.error('ابتدا روش تحویل و نشانی معتبر را انتخاب کنید.')
@@ -173,7 +149,7 @@ async function applyCoupon(): Promise<boolean> {
 }
 
 async function submitOrder() {
-  if (finalizing.value || checkout.submitting || payments.starting || cart.busy || cart.stale || checkout.attempt || recoveryFailed.value) return
+  if (finalizing.value || checkout.submitting || payments.starting || cart.busy || cart.stale || recoveringAttempt.value || recoveryFailed.value) return
   if (!payments.methods.some(method => method.id === selectedPaymentMethodId.value)) {
     toast.error('ابتدا روش پرداخت را انتخاب کنید.')
     return
@@ -182,12 +158,8 @@ async function submitOrder() {
     toast.error('ابتدا شیوه تحویل را انتخاب کنید.')
     return
   }
-  if (!selectedAddress.value) {
-    toast.error('ابتدا یک نشانی تحویل را انتخاب یا ثبت کنید.')
-    return
-  }
   if (!currentInput.value) {
-    toast.error(pickup.value ? 'نام و شماره تماس معتبر وارد کنید.' : 'نشانی را ذخیره و روش تحویل را انتخاب کنید.')
+    toast.error(pickup.value ? 'نام و شماره تماس معتبر وارد کنید.' : 'اطلاعات تحویل را تکمیل و تأیید کنید.')
     return
   }
   finalizing.value = true
@@ -282,7 +254,8 @@ async function loadCheckout() {
 }
 
 function startNewCheckout() {
-  if (!checkout.attempt?.checkoutExpired && (!checkout.order || checkout.order.status === 'pending_payment')) return
+  if (finalizing.value || checkout.submitting || payments.starting || recoveryFailed.value) return
+  if (!checkout.attempt?.checkoutExpired && (!checkout.order || checkout.order.id !== checkout.attempt?.orderId)) return
   checkout.forgetAttempt()
   selectedPaymentMethodId.value = ''
   recoveryError.value = ''
@@ -299,19 +272,36 @@ onMounted(async () => {
     recoveryError.value = cause instanceof ApiError ? cause.message : 'بازیابی سفارش ناموفق بود.'
   }
   await loadCheckout()
+  const saved = checkout.attempt?.input
+  if (saved && checkout.attempt?.rejected) {
+    selectedMethodId.value = saved.shipping_method_id
+    checkout.couponCode = saved.coupon_code ?? ''
+    checkout.couponDraft = checkout.couponCode
+    const address = addresses.items.find(item => item.id === saved.address_id)
+    if (saved.address) {
+      draft.value = { ...emptyDraft(), ...saved.address }
+      addressFormOpen.value = true
+      confirmedAddress.value = normalizeCheckoutAddress(draft.value)
+    } else if (address) selectAddress(address)
+  }
   await recoverOrder().catch(() => {})
 })
 
 watch(() => addresses.items.map(item => item.id), ids => {
   if (selectedAddressId.value && !ids.includes(selectedAddressId.value)) addAddress()
 })
+watch(addressRequirements, () => {
+  if (pickup.value) saveToAccount.value = false
+  errors.value = (selectedAddress.value || confirmedAddress.value) && selectedMethod.value
+    ? checkoutAddressErrors(normalizeCheckoutAddress(draft.value), addressRequirements.value, locations.provinces) : {}
+}, { deep: true })
 watch(() => checkout.methods.map(item => item.id), ids => {
   if (!ids.includes(selectedMethodId.value)) selectedMethodId.value = ''
 })
 watch(() => auth.isAuthenticated, authenticated => {
   if (!authenticated) auth.requireAuth('/checkout')
 })
-watch(() => [currentInput.value?.cart_id, currentInput.value?.address_id, currentInput.value?.shipping_method_id] as const,
+watch(() => JSON.stringify(currentInput.value),
   () => { void refreshPreview() })
 watch(() => [cart.loaded, cart.busy, cart.itemCount, cart.error] as const, ([loaded, busy, count, error]) => {
   if (loaded && !busy && !count && !error && !checkout.attempt && !recoveryFailed.value) void navigateTo('/cart')
@@ -323,7 +313,7 @@ watch(() => [cart.loaded, cart.busy, cart.itemCount, cart.error] as const, ([loa
     <CartCheckoutStepper :step="checkout.order ? 3 : 2" />
     <div class="mx-auto max-w-7xl px-4 py-7 sm:px-6 sm:py-10 lg:px-8">
       <p v-if="loadError" role="alert" class="mb-4 rounded-xl border border-danger-border p-4 text-sm text-danger">{{ loadError }} <button type="button" class="underline" @click="loadCheckout">تلاش دوباره</button></p>
-      <section v-if="checkout.attempt || recoveryFailed" class="mx-auto max-w-2xl rounded-2xl border border-border bg-card p-6 sm:p-10">
+      <section v-if="recoveringAttempt || recoveryFailed" class="mx-auto max-w-2xl rounded-2xl border border-border bg-card p-6 sm:p-10">
         <h1 class="text-xl font-bold text-text-primary">پیگیری سفارش و پرداخت</h1>
         <p v-if="checkout.attempt?.orderId" class="mt-3 text-sm text-text-secondary">شناسه سفارش: <bdi>{{ checkout.attempt.orderId }}</bdi></p>
         <p v-if="checkout.order" class="mt-3 text-sm text-text-secondary">شماره سفارش: <bdi>{{ checkout.order.order_number }}</bdi> · {{ orderStatusLabel(checkout.order.status) }}</p>
@@ -338,7 +328,7 @@ watch(() => [cart.loaded, cart.busy, cart.itemCount, cart.error] as const, ([loa
         </template>
         <NuxtLink v-if="checkout.attempt?.orderId" :to="`/profile/orders/${encodeURIComponent(checkout.attempt.orderId)}`" class="mt-5 block text-sm text-primary">مشاهده جزئیات سفارش</NuxtLink>
         <NuxtLink to="/profile" class="mt-4 block text-sm text-primary">مشاهده سفارش‌های حساب کاربری</NuxtLink>
-        <button v-if="checkout.attempt?.checkoutExpired || (checkout.order && checkout.order.status !== 'pending_payment')" type="button" class="mt-4 text-sm font-semibold text-primary" @click="startNewCheckout">شروع سفارش جدید</button>
+        <button v-if="checkout.attempt?.checkoutExpired || checkout.order" type="button" :disabled="finalizing || checkout.submitting || payments.starting || recoveryFailed" class="mt-4 text-sm font-semibold text-primary disabled:opacity-50" @click="startNewCheckout">شروع سفارش جدید</button>
       </section>
       <template v-else>
         <p v-if="cart.error" role="alert" class="mb-4 rounded-xl border border-danger-border p-4 text-sm text-danger">{{ cart.error }} <button type="button" class="underline" @click="cart.fetchCart().catch(() => {})">دریافت دوباره سبد</button></p>
@@ -347,8 +337,8 @@ watch(() => [cart.loaded, cart.busy, cart.itemCount, cart.error] as const, ([loa
           <main class="space-y-6 lg:col-span-8">
             <CheckoutDeliveryMethods v-model="selectedMethodId" :methods="checkout.methods" :loading="checkout.loadingMethods" />
             <p v-if="addresses.error || locations.error" role="alert" class="rounded-xl border border-danger-border p-4 text-sm text-danger">{{ addresses.error || locations.error }} <button type="button" class="underline" @click="loadCheckout">تلاش دوباره</button></p>
-            <CheckoutAddressForm v-model="draft" :pickup="pickup" :open="addressFormOpen" :provinces="locations.provinces" :errors="errors" :pending="addresses.mutating || !locations.loaded" :selected-address="selectedAddress" @choose-address="addressSheetOpen = true" @change-address="addressSheetOpen = true" @new-address="addAddress" @save="saveAddress" />
-            <p v-if="selectedMethod && !pickup && selectedAddress && !addressReady" class="rounded-xl border border-warning-border bg-warning-subtle p-4 text-sm text-text-secondary">اطلاعات این نشانی برای روش ارسال انتخاب‌شده کامل نیست. آن را تکمیل و ذخیره کنید.</p>
+            <CheckoutAddressForm v-model="draft" v-model:save-to-account="saveToAccount" :pickup="pickup" :requirements="addressRequirements" :open="addressFormOpen" :provinces="locations.provinces" :errors="errors" :pending="addresses.mutating || !selectedMethod || (needsLocations && !locations.loaded)" :selected-address="selectedAddress" @choose-address="addressSheetOpen = true" @change-address="addressSheetOpen = true" @new-address="addAddress" @submit="submitAddress" />
+            <p v-if="selectedMethod && selectedAddress && !addressReady && !currentInput" class="rounded-xl border border-warning-border bg-warning-subtle p-4 text-sm text-text-secondary">اطلاعات این نشانی برای روش ارسال انتخاب‌شده کامل نیست. آن را تکمیل و تأیید کنید.</p>
             <p v-if="checkout.previewing" role="status" class="text-sm text-text-secondary">در حال محاسبه هزینه سفارش…</p>
             <p v-if="previewError" role="alert" class="rounded-xl border border-danger-border p-4 text-sm text-danger">{{ previewError }} <button type="button" class="underline" @click="refreshPreview">محاسبه دوباره</button></p>
           </main>

@@ -1,3 +1,5 @@
+export type ShippingAddressRequirements = Partial<Record<'address' | 'city_code' | 'first_name' | 'last_name' | 'phone' | 'postal_code' | 'province_code' | 'recipient_name', boolean>>
+
 export interface ShippingMethod {
   id: string
   code: string
@@ -5,15 +7,17 @@ export interface ShippingMethod {
   enabled: boolean
   price_strategy: 'fixed' | 'free' | 'provider_quote'
   fixed_price: number
-  address_requirements: Partial<Record<'address' | 'city_code' | 'phone' | 'postal_code' | 'province_code' | 'recipient_name', boolean>>
+  address_requirements: ShippingAddressRequirements
 }
 
-export interface CheckoutInput {
-  address_id: string
+export type CheckoutInlineAddress = Partial<Omit<AddressInput, 'name'>>
+
+export type CheckoutInput = {
   cart_id: string
   shipping_method_id: string
   coupon_code?: string
-}
+  torob_clid?: string
+} & ({ address_id: string; address?: never } | { address: CheckoutInlineAddress; address_id?: never })
 
 export interface CheckoutItem {
   product_id: string
@@ -61,6 +65,8 @@ export interface CheckoutOrder {
 export interface CheckoutAttempt {
   key: string
   input: CheckoutInput
+  /** A definite rejection allows editing; an unchanged retry still uses this key. */
+  rejected?: boolean
   orderId?: string
   paymentMethodId?: string
   paymentUncertain?: boolean

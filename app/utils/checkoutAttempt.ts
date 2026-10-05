@@ -11,3 +11,23 @@ export function createCheckoutKey(): string {
 export function checkoutAttemptStorageKey(scope: string): string {
   return `shop-checkout-attempt:${scope}`
 }
+
+export function sameCheckoutInput(left: CheckoutInput, right: CheckoutInput): boolean {
+  return left.cart_id === right.cart_id && left.address_id === right.address_id
+    && (!!left.address === !!right.address)
+    && (['address', 'city_code', 'first_name', 'last_name', 'phone', 'postal_code', 'province_code'] as const)
+      .every(field => left.address?.[field] === right.address?.[field])
+    && left.shipping_method_id === right.shipping_method_id
+    && left.coupon_code === right.coupon_code && left.torob_clid === right.torob_clid
+}
+
+export function isRecoverableCheckoutInput(input: CheckoutInput): boolean {
+  if (!input || [input.cart_id, input.shipping_method_id].some(id => typeof id !== 'string' || !id.trim())) return false
+  if (input.address_id !== undefined) return typeof input.address_id === 'string' && !!input.address_id.trim() && input.address === undefined
+  const address = input.address
+  if (!address || typeof address !== 'object' || Array.isArray(address) || !Object.keys(address).length) return false
+  return (['address', 'first_name', 'last_name', 'phone', 'postal_code'] as const)
+    .every(field => address[field] === undefined || typeof address[field] === 'string')
+    && (['city_code', 'province_code'] as const)
+      .every(field => address[field] === undefined || Number.isSafeInteger(address[field]) && address[field]! >= 0)
+}
