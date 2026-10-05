@@ -1,9 +1,9 @@
 <script setup lang="ts">
 const coupon = defineModel<string>('coupon', { required: true })
-const props = defineProps<{ items: CartItem[]; preview: CheckoutPreview | null; method: ShippingMethod | null | undefined; methodName: string; subtotalOriginal: number; cartDiscount: number; cartTotal: number; pending?: boolean; disabled?: boolean; couponDisabled?: boolean; couponApplied?: boolean }>()
+const paymentMethod = defineModel<string>('paymentMethod', { required: true })
+const props = defineProps<{ items: CartItem[]; preview: CheckoutPreview | null; method: ShippingMethod | null | undefined; methodName: string; subtotalOriginal: number; cartDiscount: number; cartTotal: number; paymentMethods: PaymentMethod[]; loadingPaymentMethods?: boolean; pending?: boolean; disabled?: boolean; couponDisabled?: boolean; couponApplied?: boolean }>()
 defineEmits<{ applyCoupon: []; continue: [] }>()
 const estimatedShipping = computed(() => props.method?.price_strategy === 'fixed' ? props.method.fixed_price : props.method?.price_strategy === 'free' ? 0 : null)
-const displayedTotal = computed(() => props.preview?.total_amount ?? props.cartTotal + (estimatedShipping.value ?? 0))
 </script>
 
 <template>
@@ -16,11 +16,12 @@ const displayedTotal = computed(() => props.preview?.total_amount ?? props.cartT
       <div class="flex justify-between text-text-secondary"><span>ارسال {{ methodName ? `(${methodName})` : '' }}</span><span>{{ preview ? (preview.shipping_amount ? formatMoney(preview.shipping_amount) : 'رایگان') : estimatedShipping === null ? 'پس از محاسبه' : estimatedShipping ? formatMoney(estimatedShipping) : 'رایگان' }}</span></div>
       <div v-if="preview?.tax_amount" class="flex justify-between text-text-secondary"><span>مالیات</span><span>{{ formatMoney(preview.tax_amount) }}</span></div>
     </div>
-    <div class="flex justify-between pt-4"><span class="font-semibold text-text-primary">{{ preview ? 'مبلغ قابل پرداخت' : 'مبلغ برآوردی' }}</span><span class="text-lg font-bold text-primary">{{ formatMoney(displayedTotal) }}</span></div>
+    <div class="flex justify-between pt-4"><span class="font-semibold text-text-primary">مبلغ قابل پرداخت</span><span class="text-lg font-bold text-primary">{{ preview ? formatMoney(preview.total_amount) : 'پس از محاسبه' }}</span></div>
     <p v-if="!preview" class="mt-2 text-xs text-text-muted">مبلغ نهایی پس از پیش‌نمایش سفارش مشخص می‌شود.</p>
     <CartCouponInput v-model="coupon" class="mt-5" :disabled="couponDisabled" :apply-disabled="disabled" :pending="pending" :applied="couponApplied" @apply="$emit('applyCoupon')" />
     <p v-if="coupon.trim() && !couponApplied" class="mt-2 text-xs text-warning">این کد هنوز در مبلغ بالا اعمال نشده است.</p>
-    <button type="button" class="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50" :disabled="pending" @click="$emit('continue')">{{ pending ? 'در حال بررسی سفارش…' : 'ثبت سفارش' }}<UIcon name="solar:arrow-left-outline" class="size-5" /></button>
+    <CheckoutPaymentMethods v-model="paymentMethod" class="mt-5" :methods="paymentMethods" :loading="loadingPaymentMethods" :disabled="pending" />
+    <button type="button" class="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50" :disabled="pending || disabled || !paymentMethod" @click="$emit('continue')">{{ pending ? 'در حال بررسی سفارش…' : 'نهایی‌سازی پرداخت و ثبت سفارش' }}<UIcon name="solar:arrow-left-outline" class="size-5" /></button>
     <NuxtLink to="/cart" class="mt-3 block text-center text-xs text-text-secondary hover:text-primary">بازگشت به سبد خرید</NuxtLink>
   </aside>
 </template>

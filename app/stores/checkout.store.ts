@@ -4,6 +4,7 @@ export const useCheckoutStore = defineStore('checkout', () => {
   const methods = ref<ShippingMethod[]>([])
   const preview = ref<CheckoutPreview | null>(null)
   const order = ref<CheckoutOrder | null>(null)
+  const attempt = ref<CheckoutAttempt | null>(null)
   const couponDraft = ref('')
   const couponCode = ref('')
   const loadingMethods = ref(false)
@@ -15,6 +16,7 @@ export const useCheckoutStore = defineStore('checkout', () => {
     previewGeneration++
     preview.value = null
     order.value = null
+    attempt.value = null
     couponCode.value = ''
   }, { flush: 'sync' })
 
@@ -35,9 +37,47 @@ export const useCheckoutStore = defineStore('checkout', () => {
     previewing.value = false
   }
 
-  function resetOrder() {
+  function saveAttempt(next: CheckoutAttempt) {
+    const scope = auth.sessionScope ?? auth.identity
+    if (!import.meta.client || !scope) throw new ApiError('برای ثبت سفارش وارد حساب کاربری شوید.')
+    try { localStorage.setItem(checkoutAttemptStorageKey(scope), JSON.stringify(next)) }
+    catch { throw new ApiError('ذخیره امن تلاش پرداخت در مرورگر ممکن نیست. تنظیمات ذخیره‌سازی مرورگر را بررسی کنید.') }
+    attempt.value = next
+  }
+
+  function restoreAttempt() {
+    const scope = auth.sessionScope ?? auth.identity
+    if (!import.meta.client || !scope) return
+    try {
+      const saved = localStorage.getItem(checkoutAttemptStorageKey(scope))
+      if (!saved) return
+      const parsed = JSON.parse(saved) as CheckoutAttempt
+      if (typeof parsed.key !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(parsed.key)
+        || !parsed.input || [parsed.input.cart_id, parsed.input.address_id, parsed.input.shipping_method_id].some(id => typeof id !== 'string' || !id.trim())
+        || (parsed.input.coupon_code !== undefined && typeof parsed.input.coupon_code !== 'string')
+        || (parsed.orderId !== undefined && typeof parsed.orderId !== 'string')
+        || (parsed.paymentMethodId !== undefined && typeof parsed.paymentMethodId !== 'string')
+        || (parsed.paymentBlocked !== undefined && typeof parsed.paymentBlocked !== 'boolean')
+        || (parsed.checkoutExpired !== undefined && typeof parsed.checkoutExpired !== 'boolean')) throw new Error('Invalid attempt')
+      attempt.value = parsed
+    } catch { throw new ApiError('بازیابی سفارش ذخیره‌شده ممکن نیست. پیش از سفارش جدید، سفارش‌های حساب کاربری را بررسی کنید.') }
+  }
+
+  function forgetAttempt() {
+    const scope = auth.sessionScope ?? auth.identity
+    if (import.meta.client && scope) localStorage.removeItem(checkoutAttemptStorageKey(scope))
+    attempt.value = null
     order.value = null
     clearPreview()
+  }
+
+  function recordPaymentFailure(cause: unknown) {
+    if (!attempt.value || !(cause instanceof ApiError)) return
+    const blocked = cause.status === 409
+    const expired = cause.status === 400 && cause.validationMessage === 'checkout has expired'
+    if (!blocked && !expired) return
+    attempt.value = { ...attempt.value, ...(blocked ? { paymentBlocked: true } : { checkoutExpired: true }) }
+    saveAttempt(attempt.value)
   }
 
   async function fetchPreview(input: CheckoutInput) {
@@ -46,7 +86,6 @@ export const useCheckoutStore = defineStore('checkout', () => {
     previewing.value = true
     try {
       const result = await api.post<CheckoutPreview>('/checkout/preview', input)
-      console.log('checkout preview result', result)
       if (generation !== previewGeneration) return null
       preview.value = result
       return result
@@ -62,17 +101,26 @@ export const useCheckoutStore = defineStore('checkout', () => {
     submitting.value = true
     const scope = auth.sessionScope ?? auth.identity
     try {
-      const result = await api.post<CheckoutOrder>('/checkout', input)
+      if (!attempt.value) restoreAttempt()
+      if (!attempt.value) saveAttempt({ key: createCheckoutKey(), input: { ...input } })
+      const saved = attempt.value!
+      if (JSON.stringify(saved.input) !== JSON.stringify(input)) throw new ApiError('اطلاعات تلاش قبلی ثبت سفارش تغییر کرده است. ابتدا وضعیت آن سفارش را بررسی کنید.')
+      if (saved.orderId) throw new ApiError('سفارش قبلاً ایجاد شده است. پرداخت را از همان سفارش ادامه دهید.')
+      const result = await api.post<CheckoutOrder>('/checkout', saved.input, { headers: { 'Idempotency-Key': saved.key } })
       if ((auth.sessionScope ?? auth.identity) !== scope) throw new ApiError('نشست کاربری تغییر کرده است؛ وضعیت سفارش را بررسی کنید.')
       order.value = result
+      saveAttempt({ ...saved, orderId: result.id })
       clearPreview()
       return result
     } catch (cause) {
+      // A validation rejection creates no order. Uncertain outcomes keep the original key/body.
+      if ((auth.sessionScope ?? auth.identity) === scope && cause instanceof ApiError
+        && [400, 422].includes(cause.status ?? 0) && !attempt.value?.orderId) forgetAttempt()
       throw withApiErrorContext(cause, 'checkout')
     } finally {
       submitting.value = false
     }
   }
 
-  return { methods, preview, order, couponDraft, couponCode, loadingMethods, previewing, submitting, fetchMethods, fetchPreview, clearPreview, resetOrder, createOrder }
+  return { methods, preview, order, attempt, couponDraft, couponCode, loadingMethods, previewing, submitting, fetchMethods, fetchPreview, clearPreview, restoreAttempt, saveAttempt, forgetAttempt, recordPaymentFailure, createOrder }
 })

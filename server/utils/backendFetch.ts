@@ -45,10 +45,12 @@ export const backendFetch = async <T = unknown>(
     }
     if (typeof status === 'number' && status >= 400 && status < 600) {
       const code = backendErrorCode(error.data)
+      const validationMessage = [400, 409, 422].includes(status) && typeof error.data?.error === 'string'
+        ? error.data.error : undefined
       throw createError({
         statusCode: status,
-        message: 'درخواست به سرویس انجام نشد.',
-        ...(code ? { data: { code } } : {}),
+        message: validationMessage ?? 'درخواست به سرویس انجام نشد.',
+        data: { ...(code ? { code } : {}), ...(validationMessage ? { validationMessage } : {}) },
       })
     }
     throw error

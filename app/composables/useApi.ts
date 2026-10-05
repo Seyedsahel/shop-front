@@ -31,7 +31,9 @@ export const useApi = () => {
       const timeout = error.name === 'TimeoutError' || error.code === 'ETIMEDOUT'
       const kind = timeout ? 'timeout' : typeof status === 'number' ? 'http' : 'network'
       if (revision === authStore.sessionRevision) authStore.handleSessionError(code)
-      throw createTransportApiError(typeof status === 'number' ? status : undefined, code, kind)
+      const validationMessage = error.data?.data?.validationMessage
+      throw createTransportApiError(typeof status === 'number' ? status : undefined, code, kind,
+        typeof validationMessage === 'string' ? validationMessage : undefined)
     }
   }
 
@@ -40,6 +42,6 @@ export const useApi = () => {
     put: <T>(path: string, body?: NitroFetchOptions<NitroFetchRequest>['body']) => request<T>(path, { method: 'PUT', body, retry: 0 }),
     delete: <T>(path: string) => request<T>(path, { method: 'DELETE', retry: 0 }),
     get: <T>(path: string) => request<T>(path),
-    post: <T>(path: string, body?: NitroFetchOptions<NitroFetchRequest>['body']) => request<T>(path, { method: 'POST', body }),
+    post: <T>(path: string, body?: NitroFetchOptions<NitroFetchRequest>['body'], options: Pick<NitroFetchOptions<NitroFetchRequest>, 'headers'> = {}) => request<T>(path, { ...options, method: 'POST', body, retry: 0 }),
   }
 }

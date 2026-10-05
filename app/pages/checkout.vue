@@ -5,6 +5,14 @@ const cart = useCartStore()
 const addresses = useAddressStore()
 const locations = useShippingLocationsStore()
 const checkout = useCheckoutStore()
+const auth = useAuthStore()
+const payments = usePaymentStore()
+const orders = useOrderStore()
+const selectedPaymentMethodId = ref('')
+const finalizing = ref(false)
+const recoveryError = ref('')
+const recoveryFailed = ref(false)
+const paymentError = ref('')
 const toast = useAppToast()
 const selectedAddressId = ref<string | null>(null)
 const selectedMethodId = ref('')
@@ -133,7 +141,7 @@ async function refreshPreview() {
   checkout.clearPreview()
   previewError.value = ''
   const input = currentInput.value
-  if (!input || cart.stale || checkout.order) return
+  if (!input || cart.stale || checkout.attempt || finalizing.value) return
   try {
     await checkout.fetchPreview(input)
   } catch (cause) {
@@ -142,7 +150,7 @@ async function refreshPreview() {
 }
 
 async function applyCoupon(): Promise<boolean> {
-  if (checkout.previewing || checkout.submitting) return false
+  if (checkout.previewing || checkout.submitting || checkout.attempt) return false
   const input = currentInput.value
   if (!input) {
     toast.error('ابتدا روش تحویل و نشانی معتبر را انتخاب کنید.')
@@ -165,7 +173,11 @@ async function applyCoupon(): Promise<boolean> {
 }
 
 async function submitOrder() {
-  if (checkout.submitting || cart.busy || cart.stale) return
+  if (finalizing.value || checkout.submitting || payments.starting || cart.busy || cart.stale || checkout.attempt || recoveryFailed.value) return
+  if (!payments.methods.some(method => method.id === selectedPaymentMethodId.value)) {
+    toast.error('ابتدا روش پرداخت را انتخاب کنید.')
+    return
+  }
   if (!selectedMethod.value) {
     toast.error('ابتدا شیوه تحویل را انتخاب کنید.')
     return
@@ -178,28 +190,116 @@ async function submitOrder() {
     toast.error(pickup.value ? 'نام و شماره تماس معتبر وارد کنید.' : 'نشانی را ذخیره و روش تحویل را انتخاب کنید.')
     return
   }
-  if (checkout.couponDraft.trim() !== checkout.couponCode && !(await applyCoupon())) return
-  const input = currentInput.value
+  finalizing.value = true
   try {
+    if (checkout.couponDraft.trim() !== checkout.couponCode && !(await applyCoupon())) return
+    const input = currentInput.value
+    if (!input) return
     const freshPreview = await checkout.fetchPreview(input)
     if (!freshPreview) return
     await checkout.createOrder(input)
-    toast.success('سفارش ثبت شد.')
-    void cart.fetchCart().catch(() => {})
+    await startPayment()
   } catch (cause) {
     toast.error(cause instanceof ApiError ? cause.message : 'ثبت سفارش ناموفق بود.')
+  } finally {
+    finalizing.value = false
   }
+}
+
+async function recoverOrder() {
+  recoveryError.value = ''
+  const id = checkout.attempt?.orderId
+  if (!id) return
+  try {
+    await orders.fetchOne(id)
+    if (!orders.current || orders.current.id !== id) throw new Error('Order unavailable')
+    checkout.order = orders.current
+  } catch (cause) {
+    recoveryError.value = cause instanceof ApiError ? cause.message : 'بازیابی سفارش ناموفق بود. سفارش‌های حساب کاربری را بررسی کنید.'
+    throw cause
+  }
+}
+
+async function startPayment() {
+  const attempt = checkout.attempt
+  if (!attempt?.orderId || payments.starting || attempt.paymentBlocked || attempt.checkoutExpired) return
+  const methodId = attempt.paymentMethodId ?? selectedPaymentMethodId.value
+  if (!payments.methods.some(method => method.id === methodId)) {
+    toast.error('روش پرداخت انتخاب‌شده در دسترس نیست.')
+    return
+  }
+  paymentError.value = ''
+  const scope = auth.sessionScope ?? auth.identity
+  try {
+    // Recover server truth before any repeat payment request.
+    await recoverOrder()
+    if (!auth.isAuthenticated || (auth.sessionScope ?? auth.identity) !== scope) throw new ApiError('برای ادامه پرداخت دوباره وارد حساب کاربری شوید.')
+    if (checkout.order?.status !== 'pending_payment') {
+      toast.error('وضعیت این سفارش اجازه شروع پرداخت نمی‌دهد. جزئیات سفارش را بررسی کنید.')
+      return
+    }
+    if (checkout.order.total_amount <= 0) {
+      toast.error('این مسیر برای سفارش با مبلغ صفر قابل استفاده نیست.')
+      return
+    }
+    checkout.saveAttempt({ ...attempt, paymentMethodId: methodId, paymentUncertain: true })
+    const result = await payments.start(attempt.orderId, methodId)
+    window.location.assign(result.redirect_url)
+  } catch (cause) {
+    if ((auth.sessionScope ?? auth.identity) !== scope) return
+    try { checkout.recordPaymentFailure(cause) }
+    catch { recoveryFailed.value = true }
+    if (checkout.attempt?.checkoutExpired) {
+      paymentError.value = 'مهلت پرداخت این سفارش تمام شده است. برای ادامه، سفارش جدیدی ثبت کنید.'
+    } else if (checkout.attempt?.paymentBlocked) {
+      paymentError.value = `${cause instanceof ApiError ? cause.message : 'شروع پرداخت امکان‌پذیر نیست.'} وضعیت تلاش پرداخت نیاز به بررسی دارد؛ از سفارش موجود پیگیری کنید.`
+    } else {
+      paymentError.value = cause instanceof ApiError ? cause.message : 'شروع پرداخت تأیید نشد. پیش از تلاش دوباره، وضعیت سفارش را بررسی کنید.'
+    }
+    // A response failure cannot justify creating a replacement order.
+    await recoverOrder().catch(() => {})
+    toast.error(paymentError.value)
+  }
+}
+
+async function resumeCheckout() {
+  if (finalizing.value || recoveryFailed.value || checkout.attempt?.paymentBlocked || checkout.attempt?.checkoutExpired) return
+  const attempt = checkout.attempt
+  if (!attempt) return
+  finalizing.value = true
+  try {
+    if (!attempt.orderId) await checkout.createOrder(attempt.input)
+    await startPayment()
+  } catch (cause) {
+    toast.error(cause instanceof ApiError ? cause.message : 'بازیابی سفارش ناموفق بود.')
+  } finally { finalizing.value = false }
 }
 
 async function loadCheckout() {
   loadError.value = ''
-  const results = await Promise.allSettled([cart.fetchCart(), addresses.fetchAll(), locations.fetchAll(), checkout.fetchMethods()])
+  const results = await Promise.allSettled([cart.fetchCart(), addresses.fetchAll(), locations.fetchAll(), checkout.fetchMethods(), payments.fetchMethods()])
   if (results.some(result => result.status === 'rejected')) loadError.value = 'دریافت اطلاعات سفارش کامل نشد. دوباره تلاش کنید.'
 }
 
-onMounted(() => {
-  checkout.resetOrder()
+function startNewCheckout() {
+  if (!checkout.attempt?.checkoutExpired && (!checkout.order || checkout.order.status === 'pending_payment')) return
+  checkout.forgetAttempt()
+  selectedPaymentMethodId.value = ''
+  recoveryError.value = ''
+  paymentError.value = ''
   void loadCheckout()
+}
+
+onMounted(async () => {
+  try {
+    checkout.restoreAttempt()
+    selectedPaymentMethodId.value = checkout.attempt?.paymentMethodId ?? ''
+  } catch (cause) {
+    recoveryFailed.value = true
+    recoveryError.value = cause instanceof ApiError ? cause.message : 'بازیابی سفارش ناموفق بود.'
+  }
+  await loadCheckout()
+  await recoverOrder().catch(() => {})
 })
 
 watch(() => addresses.items.map(item => item.id), ids => {
@@ -208,10 +308,13 @@ watch(() => addresses.items.map(item => item.id), ids => {
 watch(() => checkout.methods.map(item => item.id), ids => {
   if (!ids.includes(selectedMethodId.value)) selectedMethodId.value = ''
 })
+watch(() => auth.isAuthenticated, authenticated => {
+  if (!authenticated) auth.requireAuth('/checkout')
+})
 watch(() => [currentInput.value?.cart_id, currentInput.value?.address_id, currentInput.value?.shipping_method_id] as const,
   () => { void refreshPreview() })
 watch(() => [cart.loaded, cart.busy, cart.itemCount, cart.error] as const, ([loaded, busy, count, error]) => {
-  if (loaded && !busy && !count && !error && !checkout.order) void navigateTo('/cart')
+  if (loaded && !busy && !count && !error && !checkout.attempt && !recoveryFailed.value) void navigateTo('/cart')
 })
 </script>
 
@@ -219,16 +322,25 @@ watch(() => [cart.loaded, cart.busy, cart.itemCount, cart.error] as const, ([loa
   <div>
     <CartCheckoutStepper :step="checkout.order ? 3 : 2" />
     <div class="mx-auto max-w-7xl px-4 py-7 sm:px-6 sm:py-10 lg:px-8">
-      <section v-if="checkout.order" class="mx-auto max-w-2xl rounded-2xl border border-border bg-card p-6 text-center sm:p-10">
-        <UIcon name="solar:check-circle-bold" class="mx-auto size-14 text-success" />
-        <h1 class="mt-4 text-xl font-bold text-text-primary">سفارش شما ثبت شد</h1>
-        <p class="mt-3 text-sm text-text-secondary">شماره سفارش: <bdi class="font-semibold text-text-primary">{{ checkout.order.order_number }}</bdi></p>
-        <p class="mt-2 text-sm text-text-secondary">مبلغ سفارش: {{ formatMoney(checkout.order.total_amount) }}</p>
-        <p v-if="checkout.order.status === 'pending_payment'" class="mt-4 rounded-xl bg-warning-subtle p-4 text-sm text-text-secondary">سفارش در انتظار پرداخت است. درگاه پرداخت هنوز در این فروشگاه متصل نشده است.</p>
-        <NuxtLink to="/" class="mt-6 inline-block rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground">بازگشت به فروشگاه</NuxtLink>
+      <p v-if="loadError" role="alert" class="mb-4 rounded-xl border border-danger-border p-4 text-sm text-danger">{{ loadError }} <button type="button" class="underline" @click="loadCheckout">تلاش دوباره</button></p>
+      <section v-if="checkout.attempt || recoveryFailed" class="mx-auto max-w-2xl rounded-2xl border border-border bg-card p-6 sm:p-10">
+        <h1 class="text-xl font-bold text-text-primary">پیگیری سفارش و پرداخت</h1>
+        <p v-if="checkout.attempt?.orderId" class="mt-3 text-sm text-text-secondary">شناسه سفارش: <bdi>{{ checkout.attempt.orderId }}</bdi></p>
+        <p v-if="checkout.order" class="mt-3 text-sm text-text-secondary">شماره سفارش: <bdi>{{ checkout.order.order_number }}</bdi> · {{ orderStatusLabel(checkout.order.status) }}</p>
+        <p v-else class="mt-3 text-sm text-text-secondary">نتیجه ثبت سفارش هنوز تأیید نشده است. ادامه، همان درخواست قبلی را بازیابی می‌کند.</p>
+        <p v-if="checkout.order" class="mt-2 text-sm text-text-secondary">مبلغ سفارش: {{ formatMoney(checkout.order.total_amount) }}</p>
+        <p v-if="recoveryError || paymentError" role="alert" class="mt-4 text-sm text-danger">{{ recoveryError || paymentError }}</p>
+        <p v-if="checkout.attempt?.paymentBlocked" role="alert" class="mt-4 text-sm text-warning">تلاش پرداخت نیاز به بررسی دارد. برای پیگیری با پشتیبانی تماس بگیرید.</p>
+        <p v-if="checkout.attempt?.checkoutExpired" role="alert" class="mt-4 text-sm text-warning">مهلت پرداخت این سفارش تمام شده است. برای ادامه، سفارش جدیدی ثبت کنید.</p>
+        <template v-if="!recoveryFailed && !checkout.attempt?.checkoutExpired && (!checkout.order || checkout.order.status === 'pending_payment')">
+          <CheckoutPaymentMethods v-model="selectedPaymentMethodId" class="mt-5" :methods="payments.methods" :loading="payments.loadingMethods" :disabled="finalizing || !!checkout.attempt?.paymentMethodId" />
+          <button type="button" class="mt-5 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50" :disabled="finalizing || payments.starting || orders.detailLoading || !!checkout.attempt?.paymentBlocked || !selectedPaymentMethodId" @click="resumeCheckout">{{ finalizing ? 'در حال بررسی سفارش…' : 'نهایی‌سازی پرداخت و ثبت سفارش' }}</button>
+        </template>
+        <NuxtLink v-if="checkout.attempt?.orderId" :to="`/profile/orders/${encodeURIComponent(checkout.attempt.orderId)}`" class="mt-5 block text-sm text-primary">مشاهده جزئیات سفارش</NuxtLink>
+        <NuxtLink to="/profile" class="mt-4 block text-sm text-primary">مشاهده سفارش‌های حساب کاربری</NuxtLink>
+        <button v-if="checkout.attempt?.checkoutExpired || (checkout.order && checkout.order.status !== 'pending_payment')" type="button" class="mt-4 text-sm font-semibold text-primary" @click="startNewCheckout">شروع سفارش جدید</button>
       </section>
       <template v-else>
-        <p v-if="loadError" role="alert" class="mb-4 rounded-xl border border-danger-border p-4 text-sm text-danger">{{ loadError }} <button type="button" class="underline" @click="loadCheckout">تلاش دوباره</button></p>
         <p v-if="cart.error" role="alert" class="mb-4 rounded-xl border border-danger-border p-4 text-sm text-danger">{{ cart.error }} <button type="button" class="underline" @click="cart.fetchCart().catch(() => {})">دریافت دوباره سبد</button></p>
         <p v-if="!cart.loaded || cart.isLoading" role="status" class="p-8 text-center text-text-secondary">در حال دریافت سبد خرید…</p>
         <div v-else-if="cart.items.length" class="grid items-start gap-6 lg:grid-cols-12">
@@ -240,7 +352,7 @@ watch(() => [cart.loaded, cart.busy, cart.itemCount, cart.error] as const, ([loa
             <p v-if="checkout.previewing" role="status" class="text-sm text-text-secondary">در حال محاسبه هزینه سفارش…</p>
             <p v-if="previewError" role="alert" class="rounded-xl border border-danger-border p-4 text-sm text-danger">{{ previewError }} <button type="button" class="underline" @click="refreshPreview">محاسبه دوباره</button></p>
           </main>
-          <div class="lg:col-span-4 lg:sticky lg:top-24"><CheckoutOrderSummary v-model:coupon="checkout.couponDraft" :items="cart.items" :subtotal-original="cart.subtotalOriginal" :cart-discount="cart.discount" :cart-total="cart.total" :preview="checkout.preview" :method="selectedMethod" :method-name="methodName" :pending="checkout.previewing || checkout.submitting" :disabled="cart.busy || cart.stale || addresses.loading || addresses.mutating || !currentInput" :coupon-disabled="cart.busy || cart.stale" :coupon-applied="!!checkout.preview && !!checkout.couponCode && checkout.couponDraft.trim() === checkout.couponCode" @apply-coupon="applyCoupon" @continue="submitOrder" /></div>
+          <div class="lg:col-span-4 lg:sticky lg:top-24"><CheckoutOrderSummary v-model:coupon="checkout.couponDraft" v-model:payment-method="selectedPaymentMethodId" :payment-methods="payments.methods" :loading-payment-methods="payments.loadingMethods" :items="cart.items" :subtotal-original="cart.subtotalOriginal" :cart-discount="cart.discount" :cart-total="cart.total" :preview="checkout.preview" :method="selectedMethod" :method-name="methodName" :pending="finalizing || checkout.previewing || checkout.submitting || payments.starting" :disabled="cart.busy || cart.stale || addresses.loading || addresses.mutating || !currentInput" :coupon-disabled="cart.busy || cart.stale" :coupon-applied="!!checkout.preview && !!checkout.couponCode && checkout.couponDraft.trim() === checkout.couponCode" @apply-coupon="applyCoupon" @continue="submitOrder" /></div>
         </div>
       </template>
     </div>

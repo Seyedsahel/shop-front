@@ -9,6 +9,7 @@ export class ApiError extends Error {
     public readonly code?: string,
     public readonly source: 'local' | 'transport' = 'local',
     public readonly kind: ApiErrorKind = 'http',
+    public readonly validationMessage?: string,
   ) {
     super(message)
     this.name = 'ApiError'
@@ -42,6 +43,7 @@ function messageForStatus(status: number | undefined, context: ApiErrorContext, 
 export function getUserFriendlyApiErrorMessage(error: unknown, context: ApiErrorContext = 'default') {
   if (error instanceof ApiError) {
     if (error.source === 'local') return error.message
+    if (error.validationMessage) return error.validationMessage
     return messageForStatus(error.status, context, error.kind)
   }
   return messageForStatus(undefined, context, 'network')
@@ -50,14 +52,15 @@ export function getUserFriendlyApiErrorMessage(error: unknown, context: ApiError
 export function withApiErrorContext(error: unknown, context: ApiErrorContext): unknown {
   if (!(error instanceof ApiError) || error.source === 'local') return error
   return new ApiError(
-    messageForStatus(error.status, context, error.kind),
+    error.validationMessage ?? messageForStatus(error.status, context, error.kind),
     error.status,
     error.code,
     'transport',
     error.kind,
+    error.validationMessage,
   )
 }
 
-export function createTransportApiError(status?: number, code?: string, kind: ApiErrorKind = 'http') {
-  return new ApiError(messageForStatus(status, 'default', kind), status, code, 'transport', kind)
+export function createTransportApiError(status?: number, code?: string, kind: ApiErrorKind = 'http', validationMessage?: string) {
+  return new ApiError(validationMessage ?? messageForStatus(status, 'default', kind), status, code, 'transport', kind, validationMessage)
 }
