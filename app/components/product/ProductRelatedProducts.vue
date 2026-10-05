@@ -2,7 +2,7 @@
 const props = defineProps<{ categoryId?: string; currentProductId: string }>()
 const productListStore = useProductListStore()
 
-// TODO: Replace this category-preview fallback with the dedicated related-products backend response when available.
+
 onMounted(() => {
   if (props.categoryId) productListStore.fetchPreview(props.categoryId)
 })

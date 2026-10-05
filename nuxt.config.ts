@@ -29,7 +29,7 @@ export default defineNuxtConfig({
     backendApiKey: '',
     useMockData: true,
       public: {
-    imageBaseUrl: 'http://78.39.57.118/tbt'
+    imageBaseUrl: 'http://78.39.57.118:80/images'
   },
   },
 })
