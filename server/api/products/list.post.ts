@@ -17,7 +17,7 @@ export default defineEventHandler(async (event): Promise<ProductListResponse> =>
         sort_by: body.sortBy,
         sort_dir: body.sortDir,
       },
-    })
+    }, event)
 
     return mapProductListResponse(raw)
   } catch (e: any) {

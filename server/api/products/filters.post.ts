@@ -8,7 +8,7 @@ export default defineEventHandler(async (event): Promise<FiltersResponse> => {
       discount_id: body.discountId,
       limit: body.limit ?? 20,
     },
-  })
+  }, event)
 
   if (!raw || typeof raw !== 'object') throw createError({ statusCode: 502, message: 'Invalid filters response from backend' })
   const array = (value: unknown, field: string): any[] => {

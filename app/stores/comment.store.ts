@@ -19,7 +19,8 @@ export const useCommentStore = defineStore('comment', () => {
   async function fetchComments(targetType: CommentTargetType, targetId: string) {
     isLoading.value = true
     try {
-      const res = await useApi().get<CommentsResponse>(`/comments?targetType=${targetType}&targetId=${targetId}`)
+      const query = new URLSearchParams({ targetType, targetId })
+      const res = await useApi().get<CommentsResponse>(`/comments?${query}`)
       byTarget.value[keyFor(targetType, targetId)] = res.items
       const approvedIds = new Set(res.items.map(comment => comment.id))
       pendingByTarget.value[keyFor(targetType, targetId)] = (pendingByTarget.value[keyFor(targetType, targetId)] ?? [])

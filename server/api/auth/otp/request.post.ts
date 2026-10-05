@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
     // The backend expects JSON encoded as text/plain for this endpoint.
     body: JSON.stringify({ phone: body.phone }),
     headers: { 'Content-Type': 'text/plain' },
-  })
+  }, event)
   
   return response
 })

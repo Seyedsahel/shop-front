@@ -1,5 +1,5 @@
 export default defineEventHandler(async (event): Promise<BrandsResponse> => {
-  const raw = await backendFetch<unknown>('/brands')
+  const raw = await backendFetch<unknown>('/brands', { authorization: 'none' }, event)
   if (!Array.isArray(raw)) throw createError({ statusCode: 502, message: 'Invalid brands response from backend' })
 
   return {

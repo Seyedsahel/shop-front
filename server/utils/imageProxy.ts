@@ -14,28 +14,53 @@ function encodePathname(pathname: string) {
     .join('/')
 }
 
+// Uploads are served by the API application; catalog images have a separate base.
+export function backendMediaBaseUrls() {
+  const config = useRuntimeConfig()
+  return {
+    images: `${config.public.imageBaseUrl.replace(/\/+$/, '')}/`,
+    uploads: `${config.backendUrl.replace(/\/+$/, '')}/tbt/`,
+  }
+}
+
+export function resolveBackendMediaUrl(path: string, search = '') {
+  const segments = path.split('/').filter(Boolean).map((segment) => {
+    try {
+      return decodeURIComponent(segment)
+    } catch {
+      throw createError({ statusCode: 400, statusMessage: 'Invalid media path' })
+    }
+  })
+  if (!segments.length || segments.some(segment => segment === '.' || segment === '..' || /[/\\\u0000]/.test(segment))) {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid media path' })
+  }
+  const bases = backendMediaBaseUrls()
+  const url = new URL(segments.map(segment => encodeURIComponent(segment)).join('/'), segments[0] === 'uploads' ? bases.uploads : bases.images)
+  url.search = search
+  return url.toString()
+}
+
 function normalizeImagePath(path?: string | null) {
   const trimmed = path?.trim()
   if (!trimmed) return ''
 
   if (/^https?:\/\//i.test(trimmed)) {
-    const config = useRuntimeConfig()
-    const baseUrl = config.public.imageBaseUrl
-
     try {
       const imageUrl = new URL(trimmed)
-      const backendImageBaseUrl = new URL(`${baseUrl.replace(/\/+$/, '')}/`)
-
-      if (imageUrl.origin !== backendImageBaseUrl.origin) return trimmed
-      if (!imageUrl.pathname.startsWith(backendImageBaseUrl.pathname)) return trimmed
-
-      const relativePath = imageUrl.pathname.slice(backendImageBaseUrl.pathname.length)
-      const proxiedPath = encodePathname(relativePath)
+      const bases = backendMediaBaseUrls()
+      const base = [new URL('uploads/', bases.uploads), new URL(bases.images)].find(base =>
+        imageUrl.origin === base.origin && imageUrl.pathname.startsWith(base.pathname))
+      if (!base) return trimmed
+      const relativePath = imageUrl.pathname.slice(base.pathname.length)
+      const prefix = base.pathname.endsWith('/uploads/') ? 'uploads/' : ''
+      const proxiedPath = encodePathname(prefix + relativePath)
       return proxiedPath ? `/api/images/${proxiedPath}${imageUrl.search}` : ''
     } catch {
       return ''
     }
   }
+
+  if (trimmed.startsWith('/api/images/')) return trimmed
 
   const relativePath = trimmed.replace(/^\/+/, '')
   const queryIndex = relativePath.indexOf('?')
