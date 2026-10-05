@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const props = defineProps<{ title: string; dismissible?: boolean }>()
+const props = defineProps<{ title: string; dismissible?: boolean; showClose?: boolean }>()
 const open = defineModel<boolean>({ required: true })
 const dialog = ref<HTMLDialogElement | null>(null)
 const titleId = useId()
@@ -41,7 +41,7 @@ onBeforeUnmount(() => { dialog.value?.close(); unlockScroll(); previousFocus?.fo
       <div class="p-5 sm:p-6">
         <div class="mb-5 flex items-center justify-between gap-4">
           <h2 :id="titleId" class="text-lg font-bold">{{ title }}</h2>
-          <button type="button" :disabled="dismissible === false" aria-label="بستن" class="grid size-10 shrink-0 place-items-center rounded-lg hover:bg-surface disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-primary" @click="open = false"><UIcon name="solar:close-circle-broken" class="size-6" /></button>
+          <button v-if="showClose !== false" type="button" :disabled="dismissible === false" aria-label="بستن" class="grid size-10 shrink-0 place-items-center rounded-lg hover:bg-surface disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-primary" @click="open = false"><UIcon name="solar:close-circle-broken" class="size-6" /></button>
         </div>
         <slot />
       </div>

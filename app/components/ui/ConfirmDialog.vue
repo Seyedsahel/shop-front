@@ -10,6 +10,7 @@ function updateOpen(open: boolean) {
   <UiModal
     :model-value="state.open"
     :title="state.options.title"
+    :show-close="false"
     @update:model-value="updateOpen"
   >
     <p class="text-sm leading-7 text-text-secondary">{{ state.message }}</p>
