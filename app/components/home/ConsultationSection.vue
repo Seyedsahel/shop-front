@@ -1,11 +1,16 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+defineProps<{
+  backgroundImageUrl?: string
+}>()
+</script>
 
 <template>
     <section class="relative isolate flex max-w-7xl rounded-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6 items-center justify-center overflow-hidden">
     <!-- Background -->
     <img
-      src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSqWrGyimZ-KetAjyPnvwctwHka45lyLjufzZWLZ_QJ7jwXM1D70foIlTE&s=10"
-      alt="Hero Background"
+      v-if="backgroundImageUrl"
+      :src="backgroundImageUrl"
+      alt=""
       class="absolute inset-0 h-full w-full object-cover"
     >
 
