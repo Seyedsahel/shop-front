@@ -15,33 +15,27 @@ watch(open, value => {
 </script>
 
 <template>
-  <ClientOnly>
-  <Teleport to="#teleports">
-    <Transition
-      enter-active-class="transition duration-200" enter-from-class="opacity-0"
-      leave-active-class="transition duration-150" leave-to-class="opacity-0"
-    >
-      <div v-if="open" class="fixed inset-0 z-100 bg-surface flex flex-col">
-        <div class="flex items-center gap-3 px-4 h-16 border-b border-divider">
-          <UiSearchBar
-            v-model="query"
-            autofocus
-            :navigate-on-submit="false"
-            class="flex-1"
-            @submit="navigateTo(`/products?search=${encodeURIComponent($event)}`); close()"
-          />
-          <button class="text-text-secondary shrink-0" @click="close">
-            <UIcon name="solar:close-circle-broken" class="size-6" />
-          </button>
-        </div>
-        <ProductSearchResultsPanel
-          :query="query"
-          mode="mobile"
-          @close="close"
-          @select="query = ''; close()"
+  <UiModal v-model="open" title="جستجوی محصولات" placement="fullscreen">
+    <template #header="{ titleId }">
+      <h2 :id="titleId" class="sr-only">جستجوی محصولات</h2>
+      <div class="flex shrink-0 items-center gap-3 px-4 h-16 border-b border-divider">
+        <UiSearchBar
+          v-model="query"
+          autofocus
+          :navigate-on-submit="false"
+          class="flex-1"
+          @submit="navigateTo(`/products?search=${encodeURIComponent($event)}`); close()"
         />
+        <button type="button" aria-label="بستن جستجو" class="text-text-secondary shrink-0 focus-visible:outline-2 focus-visible:outline-primary" @click="close">
+          <UIcon name="solar:close-circle-broken" class="size-6" />
+        </button>
       </div>
-    </Transition>
-  </Teleport>
-  </ClientOnly>
+    </template>
+    <ProductSearchResultsPanel
+      :query="query"
+      mode="mobile"
+      @close="close"
+      @select="query = ''; close()"
+    />
+  </UiModal>
 </template>

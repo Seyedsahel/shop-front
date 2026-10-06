@@ -35,7 +35,7 @@ function onToggle(checked: boolean) {
   <!-- boolean: standalone toggle row, no accordion -->
   <div v-if="filter.dataType === 'boolean'" class="flex items-center justify-between py-3.5 border-b border-divider">
     <p class="text-sm text-text-primary">{{ filter.name }}</p>
-    <UiSwitch :model-value="filterStore.values[filter.slug] === 'true'" @update:model-value="onToggle" />
+    <UiSwitch :aria-label="filter.name" :model-value="filterStore.values[filter.slug] === 'true'" @update:model-value="onToggle" />
   </div>
 
   <!-- everything else: accordion -->

@@ -65,7 +65,7 @@ function applyFilters() {
     <div v-if="activeChips.length" class="flex flex-wrap gap-1.5">
       <span v-for="chip in activeChips" :key="chip.key" class="inline-flex items-center gap-1 rounded-full border border-border-strong bg-surface-hover px-2.5 py-1 text-xs text-text-primary">
         {{ chip.label }}
-        <button type="button" class="text-text-muted hover:text-danger" @click="chip.remove">×</button>
+        <button type="button" :aria-label="`حذف فیلتر ${chip.label}`" class="text-text-muted hover:text-danger" @click="chip.remove">×</button>
       </span>
     </div>
 
@@ -96,7 +96,7 @@ function applyFilters() {
           <div class="flex flex-col gap-3">
             <div class="relative">
               <UIcon name="solar:magnifer-linear" class="absolute right-2.5 top-1/2 size-4 -translate-y-1/2 text-text-muted" />
-              <input v-model="brandSearch" type="search" placeholder="جستجوی برند..." class="w-full rounded-xl border border-border-strong bg-surface py-2 pr-8 pl-3 text-xs outline-none focus:border-primary" />
+              <input v-model="brandSearch" type="search" aria-label="جستجوی برند" placeholder="جستجوی برند..." class="w-full rounded-xl border border-border-strong bg-surface py-2 pr-8 pl-3 text-xs outline-none focus:border-primary" />
             </div>
             <div class="flex max-h-40 flex-col gap-2 overflow-y-auto">
               <label v-for="brand in filteredBrands" :key="brand.id" class="flex items-center justify-between rounded-lg px-1 py-1.5 text-sm text-text-secondary hover:bg-surface">

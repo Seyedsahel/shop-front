@@ -21,6 +21,8 @@ const step = computed(() => {
     <div class="flex flex-col gap-2">
       <input
         type="range"
+        aria-label="حداکثر قیمت"
+        :aria-valuetext="formatMoney(selectedMax)"
         :min="minValue" :max="maxValue" :step="step"
         v-model.number="selectedMax"
         class="w-full accent-primary"

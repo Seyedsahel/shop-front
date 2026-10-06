@@ -41,6 +41,7 @@ function clear() {
       ref="input"
       v-model="query"
       type="search"
+      :aria-label="placeholder"
       :placeholder="placeholder"
       class="w-full bg-transparent outline-none text-sm text-text-primary placeholder:text-text-muted"
       @focus="emit('focus')"
@@ -48,6 +49,7 @@ function clear() {
     <button
       v-if="query"
       type="button"
+      aria-label="پاک کردن جستجو"
       class="shrink-0 text-text-muted hover:text-text-primary transition-colors"
       @click="clear"
     >

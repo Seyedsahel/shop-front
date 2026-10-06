@@ -6,6 +6,9 @@ const open = ref(false)
 
 <template>
   <button
+    type="button"
+    aria-haspopup="dialog"
+    :aria-expanded="open"
     class="lg:hidden flex items-center gap-2 w-full justify-center border border-border-strong rounded-xl py-2.5 text-sm text-text-primary"
     @click="open = true"
     v-bind="$attrs"
@@ -17,19 +20,17 @@ const open = ref(false)
     </span>
   </button>
 
-  <Teleport to="#teleports">
-    <Transition enter-active-class="transition duration-200" enter-from-class="opacity-0" leave-active-class="transition duration-150" leave-to-class="opacity-0">
-      <div v-if="open" class="fixed inset-0 z-100 bg-surface flex flex-col">
+  <UiModal v-model="open" title="فیلترها" placement="fullscreen">
+    <template #header="{ titleId, close }">
         <div class="flex items-center justify-between h-14 px-4 border-b border-divider shrink-0">
-          <span class="text-sm font-semibold text-text-primary">فیلترها</span>
-          <button class="text-text-secondary" @click="open = false">
+          <h2 :id="titleId" class="text-sm font-semibold text-text-primary">فیلترها</h2>
+          <button type="button" aria-label="بستن فیلترها" class="text-text-secondary focus-visible:outline-2 focus-visible:outline-primary" @click="close">
             <UIcon name="solar:close-circle-broken" class="size-6" />
           </button>
         </div>
-        <div class="flex-1 overflow-y-auto px-4 py-2">
-          <FilterPanel @applied="open = false" />
-        </div>
-      </div>
-    </Transition>
-  </Teleport>
+    </template>
+    <div class="min-h-0 flex-1 overflow-y-auto px-4 py-2">
+      <FilterPanel @applied="open = false" />
+    </div>
+  </UiModal>
 </template>

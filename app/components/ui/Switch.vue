@@ -1,11 +1,15 @@
 <script setup lang="ts">
+defineProps<{ disabled?: boolean }>()
 const model = defineModel<boolean>({ required: true })
 </script>
 
 <template>
   <button
     type="button"
-    class="w-10 h-6 rounded-full transition-colors relative shrink-0"
+    role="switch"
+    :aria-checked="model"
+    :disabled="disabled"
+    class="w-10 h-6 rounded-full transition-colors relative shrink-0 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-primary"
     :class="model ? 'bg-accent' : 'bg-border-strong'"
     @click="model = !model"
   >

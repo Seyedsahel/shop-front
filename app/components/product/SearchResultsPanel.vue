@@ -75,6 +75,7 @@ function selectProduct() {
     >
       <button
         type="button"
+        aria-label="جستجوی محصولات"
         class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-text-primary text-card transition-colors hover:bg-text-secondary"
         @click="runSearch(normalizedQuery)"
       >
@@ -85,6 +86,7 @@ function selectProduct() {
       </span>
       <button
         type="button"
+        aria-label="بستن نتایج جستجو"
         class="flex size-9 shrink-0 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-surface hover:text-text-primary"
         @click="close"
       >

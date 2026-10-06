@@ -23,6 +23,13 @@ const categoriesSidebarOpen = ref(false)
 const categoriesDropdownOpen = ref(false)
 const linksOpen = ref(false)
 const mobileSearchOpen = ref(false)
+watch(isDesktop, desktop => {
+  if (desktop) {
+    categoriesSidebarOpen.value = false
+    linksOpen.value = false
+    mobileSearchOpen.value = false
+  }
+})
 const desktopSearchOpen = ref(false)
 const desktopSearchQuery = ref('')
 const desktopSearchPanelTop = ref(56)
@@ -103,12 +110,13 @@ watch(width, () => {
       </div>
 
       <div class="flex items-center gap-3 shrink-0">
-        <button class="md:hidden text-text-secondary mt-2" @click="mobileSearchOpen = true">
+        <button type="button" aria-label="جستجوی محصولات" class="md:hidden text-text-secondary mt-2" @click="mobileSearchOpen = true">
           <UIcon name="solar:magnifer-linear" class="size-5" />
         </button>
 
         <button
           type="button"
+          :aria-label="authStore.isAuthenticated ? 'پروفایل' : 'ورود'"
           class="inline-flex cursor-pointer items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm text-text-primary transition-colors hover:bg-surface-hover"
           @click="navigateTo(authStore.isAuthenticated ? '/profile' : '/auth')"
         >
@@ -126,6 +134,7 @@ watch(width, () => {
 
         <button
           type="button"
+          aria-label="سبد خرید"
           class="relative inline-flex cursor-pointer items-center justify-center rounded-md px-3 py-1.5 text-sm text-text-primary transition-colors hover:bg-surface-hover"
           @click="navigateTo('/cart')"
         >
