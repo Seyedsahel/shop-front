@@ -1,0 +1,51 @@
+/* Shared native scrollbar styling for the document and nested scroll containers. */
+@layer base {
+  @media (forced-colors: none) {
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: var(--color-accent-subtle) var(--color-surface);
+    }
+
+    /* Prefer native pseudo-elements where available for rounded thumbs and hover. */
+    @supports selector(::-webkit-scrollbar) {
+      * {
+        scrollbar-width: auto;
+        scrollbar-color: auto;
+      }
+
+      *::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+      }
+
+      *::-webkit-scrollbar-track,
+      *::-webkit-scrollbar-corner {
+        background: var(--color-surface);
+      }
+
+      *::-webkit-scrollbar-thumb {
+        background-color: var(--color-accent);
+        background-clip: padding-box;
+        border: 2px solid var(--color-surface);
+        border-radius: 999px;
+      }
+
+      *::-webkit-scrollbar-thumb:hover {
+        background-color: var(--color-primary);
+      }
+
+      *::-webkit-scrollbar-thumb:active {
+        background-color: var(--color-accent);
+      }
+    }
+  }
+}
+
+/* Existing carousel/story tracks opt out while retaining native scrolling. */
+@utility scrollbar-none {
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}

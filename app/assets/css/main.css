@@ -5,6 +5,7 @@
 /* Design tokens — import order matters */
 @import "./tokens/colors.css";
 @import "./tokens/base.css";
+@import "./scrollbar.css";
 /* @import "./tokens/radius.css";
 @import "./tokens/shadows.css";
 @import "./tokens/animations.css";  */
