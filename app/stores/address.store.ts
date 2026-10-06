@@ -6,6 +6,8 @@ export const useAddressStore = defineStore('addresses', () => {
   const mutating = ref(false)
   const loaded = ref(false)
   const error = ref('')
+  const requested = ref(false)
+  const publish = useSessionSync()
   let generation = 0
   let listRevision = 0
 
@@ -14,10 +16,13 @@ export const useAddressStore = defineStore('addresses', () => {
     listRevision++
     items.value = []
     loaded.value = false
+    loading.value = false
     error.value = ''
+    if (import.meta.client && requested.value) void revalidate().catch(() => {})
   }, { flush: 'sync' })
 
-  async function fetchAll() {
+  const refresh = useResourceRefresh(async () => {
+    if (!auth.isAuthenticated) return
     const current = generation
     const revision = listRevision
     loading.value = true
@@ -31,16 +36,21 @@ export const useAddressStore = defineStore('addresses', () => {
       if (current === generation && revision === listRevision) error.value = cause instanceof ApiError ? cause.message : 'دریافت نشانی‌ها ناموفق بود.'
       throw cause
     } finally {
-      loading.value = false
+      if (current === generation) loading.value = false
     }
-  }
+  }, mutating)
+
+  function fetchAll() { requested.value = true; return refresh.request() }
+  function revalidate() { return refresh.request(true) }
 
   async function create(input: AddressWriteInput) {
+    if (mutating.value) throw new ApiError('لطفاً تا پایان عملیات نشانی صبر کنید.')
     const current = generation
     mutating.value = true
     try {
       const address = await api.post<Address>('/addresses', input)
       if (current !== generation) throw new ApiError('نشست کاربری تغییر کرده است؛ نشانی‌ها را دوباره دریافت کنید.')
+      publish('addresses')
       listRevision++
       items.value.unshift(address)
       return address
@@ -50,11 +60,13 @@ export const useAddressStore = defineStore('addresses', () => {
   }
 
   async function update(id: string, input: AddressWriteInput) {
+    if (mutating.value) throw new ApiError('لطفاً تا پایان عملیات نشانی صبر کنید.')
     const current = generation
     mutating.value = true
     try {
       const address = await api.put<Address>(`/addresses/${encodeURIComponent(id)}`, input)
       if (current !== generation) throw new ApiError('نشست کاربری تغییر کرده است؛ نشانی‌ها را دوباره دریافت کنید.')
+      publish('addresses')
       listRevision++
       const index = items.value.findIndex(item => item.id === id)
       if (index !== -1) items.value[index] = address
@@ -65,11 +77,13 @@ export const useAddressStore = defineStore('addresses', () => {
   }
 
   async function remove(id: string) {
+    if (mutating.value) throw new ApiError('لطفاً تا پایان عملیات نشانی صبر کنید.')
     const current = generation
     mutating.value = true
     try {
       await api.delete(`/addresses/${encodeURIComponent(id)}`)
       if (current !== generation) throw new ApiError('نشست کاربری تغییر کرده است؛ نشانی‌ها را دوباره دریافت کنید.')
+      publish('addresses')
       listRevision++
       items.value = items.value.filter(item => item.id !== id)
     } finally {
@@ -77,5 +91,5 @@ export const useAddressStore = defineStore('addresses', () => {
     }
   }
 
-  return { items, loading, mutating, loaded, error, fetchAll, create, update, remove }
+  return { items, loading, mutating, loaded, requested, error, fetchAll, revalidate, create, update, remove }
 })

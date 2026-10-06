@@ -3,14 +3,16 @@ definePageMeta({ middleware: 'auth' })
 
 const route = useRoute()
 const orders = useOrderStore()
+const auth = useAuthStore()
 const id = computed(() => String(route.params.id))
 const order = computed(() => orders.current?.id === id.value ? orders.current : null)
 
 function loadOrder() {
+  if (!auth.isAuthenticated) return
   void orders.fetchOne(id.value).catch(() => {})
 }
 
-watch(id, loadOrder, { immediate: true })
+watch(() => [id.value, auth.sessionScope, auth.isAuthenticated], loadOrder, { immediate: true })
 </script>
 
 <template>

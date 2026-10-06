@@ -17,6 +17,7 @@ async function load(path) {
 Object.assign(globalThis, h3, { ref, watch, defineStore })
 Object.assign(globalThis, await load('app/utils/api-error.ts'))
 Object.assign(globalThis, await load('app/utils/checkoutAttempt.ts'))
+globalThis.useSessionSync = () => () => {}
 const { useCheckoutStore } = await load('app/stores/checkout.store.ts')
 const input = { cart_id: 'cart-1', address_id: 'address-1', shipping_method_id: 'shipping-1' }
 const order = { id: 'a4e39588-64b0-4eaf-b652-09b50f107094', order_number: 'ORD-1', status: 'pending_payment', total_amount: 10000, currency: 'IRR' }

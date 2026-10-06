@@ -20,6 +20,8 @@ Baseline examples: `/`, `/products`, a category/search/discount query, `/discoun
 
 Before migrating the product list, read [the current product browsing contracts](product-browsing.md), particularly confirmed-navigation invalidation and infinite-scroll refresh behavior.
 
+Before migrating private resource loaders, read [session/resource freshness contracts](session-resource-freshness.md). Preserve scope guards, mutation-aware refresh queues, current-cookie validation, and client-only cross-tab synchronization.
+
 ## 2. Keep one owner for resource data
 
 Keep canonical resource state in the existing Pinia stores and all HTTP in `useApi` and the server proxy. Pages should await store actions during setup; components should primarily render store-backed props and emit interactions.

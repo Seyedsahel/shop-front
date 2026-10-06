@@ -1,6 +1,7 @@
 export const usePaymentStore = defineStore('payments', () => {
   const api = useApi()
   const auth = useAuthStore()
+  const publish = useSessionSync()
   const methods = ref<PaymentMethod[]>([])
   const loadingMethods = ref(false)
   const starting = ref(false)
@@ -18,6 +19,7 @@ export const usePaymentStore = defineStore('payments', () => {
     try {
       const result = await api.post<PaymentRedirect>(`/orders/${encodeURIComponent(orderId)}/payments`, { method_id: methodId })
       if ((auth.sessionScope ?? auth.identity) !== scope) throw new ApiError('نشست کاربری تغییر کرده است؛ وضعیت سفارش را بررسی کنید.')
+      publish('orders')
       return result
     } finally { starting.value = false }
   }

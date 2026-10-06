@@ -11,9 +11,13 @@ export const useOrderStore = defineStore('orders', () => {
   const error = ref('')
   const detailError = ref('')
   const loaded = ref(false)
+  const requested = ref(false)
+  const requestedPage = ref(1)
+  const requestedId = ref<string | null>(null)
   let generation = 0
   let listRequest = 0
   let detailRequest = 0
+  let requestedDetailScope: string | null | undefined
 
   watch(() => auth.sessionScope ?? auth.identity, () => {
     generation++
@@ -28,9 +32,12 @@ export const useOrderStore = defineStore('orders', () => {
     detailLoading.value = false
     error.value = ''
     detailError.value = ''
+    if (import.meta.client && requested.value) void revalidate().catch(() => {})
   }, { flush: 'sync' })
 
-  async function fetchAll(nextPage = 1) {
+  const listRefresh = useResourceRefresh(async () => {
+    if (!auth.isAuthenticated) return
+    const nextPage = requestedPage.value
     const identity = generation
     const request = ++listRequest
     loading.value = true
@@ -49,9 +56,20 @@ export const useOrderStore = defineStore('orders', () => {
     } finally {
       if (identity === generation && request === listRequest) loading.value = false
     }
-  }
+  })
 
-  async function fetchOne(id: string) {
+  function fetchAll(nextPage = 1) {
+    const changed = requested.value && requestedPage.value !== nextPage
+    if (changed) listRequest++
+    requested.value = true
+    requestedPage.value = nextPage
+    return listRefresh.request(changed)
+  }
+  function revalidate() { return listRefresh.request(true) }
+
+  const oneRefresh = useResourceRefresh(async () => {
+    const id = requestedId.value
+    if (!auth.isAuthenticated || !id) return
     const identity = generation
     const request = ++detailRequest
     current.value = null
@@ -67,7 +85,16 @@ export const useOrderStore = defineStore('orders', () => {
     } finally {
       if (identity === generation && request === detailRequest) detailLoading.value = false
     }
+  })
+
+  function fetchOne(id: string, fresh = false) {
+    const scope = auth.sessionScope ?? auth.identity
+    const changed = requestedId.value !== id || requestedDetailScope !== scope
+    if (changed) detailRequest++
+    requestedId.value = id
+    requestedDetailScope = scope
+    return oneRefresh.request(fresh || changed)
   }
 
-  return { items, current, total, page, limit, loading, detailLoading, error, detailError, loaded, fetchAll, fetchOne }
+  return { items, current, total, page, limit, loading, detailLoading, error, detailError, loaded, requested, requestedPage, requestedId, fetchAll, revalidate, fetchOne }
 })

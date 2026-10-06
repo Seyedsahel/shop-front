@@ -16,6 +16,8 @@ async function load(path) {
 }
 Object.assign(globalThis, h3, { ref, computed, watch, defineStore })
 Object.assign(globalThis, await load('app/utils/api-error.ts'))
+globalThis.useSessionSync = () => () => {}
+globalThis.useResourceRefresh = (await load('app/composables/useResourceRefresh.ts')).useResourceRefresh
 const { useCartStore } = await load('app/stores/cart.store.ts')
 const fixture = () => ({
   id: 'cart', guest_id: 'guest', user_id: '',
@@ -148,6 +150,7 @@ test('late cart response from old identity is discarded', async () => {
   let release
   api.get = () => new Promise(resolve => { release = resolve })
   const pending = store.fetchCart()
+  await new Promise(resolve => setImmediate(resolve))
   auth.identity = 'another-user'
   release(fixture())
   await assert.rejects(pending)

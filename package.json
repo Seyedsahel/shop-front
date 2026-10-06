@@ -11,6 +11,7 @@
     "typecheck": "nuxt typecheck",
     "test:product-browse": "node tests/product-browse.test.mjs",
     "test:session": "node tests/session.test.mjs",
+    "test:session-freshness": "node tests/session-freshness.test.mjs",
     "test:cart": "node tests/cart.test.mjs",
     "test:wishlist": "node tests/wishlist.test.mjs"
   },

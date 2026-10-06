@@ -1,6 +1,7 @@
 export const useCheckoutStore = defineStore('checkout', () => {
   const api = useApi()
   const auth = useAuthStore()
+  const publish = useSessionSync()
   const methods = ref<ShippingMethod[]>([])
   const preview = ref<CheckoutPreview | null>(null)
   const order = ref<CheckoutOrder | null>(null)
@@ -118,6 +119,8 @@ export const useCheckoutStore = defineStore('checkout', () => {
       sent = true
       const result = await api.post<CheckoutOrder>('/checkout', saved.input, { headers: { 'Idempotency-Key': saved.key } })
       if ((auth.sessionScope ?? auth.identity) !== scope) throw new ApiError('نشست کاربری تغییر کرده است؛ وضعیت سفارش را بررسی کنید.')
+      publish('orders')
+      publish('cart')
       order.value = result
       saveAttempt({ ...saved, rejected: false, orderId: result.id })
       clearPreview()

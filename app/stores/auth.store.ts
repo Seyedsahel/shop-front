@@ -12,6 +12,9 @@ export const useAuthStore = defineStore('auth', () => {
   const hasGuestSession = ref(false)
   const sessionRevision = ref(0)
   let sessionQueue: Promise<unknown> = Promise.resolve()
+  const publish = useSessionSync()
+  let sessionRequest: Promise<SessionResponse> | null = null
+  let refreshRequest: Promise<SessionResponse | null> | null = null
   let guestRequest: Promise<SessionResponse> | null = null
 
   // Per-store serialization also works on SSR without sharing visitors' state.
@@ -58,7 +61,9 @@ export const useAuthStore = defineStore('auth', () => {
       const session = create
         ? await api.post<SessionResponse>('/auth/guest')
         : await api.get<SessionResponse>('/auth/me')
+      const previousIdentity = identity.value
       applySession(session)
+      if (create && previousIdentity !== session.identity) publish('session')
       return action(session)
     })
   }
@@ -96,6 +101,7 @@ export const useAuthStore = defineStore('auth', () => {
         applySession(session)
         if (!session.isAuthenticated) throw new ApiError('ورود تأیید نشد، دوباره تلاش کنید.', 401)
       })
+      publish('session')
       toast.success('ورود با موفقیت انجام شد.')
     } catch (e) {
       const contextualError = withApiErrorContext(e, 'auth')
@@ -106,25 +112,34 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  function fetchSession() {
+  function fetchSession(): Promise<SessionResponse> {
+    if (sessionRequest) return sessionRequest
     const api = useApi()
-    return withSessionLock(async () => {
+    sessionRequest = withSessionLock(async () => {
       // Network failures do not prove that an existing session is invalid.
       const session = await api.get<SessionResponse>('/auth/me')
       applySession(session)
       return session
-    })
+    }).finally(() => { sessionRequest = null })
+    return sessionRequest
   }
 
-  function refreshSession() {
+  function refreshSession(): Promise<SessionResponse | null> {
+    if (refreshRequest) return refreshRequest
     const api = useApi()
-    return withSessionLock(async () => {
-      if (!isAuthenticated.value) return null
+    refreshRequest = withSessionLock(async () => {
+      // Another tab may have logged out or changed accounts. Check current
+      // cookies under the same lock before issuing a token mutation.
+      const current = await api.get<SessionResponse>('/auth/me')
+      applySession(current)
+      if (!current.isAuthenticated) return null
       await api.post<RefreshTokenResponse>('/auth/refresh')
       const session = await api.get<SessionResponse>('/auth/me')
       applySession(session)
+      publish('session')
       return session
-    })
+    }).finally(() => { refreshRequest = null })
+    return refreshRequest
   }
 
   async function logout() {
@@ -138,6 +153,7 @@ export const useAuthStore = defineStore('auth', () => {
         phone.value = ''
         otpRequestedAt.value = null
       })
+      publish('session')
       toast.success('با موفقیت خارج شدید.')
     } catch (e) {
       toast.error(getUserFriendlyApiErrorMessage(e, 'auth'))

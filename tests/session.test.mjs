@@ -186,6 +186,7 @@ test('concurrent guest requests are deduplicated and login waits for cookie crea
     },
     get: async () => ({ identity: 'user', isAuthenticated: true, hasGuestSession: false, user: { id: 'user' } }),
   })
+  globalThis.useSessionSync = () => () => {}
   const { useAuthStore } = await load('app/stores/auth.store.ts')
   const store = useAuthStore()
   const first = store.ensureShoppingSession()
@@ -236,6 +237,7 @@ test('login waits until the shopping operation and refresh release the shared se
     get: async () => ({ identity: 'user', isAuthenticated: true, hasGuestSession: false, user: { id: 'user' } }),
     post: async path => { calls.push(path); return { success: true } },
   })
+  globalThis.useSessionSync = () => () => {}
   const { useAuthStore } = await load('app/stores/auth.store.ts')
   const store = useAuthStore()
   const operation = store.withShoppingSession(false, async () => {

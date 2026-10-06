@@ -14,7 +14,7 @@ async function loadOrder() {
   await orders.fetchOne(orderId.value).catch(() => {})
 }
 
-watch(() => [orderId.value, auth.isAuthenticated], () => { void loadOrder() }, { immediate: true })
+watch(() => [orderId.value, auth.isAuthenticated, auth.sessionScope], () => { void loadOrder() }, { immediate: true })
 </script>
 
 <template>

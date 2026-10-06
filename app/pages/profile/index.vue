@@ -99,6 +99,13 @@ async function logout() {
   }
 }
 
+watch(() => auth.sessionScope ?? auth.identity, () => {
+  formOpen.value = false
+  editingId.value = null
+  draft.value = emptyDraft()
+  errors.value = {}
+})
+
 onMounted(() => {
   void addresses.fetchAll().catch(() => {})
   void locations.fetchAll().catch(() => {})

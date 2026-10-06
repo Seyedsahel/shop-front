@@ -16,6 +16,8 @@ async function load(path) {
 }
 Object.assign(globalThis, h3, { ref, computed, watch, defineStore })
 globalThis.ApiError = (await load('app/utils/api-error.ts')).ApiError
+globalThis.useSessionSync = () => () => {}
+globalThis.useResourceRefresh = (await load('app/composables/useResourceRefresh.ts')).useResourceRefresh
 const { useWishlistStore } = await load('app/stores/wishlist.store.ts')
 const fixture = () => ({
   id: 'list', guest_id: 'guest', user_id: '',

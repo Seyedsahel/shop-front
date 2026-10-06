@@ -58,3 +58,5 @@ export interface SessionResponse {
   isAuthenticated: boolean
   user?: User
 }
+
+export type SessionResource = 'session' | 'cart' | 'wishlist' | 'addresses' | 'orders'

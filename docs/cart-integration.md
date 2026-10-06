@@ -2,6 +2,8 @@
 
 The existing Cart UI now uses the backend through one canonical Cart store.
 
+For current visibility, scope and cross-tab behavior, read [session/resource freshness](session-resource-freshness.md). The deferred-API section below is historical and contains superseded checkout/address/wishlist notes.
+
 ## Request and session flow
 
 `UI → Cart store → useApi → Nuxt cart routes → backendFetch → backend`
