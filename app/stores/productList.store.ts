@@ -8,8 +8,7 @@ export const useProductListStore = defineStore('productList', () => {
   const isLoadingMore = ref(false)
   const sort = ref('relevant')
   const listSearch = ref('')
-  const discountId = ref<string | null>(null)
-  const discountedOnly = ref(false)
+  const browseRequest = ref<{ context: ProductBrowseContext; request: ProductListRequest } | null>(null)
   const hasDiscountedProducts = ref<boolean | null>(null)
   const isDiscountedAvailabilityLoading = ref(false)
   let listRequestId = 0
@@ -28,23 +27,18 @@ export const useProductListStore = defineStore('productList', () => {
   
   // ---- Main paginated list (used by /products) ----
   async function refetch(mode: 'replace' | 'append' = 'replace', requestedPage = page.value) {
+    if (!browseRequest.value) return
+    const { context, request } = browseRequest.value
     const requestId = ++listRequestId
     if (mode === 'append') isLoadingMore.value = true
     else isLoading.value = true
 
     try {
-      const filterStore = useFilterStore()
-      const sortOption = sortOptions.find(o => o.id === sort.value)
-
-      const res = await useApi().post<ProductListResponse>(discountedOnly.value ? '/discounts/products' : '/products/list', {
-        ...filterStore.toProductListRequest(),
-        discountId: discountId.value ?? undefined,
-        discountedOnly: discountedOnly.value || undefined,
-        search: listSearch.value || undefined,
+      const res = await useApi().post<ProductListResponse>(context.collection.kind === 'discounted' ? '/discounts/products' : '/products/list', {
+        ...request,
+        categoryIds: context.categoryIds,
+        discountId: context.discountId,
         page: requestedPage,
-        limit: limit.value,
-        sortBy: sortOption?.sortBy,
-        sortDir: sortOption?.sortDir,
       } satisfies ProductListRequest)
 
       if (requestId !== listRequestId) return
@@ -58,24 +52,6 @@ export const useProductListStore = defineStore('productList', () => {
       total.value = res.total
       page.value = res.page
       limit.value = res.limit
-
-      const route = useRoute()
-      const router = useRouter()
-      const categorySlugs = filterStore.selectedCategories.map(category => category.slug)
-      const brandSlugs = filterStore.selectedBrands.map(brand => brand.slug)
-      await router.replace({
-        query: {
-          ...route.query,
-          search: listSearch.value || undefined,
-          category: categorySlugs.length ? categorySlugs.join(',') : undefined,
-          brand: brandSlugs.length ? brandSlugs.join(',') : undefined,
-          sort: sort.value,
-          filters: JSON.stringify(filterStore.values),
-          priceMin: filterStore.hasCustomPrice ? String(filterStore.selectedPriceMin) : undefined,
-          priceMax: filterStore.hasCustomPrice ? String(filterStore.selectedPriceMax) : undefined,
-          page: String(page.value),
-        },
-      })
     } catch (e) {
       if (requestId !== listRequestId) return
       useAppToast().error(e instanceof ApiError ? e.message : 'خطا در دریافت محصولات.')
@@ -87,8 +63,34 @@ export const useProductListStore = defineStore('productList', () => {
     }
   }
 
-  function fetchList(params: { page?: number } = {}) {
-    return refetch('replace', params.page ?? 1)
+  function invalidateListRequests() {
+    listRequestId++
+    isLoading.value = false
+    isLoadingMore.value = false
+    browseRequest.value = null
+    items.value = []
+    total.value = 0
+    listSearch.value = ''
+  }
+
+  function fetchList(params: { context: ProductBrowseContext; request: ProductListRequest; sort: string }) {
+    // Store an immutable applied snapshot. Load-more must not use unapplied UI drafts.
+    browseRequest.value = {
+      context: {
+        collection: { ...params.context.collection },
+        categoryIds: params.context.categoryIds ? [...params.context.categoryIds] : undefined,
+        discountId: params.context.discountId,
+      },
+      request: {
+        ...params.request,
+        brandIds: params.request.brandIds ? [...params.request.brandIds] : undefined,
+        attributeFields: Object.fromEntries(Object.entries(params.request.attributeFields ?? {}).map(([slug, values]) => [slug, [...values]])),
+      },
+    }
+    sort.value = params.sort
+    listSearch.value = params.request.search ?? ''
+    page.value = params.request.page ?? 1
+    return refetch('replace', page.value)
   }
 
   function loadMore() {
@@ -96,19 +98,11 @@ export const useProductListStore = defineStore('productList', () => {
     return refetch('append', page.value + 1)
   }
 
-  function setSort(id: string) { sort.value = id; return refetch('replace', 1) }
-  function setPage(p: number) { return refetch('replace', p) }
-  function applyFilters() { return refetch('replace', 1) }
-  function setListSearch(search: string) { listSearch.value = search.trim() }
-  function setDiscountId(id?: string) { discountId.value = id || null }
-  function setDiscountedOnly(enabled: boolean) { discountedOnly.value = enabled }
-
   async function fetchDiscountedAvailability() {
     if (hasDiscountedProducts.value !== null || isDiscountedAvailabilityLoading.value) return
     isDiscountedAvailabilityLoading.value = true
     try {
       const res = await useApi().post<ProductListResponse>('/discounts/products', {
-        discountedOnly: true,
         page: 1,
         limit: 1,
       } satisfies ProductListRequest)
@@ -199,9 +193,9 @@ export const useProductListStore = defineStore('productList', () => {
   }
 
   return {
-    items, total, page, limit, isLoading, isLoadingMore, sort, listSearch, discountId, discountedOnly, hasMore,
+    items, total, page, limit, isLoading, isLoadingMore, sort, listSearch, browseRequest, hasMore,
     hasDiscountedProducts, isDiscountedAvailabilityLoading, fetchDiscountedAvailability,
-    fetchList, loadMore, setSort, setPage, applyFilters, setListSearch, setDiscountId, setDiscountedOnly, refetch,
+    fetchList, loadMore, invalidateListRequests,
     searchItems, searchTotal, searchPage, searchLimit, searchQuery, isSearchLoading, searchError,
     searchProducts, clearSearch,
     previewsByCategory, previewLoading, fetchPreview,

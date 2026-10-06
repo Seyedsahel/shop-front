@@ -26,9 +26,18 @@ export interface Product {
   updatedAt?: number
 }
 
+/** A collection has independent backend semantics; facets stay in the URL query. */
+export type ProductCollectionContext = { kind: 'catalog' } | { kind: 'discounted' }
+
+/** Capture once and share between a browse operation's list and filter requests. */
+export interface ProductBrowseContext {
+  collection: ProductCollectionContext
+  categoryIds?: string[]
+  discountId?: string
+}
+
 export interface ProductListRequest {
   discountId?: string
-  discountedOnly?: boolean
   search?: string
   categoryIds?: string[]
   brandIds?: string[]

@@ -2,9 +2,10 @@
 defineOptions({ inheritAttrs: false })
 const productListStore = useProductListStore()
 const sheetOpen = ref(false)
+const emit = defineEmits<{ select: [id: string] }>()
 
 function select(id: string) {
-  productListStore.setSort(id)
+  emit('select', id)
   sheetOpen.value = false
 }
 </script>
@@ -16,7 +17,7 @@ function select(id: string) {
       v-for="option in sortOptions" :key="option.id"
       class="text-sm transition-colors"
       :class="productListStore.sort === option.id ? 'text-accent-foreground font-semibold' : 'text-text-secondary hover:text-text-primary'"
-      @click="productListStore.setSort(option.id)"
+      @click="select(option.id)"
     >
       {{ option.label }}
     </button>

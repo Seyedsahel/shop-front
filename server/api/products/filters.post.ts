@@ -5,6 +5,7 @@ export default defineEventHandler(async (event): Promise<FiltersResponse> => {
     method: 'POST',
     body: {
       category_ids: body.categoryIds,
+      discounted_only: body.collection?.kind === 'discounted' ? true : undefined,
       discount_id: body.discountId,
       limit: body.limit ?? 20,
     },

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 const filterStore = useFilterStore()
-const productListStore = useProductListStore()
 const brandSearch = ref('')
 
 const emit = defineEmits<{ applied: [] }>()
@@ -34,15 +33,17 @@ const activeChips = computed(() => {
   if (filterStore.hasCustomPrice) {
     chips.push({
       key: 'price',
-      label: `${filterStore.selectedPriceMin?.toLocaleString('fa-IR')} - ${filterStore.selectedPriceMax?.toLocaleString('fa-IR')}`,
-      remove: () => filterStore.setPriceRange(filterStore.priceRange.min, filterStore.priceRange.max),
+      label: `${filterStore.selectedPriceMin?.toLocaleString('fa-IR') ?? '…'} - ${filterStore.selectedPriceMax?.toLocaleString('fa-IR') ?? '…'}`,
+      remove: () => filterStore.setPriceRange(
+        filterStore.scopedMetadataAvailable ? filterStore.priceRange.min : null,
+        filterStore.scopedMetadataAvailable ? filterStore.priceRange.max : null,
+      ),
     })
   }
   return chips
 })
 
 function applyFilters() {
-  productListStore.applyFilters()
   emit('applied')
 }
 </script>
@@ -108,11 +109,13 @@ function applyFilters() {
         </UiAccordion>
       </div>
 
-      <FilterPriceRangeFilter />
-      <FilterGroup v-for="filter in filterStore.definitions" :key="filter.slug" :filter="filter" />
+      <template v-if="filterStore.scopedMetadataAvailable">
+        <FilterPriceRangeFilter />
+        <FilterGroup v-for="filter in filterStore.definitions" :key="filter.slug" :filter="filter" />
+      </template>
     </template>
 
-    <button type="button" class="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary-hover" @click="applyFilters">
+    <button type="button" :disabled="filterStore.isLoading || !filterStore.scopedMetadataAvailable" class="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary-hover disabled:opacity-50" @click="applyFilters">
       <UIcon name="solar:check-circle-broken" class="size-4" />
       اعمال فیلترها
     </button>

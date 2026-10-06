@@ -1,7 +1,10 @@
 export const useFilterStore = defineStore('filter', () => {
   const definitions = ref<FilterDefinition[]>([])
-  const brands = ref<FilterBrandOption[]>([])
-  const categories = ref<FilterCategoryOption[]>([])
+  // Filter-option responses are incomplete; canonical collections resolve every facet.
+  const categoryStore = useCategoryStore()
+  const brandStore = useBrandStore()
+  const brands = computed(() => brandStore.items)
+  const categories = computed(() => categoryStore.items)
   const priceRange = reactive<FilterPriceRange>({ min: 0, max: 0 })
   const values = reactive<Record<string, FilterValue>>({})
   const selectedBrandIds = ref<string[]>([])
@@ -9,38 +12,39 @@ export const useFilterStore = defineStore('filter', () => {
   const selectedPriceMin = ref<number | null>(null)
   const selectedPriceMax = ref<number | null>(null)
   const isLoading = ref(false)
-  const discountId = ref<string | null>(null)
+  const scopedMetadataAvailable = ref(false)
   let requestId = 0
 
-  async function fetchFilters(params: Pick<ProductFiltersRequest, 'categoryIds' | 'discountId' | 'limit'> = {}) {
+  function invalidateRequests() {
+    requestId++
+    isLoading.value = false
+    scopedMetadataAvailable.value = false
+    definitions.value = []
+  }
+
+  async function fetchFilters(context: ProductBrowseContext): Promise<boolean> {
     const activeRequest = ++requestId
+    scopedMetadataAvailable.value = false
+    definitions.value = []
+    priceRange.min = 0
+    priceRange.max = 0
     isLoading.value = true
     try {
       const res = await useApi().post<FiltersResponse>('/products/filters', {
-        categoryIds: params.categoryIds,
-        discountId: params.discountId ?? discountId.value ?? undefined,
-        limit: params.limit ?? 20,
+        collection: { ...context.collection },
+        categoryIds: context.categoryIds ? [...context.categoryIds] : undefined,
+        discountId: context.discountId,
+        limit: 20,
       } satisfies ProductFiltersRequest)
-      if (activeRequest !== requestId) return
-      if (params.discountId !== undefined) discountId.value = params.discountId || null
+      if (activeRequest !== requestId) return false
       definitions.value = res.attributes
-      brands.value = res.brands
-      categories.value = res.categories
-      const liveSlugs = new Set(res.attributes.map(filter => filter.slug))
-      for (const slug of Object.keys(values)) {
-        if (!liveSlugs.has(slug)) delete values[slug]
-      }
       priceRange.min = res.priceRange.min
       priceRange.max = res.priceRange.max
-      if (selectedPriceMin.value === null) selectedPriceMin.value = res.priceRange.min
-      if (selectedPriceMax.value === null) selectedPriceMax.value = res.priceRange.max
-      for (const filter of res.attributes) {
-        if (values[filter.slug] === undefined) {
-          values[filter.slug] = filter.dataType === 'multiselect' ? [] : filter.dataType === 'boolean' ? null : null
-        }
-      }
+      scopedMetadataAvailable.value = true
+      return true
     } catch (e) {
       if (activeRequest === requestId) useAppToast().error(e instanceof ApiError ? e.message : 'خطا در دریافت فیلترها.')
+      return false
     } finally {
       if (activeRequest === requestId) isLoading.value = false
     }
@@ -67,10 +71,6 @@ export const useFilterStore = defineStore('filter', () => {
     selectedPriceMax.value = max ?? null
   }
 
-  function setDiscountId(id?: string) {
-    discountId.value = id || null
-  }
-
   function resetAll() {
     const liveSlugs = new Set(definitions.value.map(filter => filter.slug))
     for (const slug of Object.keys(values)) {
@@ -81,8 +81,8 @@ export const useFilterStore = defineStore('filter', () => {
     }
     selectedBrandIds.value = []
     selectedCategoryIds.value = []
-    selectedPriceMin.value = priceRange.min
-    selectedPriceMax.value = priceRange.max
+    selectedPriceMin.value = scopedMetadataAvailable.value ? priceRange.min : null
+    selectedPriceMax.value = scopedMetadataAvailable.value ? priceRange.max : null
   }
 
   function initializeSelections(input: { categorySlugs?: string[]; brandSlugs?: string[]; attributeValues?: Record<string, FilterValue>; priceMin?: number; priceMax?: number }) {
@@ -92,7 +92,12 @@ export const useFilterStore = defineStore('filter', () => {
     selectedBrandIds.value = (input.brandSlugs ?? [])
       .map(slug => brands.value.find(brand => brand.slug === slug || brand.id === slug)?.id)
       .filter(Boolean) as string[]
-    if (input.attributeValues) Object.assign(values, input.attributeValues)
+    for (const filter of definitions.value) {
+      const value = input.attributeValues?.[filter.slug]
+      if (value === null || typeof value === 'string' || (Array.isArray(value) && value.every(item => typeof item === 'string'))) {
+        values[filter.slug] = Array.isArray(value) ? [...value] : value
+      }
+    }
     if (input.priceMin !== undefined) selectedPriceMin.value = input.priceMin
     if (input.priceMax !== undefined) selectedPriceMax.value = input.priceMax
   }
@@ -101,9 +106,8 @@ export const useFilterStore = defineStore('filter', () => {
   const selectedCategories = computed(() => categories.value.filter(category => selectedCategoryIds.value.includes(category.id)))
 
   const hasCustomPrice = computed(() =>
-    selectedPriceMin.value !== null
-    && selectedPriceMax.value !== null
-    && (selectedPriceMin.value !== priceRange.min || selectedPriceMax.value !== priceRange.max)
+    (selectedPriceMin.value !== null && (!scopedMetadataAvailable.value || selectedPriceMin.value !== priceRange.min))
+    || (selectedPriceMax.value !== null && (!scopedMetadataAvailable.value || selectedPriceMax.value !== priceRange.max))
   )
 
   const activeCount = computed(() => {
@@ -133,8 +137,8 @@ export const useFilterStore = defineStore('filter', () => {
     return {
       categoryIds: selectedCategoryIds.value.length ? selectedCategoryIds.value : undefined,
       brandIds: selectedBrandIds.value.length ? selectedBrandIds.value : undefined,
-      priceMin: selectedPriceMin.value === null || selectedPriceMin.value === priceRange.min ? undefined : selectedPriceMin.value,
-      priceMax: selectedPriceMax.value === null || selectedPriceMax.value === priceRange.max ? undefined : selectedPriceMax.value,
+      priceMin: selectedPriceMin.value === null || (scopedMetadataAvailable.value && selectedPriceMin.value === priceRange.min) ? undefined : selectedPriceMin.value,
+      priceMax: selectedPriceMax.value === null || (scopedMetadataAvailable.value && selectedPriceMax.value === priceRange.max) ? undefined : selectedPriceMax.value,
       attributeFields: toAttributeFields(),
     }
   }
@@ -152,11 +156,11 @@ export const useFilterStore = defineStore('filter', () => {
     selectedBrands,
     selectedCategories,
     isLoading,
-    discountId,
+    scopedMetadataAvailable,
     activeCount,
     hasCustomPrice,
     fetchFilters,
-    setDiscountId,
+    invalidateRequests,
     setValue,
     toggleBrand,
     toggleCategory,

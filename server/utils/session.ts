@@ -3,7 +3,8 @@ import type { H3Event } from 'h3'
 
 export type AuthorizationMode = 'session' | 'user' | 'none'
 export type CredentialKind = 'user' | 'guest'
-// secure: process.env.NODE_ENV === 'production',
+// TODO(production): Enable Secure cookies when the storefront is served over HTTPS,
+// and configure an HTTPS backendUrl before sending bearer tokens upstream.
 export const sessionCookieOptions = {
   httpOnly: true,
   secure: false,

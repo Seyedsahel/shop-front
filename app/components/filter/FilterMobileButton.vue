@@ -2,6 +2,11 @@
 defineOptions({ inheritAttrs: false })
 const filterStore = useFilterStore()
 const open = ref(false)
+const emit = defineEmits<{ applied: [] }>()
+function apply() {
+  open.value = false
+  emit('applied')
+}
 </script>
 
 <template>
@@ -30,7 +35,7 @@ const open = ref(false)
         </div>
     </template>
     <div class="min-h-0 flex-1 overflow-y-auto px-4 py-2">
-      <FilterPanel @applied="open = false" />
+      <FilterPanel @applied="apply" />
     </div>
   </UiModal>
 </template>

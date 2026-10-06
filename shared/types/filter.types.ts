@@ -39,9 +39,7 @@ export interface FiltersResponse {
   limit: number
 }
 
-export interface ProductFiltersRequest {
-  categoryIds?: string[]
-  discountId?: string
+export interface ProductFiltersRequest extends ProductBrowseContext {
   limit?: number
 }
 
