@@ -20,6 +20,7 @@ async function load(path, server = false) {
   return import('data:text/javascript;base64,' + Buffer.from(code).toString('base64'))
 }
 Object.assign(globalThis, await load('server/utils/session.ts'))
+Object.assign(globalThis, await load('shared/utils/requestDeadline.ts'))
 Object.assign(globalThis, await load('server/utils/backendFetch.ts'))
 Object.assign(globalThis, await load('server/utils/readSession.ts'))
 const guest = (await load('server/api/auth/guest.post.ts')).default

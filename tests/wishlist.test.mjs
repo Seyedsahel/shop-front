@@ -79,6 +79,7 @@ test('remove and clear use backend item IDs and reconcile state', async () => {
 
 Object.assign(globalThis, await load('server/utils/session.ts'))
 Object.assign(globalThis, await load('server/utils/wishlistRequest.ts'))
+Object.assign(globalThis, await load('shared/utils/requestDeadline.ts'))
 Object.assign(globalThis, await load('server/utils/backendFetch.ts'))
 globalThis.useRuntimeConfig = () => ({ backendUrl: 'https://backend.test' })
 globalThis.toBackendImageUrl = value => value

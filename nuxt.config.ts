@@ -27,8 +27,10 @@ export default defineNuxtConfig({
   runtimeConfig: {
     backendUrl: 'http://78.39.57.118',
     backendApiKey: '',
+    backendRequestTimeoutMs: 20_000,
     useMockData: true,
     public: {
+      apiRequestTimeoutMs: 30_000,
       imageBaseUrl: 'http://78.39.57.118:80/images',
     },
   },

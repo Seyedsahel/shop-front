@@ -22,6 +22,8 @@ Before migrating the product list, read [the current product browsing contracts]
 
 Before migrating private resource loaders, read [session/resource freshness contracts](session-resource-freshness.md). Preserve scope guards, mutation-aware refresh queues, current-cookie validation, and client-only cross-tab synchronization.
 
+Catalog reads now expose persistent failure/success state and shared transports have [bounded deadlines](catalog-failure-handling.md). Preserve explicit read outcomes, cancellation ownership, and late-response guards when converting loaders to awaited setup.
+
 ## 2. Keep one owner for resource data
 
 Keep canonical resource state in the existing Pinia stores and all HTTP in `useApi` and the server proxy. Pages should await store actions during setup; components should primarily render store-backed props and emit interactions.

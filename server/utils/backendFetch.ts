@@ -24,10 +24,13 @@ export const backendFetch = async <T = unknown>(
   const headers = new Headers(options.headers)
   headers.delete('Authorization')
   if (credential) headers.set('Authorization', `Bearer ${credential.token}`)
+  const deadline = createRequestDeadline(resolveRequestTimeout(options.timeout, resolveRequestTimeout(config.backendRequestTimeoutMs, 20_000)), options.signal)
 
   try {
-    return await $fetch<T>(url, { baseURL: `${config.backendUrl.replace(/\/+$/, '')}/tbt`, ...options, headers }) as T
+    return await deadline.wait($fetch<T>(url, { baseURL: `${config.backendUrl.replace(/\/+$/, '')}/tbt`, ...options, headers, signal: deadline.signal, timeout: undefined, retry: 0 }) as Promise<T>)
   } catch (error: any) {
+    if (deadline.timedOut) throw createError({ statusCode: 504, message: 'Upstream request timed out', data: { code: 'UPSTREAM_TIMEOUT' } })
+    if (options.signal?.aborted) throw error
     const status = error.response?.status ?? error.statusCode ?? error.status
     console.log('Backend request failed:', {
       url,
@@ -53,6 +56,8 @@ export const backendFetch = async <T = unknown>(
         data: { ...(code ? { code } : {}), ...(validationMessage ? { validationMessage } : {}) },
       })
     }
-    throw error
+    throw createError({ statusCode: 502, message: 'Upstream service unavailable', data: { code: 'UPSTREAM_UNAVAILABLE' } })
+  } finally {
+    deadline.dispose()
   }
 }

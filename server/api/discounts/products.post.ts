@@ -1,5 +1,5 @@
 export default defineEventHandler(async (event): Promise<ProductListResponse> => {
-  const body = await readBody<ProductListRequest>(event)
+  const body = await readProductListRequest(event)
 
   const raw = await backendFetch<any>('/discounts/products', {
     method: 'POST',

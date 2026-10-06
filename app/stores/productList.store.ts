@@ -6,6 +6,10 @@ export const useProductListStore = defineStore('productList', () => {
   const limit = ref(30)
   const isLoading = ref(false)
   const isLoadingMore = ref(false)
+  const loaded = ref(false)
+  const error = ref('')
+  const failedRead = ref<{ mode: 'replace' | 'append'; page: number } | null>(null)
+  let listController: AbortController | undefined
   const sort = ref('relevant')
   const listSearch = ref('')
   const browseRequest = ref<{ context: ProductBrowseContext; request: ProductListRequest } | null>(null)
@@ -29,9 +33,20 @@ export const useProductListStore = defineStore('productList', () => {
   
   // ---- Main paginated list (used by /products) ----
   async function refetch(mode: 'replace' | 'append' = 'replace', requestedPage = page.value) {
-    if (!browseRequest.value) return
+    if (!browseRequest.value) return false
     const { context, request } = browseRequest.value
     const requestId = ++listRequestId
+    listController?.abort()
+    const controller = new AbortController()
+    listController = controller
+    error.value = ''
+    failedRead.value = null
+    if (mode === 'replace') {
+      items.value = []
+      total.value = 0
+      lastPageSize.value = 0
+      loaded.value = false
+    }
     if (mode === 'append') isLoadingMore.value = true
     else isLoading.value = true
 
@@ -41,9 +56,9 @@ export const useProductListStore = defineStore('productList', () => {
         categoryIds: context.categoryIds,
         discountId: context.discountId,
         page: requestedPage,
-      } satisfies ProductListRequest)
+      } satisfies ProductListRequest, { signal: controller.signal })
 
-      if (requestId !== listRequestId) return
+      if (requestId !== listRequestId) return false
 
       if (mode === 'append') {
         const existingIds = new Set(items.value.map(item => item.id))
@@ -55,19 +70,28 @@ export const useProductListStore = defineStore('productList', () => {
       total.value = res.total
       page.value = res.page
       limit.value = res.limit
+      loaded.value = true
+      return true
     } catch (e) {
-      if (requestId !== listRequestId) return
-      useAppToast().error(e instanceof ApiError ? e.message : 'خطا در دریافت محصولات.')
+      if (requestId !== listRequestId) return false
+      if (!(e instanceof ApiError && e.kind === 'cancelled')) {
+        error.value = e instanceof ApiError ? e.message : 'خطا در دریافت محصولات.'
+        failedRead.value = { mode, page: requestedPage }
+      }
+      return false
     } finally {
       if (requestId === listRequestId) {
         isLoading.value = false
         isLoadingMore.value = false
+        listController = undefined
       }
     }
   }
 
   function invalidateListRequests() {
     listRequestId++
+    listController?.abort()
+    listController = undefined
     isLoading.value = false
     isLoadingMore.value = false
     browseRequest.value = null
@@ -75,6 +99,9 @@ export const useProductListStore = defineStore('productList', () => {
     total.value = 0
     lastPageSize.value = 0
     listSearch.value = ''
+    loaded.value = false
+    error.value = ''
+    failedRead.value = null
   }
 
   function fetchList(params: { context: ProductBrowseContext; request: ProductListRequest; sort: string }) {
@@ -98,8 +125,14 @@ export const useProductListStore = defineStore('productList', () => {
   }
 
   function loadMore() {
-    if (isLoading.value || isLoadingMore.value || !hasMore.value) return
+    if (isLoading.value || isLoadingMore.value || error.value || !hasMore.value) return
     return refetch('append', page.value + 1)
+  }
+
+  function retryList() {
+    if (isLoading.value || isLoadingMore.value || !failedRead.value || !browseRequest.value) return Promise.resolve(false)
+    const failed = failedRead.value
+    return refetch(failed.mode, failed.page)
   }
 
   async function fetchDiscountedAvailability() {
@@ -197,9 +230,9 @@ export const useProductListStore = defineStore('productList', () => {
   }
 
   return {
-    items, total, page, limit, isLoading, isLoadingMore, sort, listSearch, browseRequest, lastPageSize, hasMore,
+    items, total, page, limit, isLoading, isLoadingMore, loaded, error, sort, listSearch, browseRequest, lastPageSize, hasMore,
     hasDiscountedProducts, isDiscountedAvailabilityLoading, fetchDiscountedAvailability,
-    fetchList, loadMore, invalidateListRequests,
+    fetchList, loadMore, retryList, invalidateListRequests,
     searchItems, searchTotal, searchPage, searchLimit, searchQuery, isSearchLoading, searchError,
     searchProducts, clearSearch,
     previewsByCategory, previewLoading, fetchPreview,

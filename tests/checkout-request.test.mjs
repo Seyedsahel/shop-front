@@ -9,6 +9,9 @@ const { outputText } = ts.transpileModule(source, { compilerOptions: { target: t
 const { readCheckoutInput } = await import('data:text/javascript;base64,' + Buffer.from(outputText).toString('base64'))
 
 Object.assign(globalThis, h3)
+const deadlineSource = await readFile(new URL('../shared/utils/requestDeadline.ts', import.meta.url), 'utf8')
+const deadlineCode = ts.transpileModule(deadlineSource, { compilerOptions: { target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext } }).outputText
+Object.assign(globalThis, await import('data:text/javascript;base64,' + Buffer.from(deadlineCode).toString('base64')))
 
 async function request(body) {
   const app = h3.createApp({ onError() {} }).use(h3.defineEventHandler(readCheckoutInput))

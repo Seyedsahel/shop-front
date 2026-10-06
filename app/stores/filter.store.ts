@@ -12,11 +12,16 @@ export const useFilterStore = defineStore('filter', () => {
   const selectedPriceMin = ref<number | null>(null)
   const selectedPriceMax = ref<number | null>(null)
   const isLoading = ref(false)
+  const error = ref('')
   const scopedMetadataAvailable = ref(false)
   let requestId = 0
+  let controller: AbortController | undefined
 
   function invalidateRequests() {
     requestId++
+    controller?.abort()
+    controller = undefined
+    error.value = ''
     isLoading.value = false
     scopedMetadataAvailable.value = false
     definitions.value = []
@@ -24,6 +29,10 @@ export const useFilterStore = defineStore('filter', () => {
 
   async function fetchFilters(context: ProductBrowseContext): Promise<boolean> {
     const activeRequest = ++requestId
+    controller?.abort()
+    const activeController = new AbortController()
+    controller = activeController
+    error.value = ''
     scopedMetadataAvailable.value = false
     definitions.value = []
     priceRange.min = 0
@@ -35,7 +44,7 @@ export const useFilterStore = defineStore('filter', () => {
         categoryIds: context.categoryIds ? [...context.categoryIds] : undefined,
         discountId: context.discountId,
         limit: 20,
-      } satisfies ProductFiltersRequest)
+      } satisfies ProductFiltersRequest, { signal: activeController.signal })
       if (activeRequest !== requestId) return false
       definitions.value = res.attributes
       priceRange.min = res.priceRange.min
@@ -43,10 +52,10 @@ export const useFilterStore = defineStore('filter', () => {
       scopedMetadataAvailable.value = true
       return true
     } catch (e) {
-      if (activeRequest === requestId) useAppToast().error(e instanceof ApiError ? e.message : 'خطا در دریافت فیلترها.')
+      if (activeRequest === requestId && !(e instanceof ApiError && e.kind === 'cancelled')) error.value = e instanceof ApiError ? e.message : 'خطا در دریافت فیلترها.'
       return false
     } finally {
-      if (activeRequest === requestId) isLoading.value = false
+      if (activeRequest === requestId) { isLoading.value = false; controller = undefined }
     }
   }
 
@@ -156,6 +165,7 @@ export const useFilterStore = defineStore('filter', () => {
     selectedBrands,
     selectedCategories,
     isLoading,
+    error,
     scopedMetadataAvailable,
     activeCount,
     hasCustomPrice,

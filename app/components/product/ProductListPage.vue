@@ -54,7 +54,7 @@ async function loadProductsFromRoute() {
     }
     const filtersReady = await filterStore.fetchFilters(context)
     if (activeLoad !== loadId) return
-    if (!filtersReady) throw new Error('دریافت فیلترها انجام نشد. دوباره تلاش کنید.')
+    if (!filtersReady) throw new Error(filterStore.error || 'دریافت فیلترها انجام نشد. دوباره تلاش کنید.')
     filterStore.resetAll()
     filterStore.initializeSelections(input)
     const sortOption = sortOptions.find(option => option.id === input.sort) ?? sortOptions[0]!
@@ -136,6 +136,9 @@ const pageTitle = computed(() => {
 })
 
 const sentinel = ref<HTMLElement>()
+function retryProducts() {
+  if (!isDisposed && !isResolving.value && matchesConfirmedRoute()) void productListStore.retryList()
+}
 useInfiniteScroll(sentinel, () => {
   if (!isResolving.value && !browseError.value) productListStore.loadMore()
 })
@@ -146,21 +149,25 @@ useInfiniteScroll(sentinel, () => {
     <FilterSidebar @applied="applyFilters()" />
     <div class="flex-1">
       <h1 class="text-lg font-semibold text-text-primary mb-4">{{ pageTitle }}</h1>
-      <p v-if="productListStore.listSearch" class="mb-4 text-sm text-text-secondary">{{ productListStore.total.toLocaleString('fa-IR') }} کالا پیدا شد.</p>
+      <p v-if="productListStore.listSearch && productListStore.loaded" class="mb-4 text-sm text-text-secondary">{{ productListStore.total.toLocaleString('fa-IR') }} کالا پیدا شد.</p>
       <div class="flex gap-3 mb-4 lg:hidden"><ProductSortBar @select="applyFilters" /><FilterMobileButton class="flex-1" @applied="applyFilters()" /></div>
       <ProductSortBar class="hidden lg:flex" @select="applyFilters" />
       <div v-if="browseError" role="alert" class="mt-4 rounded-xl border border-danger p-4 text-sm text-danger">
         <p>{{ browseError }}</p>
         <button type="button" class="mt-2 underline" @click="loadProductsFromRoute">تلاش دوباره</button>
       </div>
-      <div v-else class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mt-4">
+      <div v-else-if="!productListStore.error || productListStore.loaded" :aria-busy="isResolving || productListStore.isLoading" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mt-4">
         <template v-if="isResolving || productListStore.isLoading"><div v-for="n in 12" :key="n" class="aspect-square rounded-2xl bg-surface-hover animate-pulse" /></template>
         <ProductCard v-else v-for="product in productListStore.items" :key="product.id" :product="product" />
       </div>
-      <p v-if="!browseError && !isResolving && !productListStore.isLoading && !productListStore.items.length" class="py-10 text-center text-sm text-text-muted">محصولی با این فیلترها پیدا نشد.</p>
+      <div v-if="!browseError && productListStore.error" role="alert" class="mt-4 rounded-xl border border-danger p-4 text-sm text-danger">
+        <p>{{ productListStore.error }}</p>
+        <button type="button" :disabled="isResolving || productListStore.isLoading || productListStore.isLoadingMore" class="mt-2 underline disabled:opacity-50" @click="retryProducts">تلاش دوباره</button>
+      </div>
+      <p v-if="!browseError && !isResolving && !productListStore.error && productListStore.loaded && !productListStore.items.length" role="status" class="py-10 text-center text-sm text-text-muted">محصولی با این فیلترها پیدا نشد.</p>
       <div ref="sentinel" class="h-4" />
       <div v-if="productListStore.isLoadingMore" class="flex justify-center py-6 gap-2 text-sm text-text-muted bg-accent/10 rounded-lg mt-4"><div class="size-6 rounded-full border-2 border-border-strong border-t-primary animate-spin" /><span>در حال بارگذاری...</span></div>
-      <p v-if="!productListStore.hasMore && productListStore.items.length" class="text-center text-xs text-text-muted py-6">محصول بیشتری برای نمایش وجود ندارد.</p>
+      <p v-if="!productListStore.error && !productListStore.hasMore && productListStore.items.length" class="text-center text-xs text-text-muted py-6">محصول بیشتری برای نمایش وجود ندارد.</p>
     </div>
   </div>
 </template>

@@ -2,6 +2,12 @@ export function mapProductListResponse(raw: any): ProductListResponse {
   if (!raw || typeof raw !== 'object' || !Array.isArray(raw.items)) {
     throw createError({ statusCode: 502, message: 'Invalid product list response from backend' })
   }
+  const total = Number(raw.total ?? 0)
+  const page = Number(raw.page ?? 1)
+  const limit = Number(raw.limit ?? 30)
+  if (!Number.isSafeInteger(total) || total < 0 || !Number.isSafeInteger(page) || page < 1 || !Number.isSafeInteger(limit) || limit < 1) {
+    throw createError({ statusCode: 502, message: 'Invalid product pagination from backend' })
+  }
   return {
     items: raw.items.map((product: any) => {
       if (!product || typeof product !== 'object' || typeof product.id !== 'string' || typeof product.name !== 'string' || typeof product.slug !== 'string') {
@@ -32,8 +38,8 @@ export function mapProductListResponse(raw: any): ProductListResponse {
         updatedAt: product.updated_at,
       } satisfies Product
     }),
-    total: Number(raw.total ?? 0),
-    page: Number(raw.page ?? 1),
-    limit: Number(raw.limit ?? 30),
+    total,
+    page,
+    limit,
   }
 }

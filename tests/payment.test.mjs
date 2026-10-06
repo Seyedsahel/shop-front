@@ -241,6 +241,7 @@ test('only the documented 400 expiry error permits a new checkout, and survives 
 Object.assign(globalThis, await load('server/utils/session.ts'))
 Object.assign(globalThis, await load('server/utils/checkoutRequest.ts'))
 Object.assign(globalThis, await load('server/utils/orderRequest.ts'))
+Object.assign(globalThis, await load('shared/utils/requestDeadline.ts'))
 Object.assign(globalThis, await load('server/utils/backendFetch.ts'))
 globalThis.useRuntimeConfig = () => ({ backendUrl: 'https://backend.test' })
 

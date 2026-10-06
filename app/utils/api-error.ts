@@ -1,6 +1,6 @@
 export type ApiErrorContext = 'default' | 'auth' | 'cartMutation' | 'checkout' | 'productDetail'
 
-type ApiErrorKind = 'http' | 'network' | 'timeout'
+type ApiErrorKind = 'http' | 'network' | 'timeout' | 'cancelled'
 
 export class ApiError extends Error {
   constructor(
@@ -17,6 +17,7 @@ export class ApiError extends Error {
 }
 
 function messageForStatus(status: number | undefined, context: ApiErrorContext, kind: ApiErrorKind) {
+  if (kind === 'cancelled') return 'درخواست لغو شد.'
   if (kind === 'timeout') return 'پاسخی از سرور دریافت نشد. لطفاً کمی بعد دوباره تلاش کنید.'
   if (kind === 'network' || !status) return 'اتصال به سرور برقرار نشد. لطفاً اتصال اینترنت خود را بررسی کنید.'
 

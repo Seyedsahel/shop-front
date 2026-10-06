@@ -241,6 +241,7 @@ test('filter proxy forwards the captured category, campaign, and verified global
     upstream.push({ path, body: options.body })
     return { attributes: [], brands: [], categories: [], min_price: 100, max_price: 500 }
   }
+  Object.assign(globalThis, await load('server/utils/productRequest.ts'))
   const { default: handler } = await load('server/api/products/filters.post.ts')
   const response = await handler({})
   assert.deepEqual(upstream[0], { path: '/products/filters', body: { category_ids: ['parent'], discounted_only: undefined, discount_id: 'campaign', limit: 20 } })

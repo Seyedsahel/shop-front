@@ -14,6 +14,7 @@ async function load(path) {
 
 Object.assign(globalThis, h3)
 Object.assign(globalThis, await load('server/utils/session.ts'))
+Object.assign(globalThis, await load('shared/utils/requestDeadline.ts'))
 Object.assign(globalThis, await load('server/utils/backendFetch.ts'))
 Object.assign(globalThis, await load('server/utils/addressRequest.ts'))
 globalThis.useRuntimeConfig = () => ({ backendUrl: 'https://backend.test' })

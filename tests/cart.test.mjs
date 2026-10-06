@@ -197,6 +197,7 @@ test('money conversion defaults to tomans without modifying backend values', asy
 
 Object.assign(globalThis, await load('server/utils/session.ts'))
 Object.assign(globalThis, await load('server/utils/cartRequest.ts'))
+Object.assign(globalThis, await load('shared/utils/requestDeadline.ts'))
 Object.assign(globalThis, await load('server/utils/backendFetch.ts'))
 Object.assign(globalThis, await load('server/utils/productDetail.ts'))
 globalThis.useRuntimeConfig = () => ({ backendUrl: 'https://backend.test' })

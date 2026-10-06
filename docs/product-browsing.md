@@ -26,7 +26,15 @@ The subsequent Nuxt route watcher loads the committed snapshot. A next-tick fall
 
 Requests capture their inputs before asynchronous work. Controller generations protect category/brand/bootstrap orchestration; filter and list generations protect response writes, errors, and loading flags independently. Unmount removes the navigation hook and invalidates remaining work. A stale request cannot repopulate products or add product parameters to `/blog`.
 
-Requests are currently invalidated logically, not aborted at the network layer. If cancellation is introduced, add it through `useApi`, preserve generation checks, and distinguish intentional aborts from genuine errors. Aborting alone does not guarantee that all obsolete work stops before writing state.
+Main-list and filter requests now abort through `useApi` on replacement, confirmed meaningful navigation, and disposal. Generation checks still guard response writes, errors and loading flags; abort alone does not establish ownership. Intentional cancellation is distinct from timeout/network/HTTP failure and does not create a user-facing catalog error.
+
+## Failure and retry policy
+
+The main list owns `loaded` and a persistent `error`. A new replacement clears old products and pagination immediately; failed new filters/search must never display the old collection or a successful-empty message. Successful empty responses have `loaded: true` and no error.
+
+An append failure retains successful pages for the same applied scope, keeps the last successful page, and pauses automatic infinite scrolling. Explicit Retry reads that same failed page. Replacement Retry reads its original entry page. Both use the captured collection/facets/search/sort snapshot, not current filter drafts; retries do not change the URL. New navigation discards previous retry intent. Bootstrap/filter errors also have a persistent page alert and retry the current committed route.
+
+`fetchList`/`retryList` resolve a success boolean while preserving error state. A future awaited SSR loader must inspect that result and `loaded/error`, rather than treating any resolved promise as successful data. See [catalog failure handling](catalog-failure-handling.md) for proxy validation, timeouts and verification.
 
 ## Infinite-scroll and refresh policy
 
@@ -65,7 +73,7 @@ When backend sorting is ready, check every option on catalog and discounted coll
 
 - SSR loading still uses `onMounted`; follow [the separate SSR migration plan](ssr-migration-plan.md). Preserve normalized keys, initial-load deduplication, serialized applied request/last-page state, navigation disposal, and entry-page semantics when migrating.
 - When moving list loading into awaited setup, test overlapping old/new controllers under Nuxt Suspense. An old controller's unmount must not invalidate a new controller's already-started store request; introduce explicit request ownership if setup loads overlap. The current initial load runs on mount.
-- Broader persistent list errors/retry and transport timeout work remains separate. The list action currently toasts active errors; it must eventually distinguish failed reads from successful empty results. Stale errors are suppressed by generation checks.
+- Main catalog list/filter failures now use persistent errors and explicit retry. Navbar search, home preview caches and discounted-tab availability retain their separate error/cache policies; revisit them when migrating those consumers rather than sharing main-list state.
 - Canonical category/brand stores cache and deduplicate requests. Define a freshness policy if these collections become mutable during a visit.
 - Do not record tokens or visitor-specific data in future cache keys or this document.
 
