@@ -10,9 +10,25 @@ const productListStore = useProductListStore()
 const isResolving = ref(true)
 const browseError = ref('')
 let loadId = 0
+let isDisposed = false
+let hasActiveLoad = false
+
+function invalidateBrowseRequests() {
+  loadId++
+  hasActiveLoad = false
+  productListStore.invalidateListRequests()
+  filterStore.invalidateRequests()
+}
+
+function matchesConfirmedRoute() {
+  const confirmed = router.currentRoute.value
+  return confirmed.path === browsePath
+    && getProductBrowseQueryKey(confirmed.query) === getProductBrowseQueryKey(route.query)
+}
 
 async function loadProductsFromRoute() {
-  if (route.path !== browsePath) return
+  if (isDisposed || route.path !== browsePath || !matchesConfirmedRoute()) return
+  hasActiveLoad = true
   const activeLoad = ++loadId
   // Read the entire route before any await. Later requests use only this snapshot.
   const query = { ...route.query }
@@ -63,7 +79,7 @@ async function loadProductsFromRoute() {
 
 // User actions own URL changes. Resource responses never navigate.
 async function applyFilters(sort = productListStore.sort) {
-  if (isResolving.value || route.path !== browsePath) return
+  if (isResolving.value || route.path !== browsePath || !matchesConfirmedRoute()) return
   const facets = filterStore.toProductListRequest()
   const attributeValues = Object.fromEntries(Object.entries(filterStore.values).filter(([, value]) =>
     value !== null && value !== '' && !(Array.isArray(value) && value.length === 0)
@@ -85,12 +101,31 @@ async function applyFilters(sort = productListStore.sort) {
   else await router.push(target)
 }
 
+// Nuxt's route can update after navigation has been confirmed. Invalidate old
+// work immediately, then let the route watcher load the committed page snapshot.
+const removeNavigationHook = router.afterEach((to, from, failure) => {
+  if (failure) return
+  if (to.path !== from.path || getProductBrowseQueryKey(to.query) !== getProductBrowseQueryKey(from.query)) {
+    invalidateBrowseRequests()
+    isResolving.value = true
+    // Returning before Nuxt commits another page may leave its route key
+    // unchanged. Resume once watchers have had their chance to start a load.
+    void nextTick(() => {
+      if (!isDisposed && !hasActiveLoad && matchesConfirmedRoute()) void loadProductsFromRoute()
+    })
+  }
+})
+
 onMounted(loadProductsFromRoute)
-watch([() => route.fullPath, () => props.collection.kind], loadProductsFromRoute)
+watch([
+  () => route.path,
+  () => getProductBrowseQueryKey(route.query),
+  () => props.collection.kind,
+], loadProductsFromRoute)
 onBeforeUnmount(() => {
-  loadId++
-  productListStore.invalidateListRequests()
-  filterStore.invalidateRequests()
+  isDisposed = true
+  removeNavigationHook()
+  invalidateBrowseRequests()
 })
 
 const pageTitle = computed(() => {

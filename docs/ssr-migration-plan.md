@@ -18,6 +18,8 @@ The server must not create a guest session, submit a form, mark a story seen, cr
 
 Baseline examples: `/`, `/products`, a category/search/discount query, `/discounts/products`, a real and missing product, `/blog`, a real and missing article, a real and missing story, `/cart`, `/wishlist`, `/profile`, an order detail, `/checkout`, and both payment-return pages.
 
+Before migrating the product list, read [the current product browsing contracts](product-browsing.md), particularly confirmed-navigation invalidation and infinite-scroll refresh behavior.
+
 ## 2. Keep one owner for resource data
 
 Keep canonical resource state in the existing Pinia stores and all HTTP in `useApi` and the server proxy. Pages should await store actions during setup; components should primarily render store-backed props and emit interactions.

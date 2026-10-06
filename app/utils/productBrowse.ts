@@ -65,3 +65,27 @@ export function parseProductBrowseQuery(query: LocationQuery) {
     attributeValues,
   }
 }
+
+
+/** Stable identity for applied browsing state; tracking parameters and hashes are unrelated. */
+export function getProductBrowseQueryKey(query: LocationQuery): string {
+  try {
+    const input = parseProductBrowseQuery(query)
+    const attributes = Object.fromEntries(Object.entries(input.attributeValues)
+      .filter(([, value]) => value !== null && value !== '' && !(Array.isArray(value) && value.length === 0))
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([slug, value]) => [slug, Array.isArray(value) ? [...new Set(value)].sort() : value]))
+    return JSON.stringify({
+      ...input,
+      categorySlugs: [...input.categorySlugs].sort(),
+      brandSlugs: [...input.brandSlugs].sort(),
+      attributeValues: attributes,
+    })
+  } catch {
+    // Invalid supported query state must still trigger the controller's error UI.
+    return JSON.stringify(Object.fromEntries(
+      ['category', 'brand', 'search', 'discount', 'sort', 'page', 'priceMin', 'priceMax', 'filters']
+        .map(key => [key, query[key]]),
+    ))
+  }
+}

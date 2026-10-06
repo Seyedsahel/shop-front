@@ -14,7 +14,9 @@ export const useProductListStore = defineStore('productList', () => {
   let listRequestId = 0
   let searchRequestId = 0
   
-  const hasMore = computed(() => items.value.length < total.value)
+  const lastPageSize = ref(0)
+  // A URL may start at page > 1. Accumulated item count is not its offset.
+  const hasMore = computed(() => lastPageSize.value > 0 && page.value * limit.value < total.value)
 
   // ---- Live product search (used by navbar and mobile overlay) ----
   const searchItems = ref<Product[]>([])
@@ -49,6 +51,7 @@ export const useProductListStore = defineStore('productList', () => {
       } else {
         items.value = res.items
       }
+      lastPageSize.value = res.items.length
       total.value = res.total
       page.value = res.page
       limit.value = res.limit
@@ -70,6 +73,7 @@ export const useProductListStore = defineStore('productList', () => {
     browseRequest.value = null
     items.value = []
     total.value = 0
+    lastPageSize.value = 0
     listSearch.value = ''
   }
 
@@ -193,7 +197,7 @@ export const useProductListStore = defineStore('productList', () => {
   }
 
   return {
-    items, total, page, limit, isLoading, isLoadingMore, sort, listSearch, browseRequest, hasMore,
+    items, total, page, limit, isLoading, isLoadingMore, sort, listSearch, browseRequest, lastPageSize, hasMore,
     hasDiscountedProducts, isDiscountedAvailabilityLoading, fetchDiscountedAvailability,
     fetchList, loadMore, invalidateListRequests,
     searchItems, searchTotal, searchPage, searchLimit, searchQuery, isSearchLoading, searchError,
