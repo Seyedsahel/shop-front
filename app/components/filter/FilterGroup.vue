@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const props = defineProps<{ filter: FilterDefinition }>()
+const props = defineProps<{ filter: FilterDefinition; panelId: string }>()
 const filterStore = useFilterStore()
 
 const value = computed({
@@ -39,7 +39,7 @@ function onToggle(checked: boolean) {
   </div>
 
   <!-- everything else: accordion -->
-  <UiAccordion v-else :title="filter.name">
+  <UiAccordion v-else :panel-id="panelId" :title="filter.name">
     <div v-if="filter.dataType === 'multiselect'" class="flex flex-col gap-2">
       <label v-for="option in filter.availableValues" :key="option" class="flex items-center justify-between rounded-lg px-1 py-1.5 text-sm text-text-secondary hover:bg-surface-hover">
         <span>{{ option }}</span>
@@ -53,7 +53,7 @@ function onToggle(checked: boolean) {
           <span v-if="filter.slug === 'color'" class="size-3.5 rounded-full border border-border-strong" :class="colorClasses[option] ?? 'bg-surface'" />
           {{ option }}
         </span>
-        <input type="radio" :name="filter.slug" class="size-4 accent-primary" :checked="value === option" @change="value = option" />
+        <input type="radio" :name="panelId" class="size-4 accent-primary" :checked="value === option" @change="value = option" />
       </label>
     </div>
   </UiAccordion>

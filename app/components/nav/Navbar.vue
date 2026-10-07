@@ -2,11 +2,14 @@
 import { useWindowSize } from '@vueuse/core'
 
 const authStore = useAuthStore()
+const shop = useShopStore()
 const cartStore = useCartStore()
 const wishlistStore = useWishlistStore()
+const badgesReady = ref(false)
 onMounted(() => {
-  void cartStore.fetchCart().catch(() => {})
-  void wishlistStore.fetchWishlist().catch(() => {})
+  badgesReady.value = true
+  if (!cartStore.loaded) void cartStore.fetchCart().catch(() => {})
+  if (!wishlistStore.loaded) void wishlistStore.fetchWishlist().catch(() => {})
 })
 
 const navLinks = [
@@ -78,7 +81,7 @@ watch(width, () => {
     <!-- Top row -->
     <div class="max-w-4/5 mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
       <NuxtLink to="/" class="text-text-primary font-semibold tracking-wide shrink-0">
-        SHOP LOGO 
+        {{ shop.name }}
       </NuxtLink>
 
       <div ref="searchWrapper" class="relative z-50 hidden flex-1 md:block md:max-w-2xl">
@@ -128,7 +131,7 @@ watch(width, () => {
           <span class="flex items-center gap-2">
             <UIcon name="solar:heart-outline" class="size-5" />
             <span class="hidden sm:inline">علاقه‌مندی‌ها</span>
-            <UiCounterBadge :count="wishlistStore.itemCount" />
+            <UiCounterBadge :count="badgesReady ? wishlistStore.itemCount : 0" />
           </span>
         </NuxtLink>
 
@@ -141,7 +144,7 @@ watch(width, () => {
           <div class="flex items-center gap-2">
             <UIcon name="solar:cart-4-outline" class="size-5" />
             <span class="hidden sm:inline">سبد خرید</span>
-            <UiCounterBadge :count="cartStore.itemCount" />
+            <UiCounterBadge :count="badgesReady ? cartStore.itemCount : 0" />
           </div>
         </button>
       </div>

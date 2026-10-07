@@ -1,6 +1,5 @@
 <script setup lang="ts">
 const blogStore = useBlogStore()
-onMounted(() => blogStore.fetchPosts())
 
 const posts = computed(() => blogStore.items.slice(0, 3))
 </script>

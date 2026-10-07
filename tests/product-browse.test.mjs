@@ -15,7 +15,7 @@ async function load(path, exports = '') {
   return import('data:text/javascript;base64,' + Buffer.from(outputText).toString('base64'))
 }
 
-Object.assign(globalThis, { computed, reactive, ref, watch, nextTick, defineStore })
+Object.assign(globalThis, { computed, reactive, ref, watch, nextTick, defineStore, useState: (_key, initial) => ref(initial()), usePageResponse: () => () => {}, usePageSeo: () => {}, callOnce: async () => {} })
 globalThis.ApiError = class extends Error {}
 const errors = []
 globalThis.useAppToast = () => ({ error: message => errors.push(message) })
@@ -399,4 +399,27 @@ test('reload discards accumulated pages and restarts from the URL entry page', a
     assert.deepEqual(useProductListStore().items.map(item => item.id), ['product-1'])
     assert.equal(p.history.length, 0)
   } finally { p.close() }
+})
+
+test('an old Suspense controller cannot cancel or clear its replacement', async () => {
+  reset()
+  const original = respond
+  const held = deferred()
+  respond = (path, body) => path === '/products/list' ? held.promise : original(path, body)
+  const older = await page({ category: 'medicine' })
+  const oldLoad = older.component.loadProductsFromRoute()
+  await tick()
+  respond = original
+  const newer = await page({ category: 'vitamins' }, 'discounted')
+  try {
+    await newer.component.loadProductsFromRoute()
+    older.close()
+    assert.equal(useProductListStore().loaded, true)
+    assert.equal(useProductListStore().browseRequest.context.collection.kind, 'discounted')
+    assert.equal(useFilterStore().selectedCategories[0].slug, 'vitamins')
+    held.resolve({ items: [{ id: 'obsolete' }], total: 1, page: 1, limit: 30 })
+    await oldLoad
+    assert.equal(useProductListStore().items[0].id, 'product-1')
+    assert.equal(useProductListStore().loaded, true)
+  } finally { newer.close() }
 })

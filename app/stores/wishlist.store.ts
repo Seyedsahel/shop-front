@@ -45,7 +45,7 @@ export const useWishlistStore = defineStore('wishlist', () => {
     isLoading.value = true
     error.value = ''
     try {
-      await auth.withShoppingSession(false, async session => {
+      const load = async (session: Pick<SessionResponse, 'identity'>) => {
         activeEpoch = epoch
         if (!session.identity) {
           wishlist.value = null
@@ -55,7 +55,9 @@ export const useWishlistStore = defineStore('wishlist', () => {
           return
         }
         await readWishlist(activeEpoch)
-      })
+      }
+      if (import.meta.server) await load({ identity: auth.identity })
+      else await auth.withShoppingSession(false, load)
     } catch (caught) {
       if (activeEpoch === epoch) {
         error.value = caught instanceof ApiError ? caught.message : 'دریافت علاقه‌مندی‌ها ناموفق بود.'

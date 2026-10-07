@@ -2,7 +2,8 @@
 const props = defineProps<{ categoryId: string; title?: string; variant?: 'default' | 'compact' }>()
 const productListStore = useProductListStore()
 
-onMounted(() => productListStore.fetchPreview(props.categoryId))
+await callOnce(`preview:${props.categoryId}`, () => productListStore.fetchPreview(props.categoryId), { mode: 'navigation' })
+watch(() => props.categoryId, id => { void productListStore.fetchPreview(id) })
 
 const products = computed(() => productListStore.previewsByCategory[props.categoryId] ?? [])
 const isLoading = computed(() => productListStore.previewLoading[props.categoryId] ?? false)

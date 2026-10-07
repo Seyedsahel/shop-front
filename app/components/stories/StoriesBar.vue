@@ -2,7 +2,7 @@
 const storyStore = useStoryStore()
 
 onMounted(() => {
-  storyStore.fetchStories()
+  storyStore.loadSeenFromStorage()
 })
 </script>
 

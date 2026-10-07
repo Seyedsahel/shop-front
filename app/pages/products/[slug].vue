@@ -1,14 +1,30 @@
 <script setup lang="ts">
 const route = useRoute()
+const router = useRouter()
 const productDetailStore = useProductDetailStore()
+const detailOwner = productDetailStore.claimDetailOwner()
+const detailPath = route.path
+const removeNavigationHook = router.afterEach((to, _from, failure) => {
+  if (!failure && to.path !== detailPath) productDetailStore.invalidateDetail(detailOwner)
+})
+onBeforeUnmount(() => { removeNavigationHook(); productDetailStore.invalidateDetail(detailOwner) })
 const slug = computed(() => typeof route.params.slug === 'string' ? route.params.slug : '')
 
-function loadProduct() {
-  productDetailStore.fetchBySlug(slug.value)
+const setStatus = usePageResponse()
+const product = computed(() => productDetailStore.current?.slug === slug.value ? productDetailStore.current : null)
+async function loadProduct() {
+  const requestedSlug = slug.value
+  await productDetailStore.fetchBySlug(requestedSlug, detailOwner)
+  if (String(router.currentRoute.value.params.slug) !== requestedSlug) return
+  if (productDetailStore.errorStatus === 404) {
+    const missing = createError({ statusCode: 404, statusMessage: 'Product not found' })
+    if (import.meta.server) throw missing
+    showError(missing)
+  } else if (productDetailStore.error) setStatus(productDetailStore.errorStatus ?? 503)
 }
-
-onMounted(loadProduct)
-watch(slug, loadProduct)
+watch(slug, () => { void loadProduct() })
+usePageSeo(() => product.value?.name ?? 'محصول', () => product.value?.description ?? '')
+await callOnce(`product:${slug.value}`, loadProduct, { mode: 'navigation' })
 </script>
 
 <template>
@@ -28,30 +44,30 @@ watch(slug, loadProduct)
       <button type="button" class="mt-5 rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary-hover" @click="loadProduct">تلاش دوباره</button>
     </div>
 
-    <div v-else-if="productDetailStore.current" class="space-y-10">
+    <div v-else-if="product" class="space-y-10">
       <nav class="flex flex-wrap items-center gap-2 text-xs text-text-muted" aria-label="مسیر صفحه">
         <NuxtLink to="/" class="hover:text-primary">خانه</NuxtLink>
         <UIcon name="solar:alt-arrow-left-linear" class="size-3" />
         <NuxtLink to="/products" class="hover:text-primary">محصولات</NuxtLink>
-        <template v-for="category in productDetailStore.current.categories" :key="category.id">
+        <template v-for="category in product.categories" :key="category.id">
           <UIcon name="solar:alt-arrow-left-linear" class="size-3" />
           <NuxtLink :to="`/products?category=${category.slug}`" class="hover:text-primary">{{ category.name }}</NuxtLink>
         </template>
         <UIcon name="solar:alt-arrow-left-linear" class="size-3" />
-        <span class="truncate text-text-secondary">{{ productDetailStore.current.name }}</span>
+        <span class="truncate text-text-secondary">{{ product.name }}</span>
       </nav>
 
       <section class="grid items-start gap-8 lg:grid-cols-2 lg:gap-12">
-        <ProductDetailGallery :product="productDetailStore.current" />
-        <ProductPurchasePanel :product="productDetailStore.current" />
+        <ProductDetailGallery :product="product" />
+        <ProductPurchasePanel :product="product" />
       </section>
 
       <section class="grid items-start gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]">
-        <ProductDetailTabs :product="productDetailStore.current" />
-        <ProductSpecifications :specifications="productDetailStore.current.specifications" />
+        <ProductDetailTabs :product="product" />
+        <ProductSpecifications :specifications="product.specifications" />
       </section>
 
-      <ProductRelatedProducts :category-id="productDetailStore.current.categories[0]?.id" :current-product-id="productDetailStore.current.id" />
+      <ProductRelatedProducts :category-id="product.categories[0]?.id" :current-product-id="product.id" />
     </div>
 
     <div v-else class="mx-auto max-w-xl rounded-2xl border border-border bg-card p-8 text-center">

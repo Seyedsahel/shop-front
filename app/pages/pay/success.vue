@@ -14,7 +14,9 @@ async function loadOrder() {
   await orders.fetchOne(orderId.value).catch(() => {})
 }
 
-watch(() => [orderId.value, auth.isAuthenticated, auth.sessionScope], () => { void loadOrder() }, { immediate: true })
+watch(() => [orderId.value, auth.isAuthenticated, auth.sessionScope], () => { void loadOrder() })
+usePageSeo('وضعیت پرداخت', 'بررسی وضعیت سفارش', true)
+await callOnce(`payment-return:${auth.sessionScope}:${orderId.value}`, loadOrder, { mode: 'navigation' })
 </script>
 
 <template>

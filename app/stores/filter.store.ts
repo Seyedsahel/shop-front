@@ -1,4 +1,5 @@
 export const useFilterStore = defineStore('filter', () => {
+  const api = useApi()
   const definitions = ref<FilterDefinition[]>([])
   // Filter-option responses are incomplete; canonical collections resolve every facet.
   const categoryStore = useCategoryStore()
@@ -13,33 +14,41 @@ export const useFilterStore = defineStore('filter', () => {
   const selectedPriceMax = ref<number | null>(null)
   const isLoading = ref(false)
   const error = ref('')
+  const errorStatus = ref<number | undefined>()
   const scopedMetadataAvailable = ref(false)
   let requestId = 0
   let controller: AbortController | undefined
+  let owner: symbol | undefined
+  function claimFilterOwner() { owner = Symbol('product-filters'); requestId++; controller?.abort(); return owner }
+  function ownsFilters(token: symbol) { return token === owner }
 
-  function invalidateRequests() {
+  function invalidateRequests(token?: symbol) {
+    if (token && !ownsFilters(token)) return
     requestId++
     controller?.abort()
     controller = undefined
     error.value = ''
+    errorStatus.value = undefined
     isLoading.value = false
     scopedMetadataAvailable.value = false
     definitions.value = []
   }
 
-  async function fetchFilters(context: ProductBrowseContext): Promise<boolean> {
+  async function fetchFilters(context: ProductBrowseContext, token?: symbol): Promise<boolean> {
+    if (token && !ownsFilters(token)) return false
     const activeRequest = ++requestId
     controller?.abort()
     const activeController = new AbortController()
     controller = activeController
     error.value = ''
+    errorStatus.value = undefined
     scopedMetadataAvailable.value = false
     definitions.value = []
     priceRange.min = 0
     priceRange.max = 0
     isLoading.value = true
     try {
-      const res = await useApi().post<FiltersResponse>('/products/filters', {
+      const res = await api.post<FiltersResponse>('/products/filters', {
         collection: { ...context.collection },
         categoryIds: context.categoryIds ? [...context.categoryIds] : undefined,
         discountId: context.discountId,
@@ -52,7 +61,10 @@ export const useFilterStore = defineStore('filter', () => {
       scopedMetadataAvailable.value = true
       return true
     } catch (e) {
-      if (activeRequest === requestId && !(e instanceof ApiError && e.kind === 'cancelled')) error.value = e instanceof ApiError ? e.message : 'خطا در دریافت فیلترها.'
+      if (activeRequest === requestId && !(e instanceof ApiError && e.kind === 'cancelled')) {
+        errorStatus.value = e instanceof ApiError ? e.status : undefined
+        error.value = e instanceof ApiError ? e.message : 'خطا در دریافت فیلترها.'
+      }
       return false
     } finally {
       if (activeRequest === requestId) { isLoading.value = false; controller = undefined }
@@ -165,12 +177,13 @@ export const useFilterStore = defineStore('filter', () => {
     selectedBrands,
     selectedCategories,
     isLoading,
-    error,
+    error, errorStatus,
     scopedMetadataAvailable,
     activeCount,
     hasCustomPrice,
     fetchFilters,
     invalidateRequests,
+    claimFilterOwner, ownsFilters,
     setValue,
     toggleBrand,
     toggleCategory,

@@ -1,7 +1,6 @@
 
 <script setup lang="ts">
 const bannerStore = useBannerStore()
-onMounted(() => bannerStore.fetchBanners())
 </script>
 
 <template>

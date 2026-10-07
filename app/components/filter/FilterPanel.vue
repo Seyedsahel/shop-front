@@ -1,4 +1,5 @@
 <script setup lang="ts">
+const props = defineProps<{ idPrefix: string }>()
 const filterStore = useFilterStore()
 const brandSearch = ref('')
 
@@ -84,7 +85,7 @@ function applyFilters() {
           <span class="rounded-full bg-surface px-2 py-0.5 text-[10px] text-text-secondary">پایه‌ای</span>
         </div>
 
-        <UiAccordion title="دسته‌بندی محصولات">
+        <UiAccordion :panel-id="`${props.idPrefix}-categories`" title="دسته‌بندی محصولات">
           <div class="flex max-h-56 flex-col gap-2 overflow-y-auto">
             <label v-for="category in filterStore.categories" :key="category.id" class="flex items-center justify-between rounded-lg px-1 py-1.5 text-sm text-text-secondary hover:bg-surface">
               <span>{{ category.name }}</span>
@@ -93,7 +94,7 @@ function applyFilters() {
           </div>
         </UiAccordion>
 
-        <UiAccordion title="برندها (Brand)">
+        <UiAccordion :panel-id="`${props.idPrefix}-brands`" title="برندها (Brand)">
           <div class="flex flex-col gap-3">
             <div class="relative">
               <UIcon name="solar:magnifer-linear" class="absolute right-2.5 top-1/2 size-4 -translate-y-1/2 text-text-muted" />
@@ -110,8 +111,8 @@ function applyFilters() {
       </div>
 
       <template v-if="filterStore.scopedMetadataAvailable">
-        <FilterPriceRangeFilter />
-        <FilterGroup v-for="filter in filterStore.definitions" :key="filter.slug" :filter="filter" />
+        <FilterPriceRangeFilter :panel-id="`${props.idPrefix}-price`" />
+        <FilterGroup :panel-id="`${props.idPrefix}-attribute-${encodeURIComponent(filter.slug)}`" v-for="filter in filterStore.definitions" :key="filter.slug" :filter="filter" />
       </template>
     </template>
 

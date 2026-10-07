@@ -1,31 +1,38 @@
-// Loading -> API -> State -> Toast -> Loading=false
-
 export const useStoryStore = defineStore('story', () => {
+  const api = useApi()
   const items = ref<StoryItem[]>([])
   const isLoading = ref(false)
   const isDetailLoading = ref(false)
-  const error = ref<ApiError | null>(null)
+  const error = ref<ReturnType<typeof serializeApiError> | null>(null)
   const seenIds = ref<Set<string>>(new Set())
   const fetched = ref(false)
-  let listRequest: Promise<void> | null = null
+  let listRequest: Promise<boolean> | null = null
   let seenLoaded = false
+  let detailRequest = 0
+  let detailOwner: symbol | undefined
+  function claimDetailOwner() { detailOwner = Symbol('story-detail'); detailRequest++; return detailOwner }
+  function invalidateDetail(owner: symbol) {
+    if (owner !== detailOwner) return
+    detailRequest++
+    isDetailLoading.value = false
+    error.value = null
+  }
 
   async function fetchStories(force = false) {
-    if (fetched.value && !force) return
+    if (fetched.value && !force) return true
     if (listRequest) return listRequest
 
     isLoading.value = true
     error.value = null
-    listRequest = useApi().get<StoriesResponse>('/stories')
+    listRequest = api.get<StoriesResponse>('/stories')
       .then((res) => {
         items.value = res.items
         fetched.value = true
-        loadSeenFromStorage()
-        pruneSeenIds()
+        return true
       })
       .catch((cause) => {
-        error.value = cause instanceof ApiError ? cause : new ApiError('خطا در دریافت استوری‌ها.')
-        useAppToast().error(error.value.message)
+        error.value = serializeApiError(cause, 'خطا در دریافت استوری‌ها.')
+        return false
       })
       .finally(() => {
         isLoading.value = false
@@ -34,23 +41,29 @@ export const useStoryStore = defineStore('story', () => {
     return listRequest
   }
 
-  async function fetchStory(id: string) {
+  async function fetchStory(id: string, owner?: symbol) {
+    if (owner && owner !== detailOwner) return
+    const request = ++detailRequest
+    error.value = null
+    isDetailLoading.value = false
     const cached = items.value.find(item => item.id === id)
     if (cached) return cached
 
     isDetailLoading.value = true
     error.value = null
     try {
-      const story = await useApi().get<StoryItem>(`/stories/${encodeURIComponent(id)}`)
+      const story = await api.get<StoryItem>(`/stories/${encodeURIComponent(id)}`)
+      if (request !== detailRequest) return undefined
       const index = items.value.findIndex(item => item.id === story.id)
       if (index === -1) items.value.push(story)
       else items.value.splice(index, 1, story)
       return story
     } catch (cause) {
-      error.value = cause instanceof ApiError ? cause : new ApiError('خطا در دریافت استوری.')
+      if (request !== detailRequest) return undefined
+      error.value = serializeApiError(cause, 'خطا در دریافت استوری.')
       throw cause
     } finally {
-      isDetailLoading.value = false
+      if (request === detailRequest) isDetailLoading.value = false
     }
   }
 
@@ -63,7 +76,7 @@ export const useStoryStore = defineStore('story', () => {
       seenIds.value = new Set(Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === 'string') : [])
     } catch {
       seenIds.value = new Set()
-      localStorage.removeItem('seen_stories')
+      try { localStorage.removeItem('seen_stories') } catch {}
     }
   }
 
@@ -72,19 +85,13 @@ export const useStoryStore = defineStore('story', () => {
     persistSeenIds()
   }
 
-  function pruneSeenIds() {
-    const availableIds = new Set(items.value.map(item => item.id))
-    seenIds.value = new Set([...seenIds.value].filter(id => availableIds.has(id)))
-    persistSeenIds()
-  }
-
   function persistSeenIds() {
-    if (import.meta.client) localStorage.setItem('seen_stories', JSON.stringify([...seenIds.value]))
+    if (import.meta.client) { try { localStorage.setItem('seen_stories', JSON.stringify([...seenIds.value])) } catch {} }
   }
 
   function isSeen(id: string) {
     return seenIds.value.has(id)
   }
 
-  return { items, isLoading, isDetailLoading, error, seenIds, fetchStories, fetchStory, loadSeenFromStorage, markSeen, isSeen }
+  return { items, isLoading, isDetailLoading, error, fetched, seenIds, claimDetailOwner, invalidateDetail, fetchStories, fetchStory, loadSeenFromStorage, markSeen, isSeen }
 })

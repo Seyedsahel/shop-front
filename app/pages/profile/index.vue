@@ -106,11 +106,8 @@ watch(() => auth.sessionScope ?? auth.identity, () => {
   errors.value = {}
 })
 
-onMounted(() => {
-  void addresses.fetchAll().catch(() => {})
-  void locations.fetchAll().catch(() => {})
-  void orders.fetchAll().catch(() => {})
-})
+await callOnce(`profile:${auth.sessionScope}`, () => Promise.allSettled([addresses.fetchAll(), locations.fetchAll(), orders.fetchAll()]).then(() => {}), { mode: 'navigation' })
+useSeoMeta({ robots: 'noindex, nofollow' })
 </script>
 
 <template>

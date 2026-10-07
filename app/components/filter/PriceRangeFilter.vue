@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineProps<{ panelId: string }>()
 const filterStore = useFilterStore()
 
 const minValue = computed(() => filterStore.priceRange.min)
@@ -17,7 +18,7 @@ const step = computed(() => {
 </script>
 
 <template>
-  <UiAccordion title="محدوده قیمت">
+  <UiAccordion :panel-id="panelId" title="محدوده قیمت">
     <div class="flex flex-col gap-2">
       <input
         type="range"

@@ -9,6 +9,7 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "typecheck": "nuxt typecheck",
+    "test:ssr": "node --test tests/ssr.test.mjs",
     "test:product-browse": "node tests/product-browse.test.mjs",
     "test:catalog-failure": "node tests/catalog-failure.test.mjs",
     "test:session": "node tests/session.test.mjs",

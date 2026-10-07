@@ -3,6 +3,7 @@ export default defineEventHandler(async (event): Promise<FiltersResponse> => {
   
   const raw = await backendFetch<any>('/products/filters', {
     method: 'POST',
+    authorization: 'none',
     body: {
       category_ids: body.categoryIds,
       discounted_only: body.collection?.kind === 'discounted' ? true : undefined,

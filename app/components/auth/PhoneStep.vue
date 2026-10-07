@@ -1,5 +1,6 @@
 <script setup lang="ts">
 const authStore = useAuthStore()
+const shop = useShopStore()
 const phone = ref('')
 const validationError = ref('')
 
@@ -33,13 +34,13 @@ async function submit() {
   <div>
     <div class="mb-8 flex items-center justify-between">
       <NuxtLink to="/" class="flex size-9 items-center justify-center rounded-xl text-text-secondary transition hover:border hover:border-divider hover:bg-surface hover:text-text-primary" aria-label="بازگشت به سایت"><UIcon name="solar:arrow-right-broken" class="size-5" /></NuxtLink>
-      <div class="inline-flex items-center gap-2 rounded-full border border-divider bg-surface px-3 py-1.5 text-[11px] font-medium text-text-secondary"><span class="size-1.5 rounded-full bg-primary" />ورود امن به حامی دارو</div>
+      <div class="inline-flex items-center gap-2 rounded-full border border-divider bg-surface px-3 py-1.5 text-[11px] font-medium text-text-secondary"><span class="size-1.5 rounded-full bg-primary" />ورود امن به {{ shop.name }}</div>
       
     </div>
 
     <div class="mb-8 space-y-2 text-center sm:text-right">
       <h1 class="text-2xl font-extrabold tracking-tight text-text-primary">ورود یا ثبت‌نام</h1>
-      <p class="text-sm leading-relaxed text-text-muted">برای ورود به حساب کاربری یا عضویت در حامی دارو، شماره موبایل خود را وارد نمایید.</p>
+      <p class="text-sm leading-relaxed text-text-muted">برای ورود به حساب کاربری یا عضویت در {{ shop.name }}، شماره موبایل خود را وارد نمایید.</p>
     </div>
 
     <form class="space-y-6" novalidate @submit.prevent="submit">
@@ -56,6 +57,6 @@ async function submit() {
       <button type="submit" :disabled="authStore.isLoading" class="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-sm font-medium text-primary-foreground shadow-md transition hover:bg-primary-hover active:scale-[.99] disabled:cursor-not-allowed disabled:opacity-50"><span>{{ authStore.isLoading ? 'در حال ارسال...' : 'ادامه و دریافت کد تایید' }}</span><UIcon name="solar:arrow-left-linear" class="size-4" /></button>
     </form>
 
-    <p class="mt-8 border-t border-divider pt-6 text-center text-[11px] leading-relaxed text-text-muted">با ورود و استفاده از خدمات حامی دارو، شرایط و قوانین استفاده و حریم خصوصی را می‌پذیرید.</p>
+    <p class="mt-8 border-t border-divider pt-6 text-center text-[11px] leading-relaxed text-text-muted">با ورود و استفاده از خدمات {{ shop.name }}، شرایط و قوانین استفاده و حریم خصوصی را می‌پذیرید.</p>
   </div>
 </template>

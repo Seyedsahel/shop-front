@@ -7,8 +7,11 @@ const categoryStore = useCategoryStore()
 const brandStore = useBrandStore()
 const filterStore = useFilterStore()
 const productListStore = useProductListStore()
+const listOwner = productListStore.claimListOwner()
+const filterOwner = filterStore.claimFilterOwner()
+const setStatus = usePageResponse()
 const isResolving = ref(true)
-const browseError = ref('')
+const browseError = useState<string>(`browse:error:${browsePath}:${getProductBrowseQueryKey(route.query)}`, () => '')
 let loadId = 0
 let isDisposed = false
 let hasActiveLoad = false
@@ -16,8 +19,8 @@ let hasActiveLoad = false
 function invalidateBrowseRequests() {
   loadId++
   hasActiveLoad = false
-  productListStore.invalidateListRequests()
-  filterStore.invalidateRequests()
+  productListStore.invalidateListRequests(listOwner)
+  filterStore.invalidateRequests(filterOwner)
 }
 
 function matchesConfirmedRoute() {
@@ -27,24 +30,28 @@ function matchesConfirmedRoute() {
 }
 
 async function loadProductsFromRoute() {
-  if (isDisposed || route.path !== browsePath || !matchesConfirmedRoute()) return
+  if (isDisposed || !productListStore.ownsList(listOwner) || route.path !== browsePath || !matchesConfirmedRoute()) return
   hasActiveLoad = true
   const activeLoad = ++loadId
   // Read the entire route before any await. Later requests use only this snapshot.
   const query = { ...route.query }
   const collection = { ...props.collection }
-  productListStore.invalidateListRequests()
-  filterStore.invalidateRequests()
+  productListStore.invalidateListRequests(listOwner)
+  filterStore.invalidateRequests(filterOwner)
   filterStore.resetAll()
   browseError.value = ''
   isResolving.value = true
+  let inputInvalid = true
   try {
     const input = parseProductBrowseQuery(query)
+    inputInvalid = false
     const ready = await Promise.all([categoryStore.fetchCategories(), brandStore.fetchBrands()])
-    if (activeLoad !== loadId) return
+    if (activeLoad !== loadId || !productListStore.ownsList(listOwner)) return
     if (ready.some(result => !result)) throw new Error('دریافت دسته‌بندی‌ها و برندها انجام نشد. دوباره تلاش کنید.')
+    inputInvalid = true
     const categoryIds = resolveProductFacetIds(input.categorySlugs, categoryStore.items)
     resolveProductFacetIds(input.brandSlugs, brandStore.items)
+    inputInvalid = false
     const context: ProductBrowseContext = {
       collection,
       // Backend category matching is exact. Expand only the request scope;
@@ -52,9 +59,9 @@ async function loadProductsFromRoute() {
       categoryIds: categoryIds.length ? expandProductCategoryIds(categoryIds, categoryStore.items) : undefined,
       discountId: input.discountId,
     }
-    const filtersReady = await filterStore.fetchFilters(context)
-    if (activeLoad !== loadId) return
-    if (!filtersReady) throw new Error(filterStore.error || 'دریافت فیلترها انجام نشد. دوباره تلاش کنید.')
+    const filtersReady = await filterStore.fetchFilters(context, filterOwner)
+    if (activeLoad !== loadId || !productListStore.ownsList(listOwner)) return
+    if (!filtersReady) throw new ApiError(filterStore.error || 'دریافت فیلترها انجام نشد. دوباره تلاش کنید.', filterStore.errorStatus)
     filterStore.resetAll()
     filterStore.initializeSelections(input)
     const sortOption = sortOptions.find(option => option.id === input.sort) ?? sortOptions[0]!
@@ -69,9 +76,13 @@ async function loadProductsFromRoute() {
         sortBy: sortOption.sortBy,
         sortDir: sortOption.sortDir,
       },
-    })
+    }, listOwner)
+    if (activeLoad === loadId && productListStore.error) setStatus(productListStore.errorStatus ?? 503)
   } catch (error) {
-    if (activeLoad === loadId) browseError.value = error instanceof Error ? error.message : 'خطا در دریافت محصولات.'
+    if (activeLoad === loadId) {
+      browseError.value = error instanceof Error ? error.message : 'خطا در دریافت محصولات.'
+      setStatus(inputInvalid ? 400 : error instanceof ApiError ? error.status ?? 503 : 503)
+    }
   } finally {
     if (activeLoad === loadId) isResolving.value = false
   }
@@ -116,7 +127,6 @@ const removeNavigationHook = router.afterEach((to, from, failure) => {
   }
 })
 
-onMounted(loadProductsFromRoute)
 watch([
   () => route.path,
   () => getProductBrowseQueryKey(route.query),
@@ -142,6 +152,10 @@ function retryProducts() {
 useInfiniteScroll(sentinel, () => {
   if (!isResolving.value && !browseError.value) productListStore.loadMore()
 })
+usePageSeo(pageTitle, 'مشاهده محصولات فروشگاه و فیلتر دسته‌بندی‌ها و برندها.')
+await callOnce(`browse:${browsePath}:${getProductBrowseQueryKey(route.query)}`, loadProductsFromRoute, { mode: 'navigation' })
+// callOnce skips only the SSR hydration fetch; controller-local state is not serialized.
+if (browseError.value || productListStore.loaded || productListStore.error || filterStore.error) isResolving.value = false
 </script>
 
 <template>

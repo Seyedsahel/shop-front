@@ -1,6 +1,5 @@
 <script setup lang="ts">
 const brandStore = useBrandStore()
-onMounted(() => brandStore.fetchBrands())
 </script>
 
 <template>

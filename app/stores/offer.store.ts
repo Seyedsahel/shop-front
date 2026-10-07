@@ -1,4 +1,5 @@
 export const useOfferStore = defineStore('offer', () => {
+  const api = useApi()
   const discount = ref<HomepageDiscount | null>(null)
   const products = ref<Product[]>([])
   const isLoading = ref(false)
@@ -11,7 +12,7 @@ export const useOfferStore = defineStore('offer', () => {
     isLoading.value = true
     error.value = ''
     try {
-      const homepageDiscount = await useApi().get<HomepageDiscount | null>('/discounts/home')
+      const homepageDiscount = await api.get<HomepageDiscount | null>('/discounts/home')
       discount.value = homepageDiscount
       if (!homepageDiscount) {
         products.value = []
@@ -19,7 +20,7 @@ export const useOfferStore = defineStore('offer', () => {
         return
       }
 
-      const res = await useApi().post<ProductListResponse>('/products/list', {
+      const res = await api.post<ProductListResponse>('/products/list', {
         discountId: homepageDiscount.id,
         page: 1,
         limit: 20,
@@ -28,11 +29,10 @@ export const useOfferStore = defineStore('offer', () => {
       hasLoaded.value = true
     } catch (e) {
       error.value = e instanceof ApiError ? e.message : 'خطا در دریافت پیشنهادهای ویژه.'
-      useAppToast().error(error.value)
     } finally {
       isLoading.value = false
     }
   }
 
-  return { discount, products, endsAt, isLoading, error, fetchOffer }
+  return { discount, products, endsAt, isLoading, error, hasLoaded, fetchOffer }
 })

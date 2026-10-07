@@ -2,12 +2,12 @@
 const props = defineProps<{ targetType: CommentTargetType; targetId: string }>()
 const commentStore = useCommentStore()
 
-function fetchComments() {
-  commentStore.fetchComments(props.targetType, props.targetId)
+function fetchComments(force = false) {
+  return commentStore.fetchComments(props.targetType, props.targetId, force)
 }
 
-onMounted(fetchComments)
-watch(() => [props.targetType, props.targetId], fetchComments)
+await callOnce(`comments:${props.targetType}:${props.targetId}`, () => fetchComments(), { mode: 'navigation' })
+watch(() => [props.targetType, props.targetId], () => fetchComments())
 
 const comments = computed(() => {
   const key = commentStore.keyFor(props.targetType, props.targetId)
@@ -55,6 +55,7 @@ async function submit() {
       </button>
     </form>
 
+    <p v-if="commentStore.errors[commentStore.keyFor(targetType, targetId)]" role="alert" class="text-sm text-danger">{{ commentStore.errors[commentStore.keyFor(targetType, targetId)] }} <button type="button" class="underline" @click="fetchComments(true)">تلاش دوباره</button></p>
     <template v-if="commentStore.isLoading && !comments.length">
       <div v-for="n in 2" :key="n" class="h-24 rounded-xl bg-loading animate-pulse" />
     </template>

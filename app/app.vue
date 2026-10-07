@@ -1,5 +1,13 @@
 <script setup lang="ts">
 import { Toaster } from 'vue-sonner'
+
+const shop = useShopStore()
+await callOnce('shop:info', () => shop.fetchShop().then(() => {}))
+useHead(() => ({
+  title: shop.name,
+  titleTemplate: (title?: string) => title && title !== shop.name ? `${title} | ${shop.name}` : shop.name,
+}))
+useSeoMeta({ ogSiteName: () => shop.name })
 </script>
 <template>
   <div>

@@ -20,7 +20,7 @@ const orderLimitReached = computed(() => props.product.maxPerOrder > 0 && quanti
 const totalPrice = computed(() => unitPrice.value * quantity.value)
 const favoriteItem = computed(() => wishlistStore.findItem(props.product.id, selectedVariant.value?.variantId))
 
-onMounted(() => { void wishlistStore.fetchWishlist().catch(() => {}) })
+onMounted(() => { if (!wishlistStore.loaded) void wishlistStore.fetchWishlist().catch(() => {}) })
 
 watch(
   () => props.product.id,

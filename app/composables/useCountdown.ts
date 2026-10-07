@@ -1,11 +1,12 @@
 export function useCountdown(targetIso: Ref<string | null>) {
   const remaining = reactive({ days: 0, hours: 0, minutes: 0, seconds: 0, expired: false })
   let timer: ReturnType<typeof setInterval> | undefined
+  let mounted = false
 
   function tick() {
     if (!targetIso.value) return
     const diff = new Date(targetIso.value).getTime() - Date.now()
-    if (diff <= 0) {
+    if (!Number.isFinite(diff) || diff <= 0) {
       remaining.days = remaining.hours = remaining.minutes = remaining.seconds = 0
       remaining.expired = true
       if (timer) clearInterval(timer)
@@ -17,12 +18,16 @@ export function useCountdown(targetIso: Ref<string | null>) {
     remaining.seconds = Math.floor((diff % 60000) / 1000)
   }
 
+  onMounted(() => { mounted = true; tick(); if (targetIso.value && !remaining.expired) timer = setInterval(tick, 1000) })
   watch(targetIso, (val) => {
     if (timer) clearInterval(timer)
+    timer = undefined
+    remaining.days = remaining.hours = remaining.minutes = remaining.seconds = 0
+    remaining.expired = false
     if (!val) return
-    tick()
-    timer = setInterval(tick, 1000)
-  }, { immediate: true })
+    remaining.expired = false
+    if (mounted) { tick(); if (!remaining.expired) timer = setInterval(tick, 1000) }
+  })
 
   onBeforeUnmount(() => timer && clearInterval(timer))
 

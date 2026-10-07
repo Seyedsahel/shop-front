@@ -1,11 +1,14 @@
 export const useCategoryStore = defineStore('category', () =>{
+  const api = useApi()
     const items = ref<ProductCategory[]>([])
     const isLoading = ref(false)
+    const loaded = ref(false)
+    const error = ref('')
 
     let pending: Promise<boolean> | undefined
 
     function fetchCategories(): Promise<boolean> {
-        if (items.value.length) return Promise.resolve(true)
+        if (loaded.value) return Promise.resolve(true)
         if (pending) return pending
         pending = load().finally(() => { pending = undefined })
         return pending
@@ -13,17 +16,19 @@ export const useCategoryStore = defineStore('category', () =>{
 
     async function load(): Promise<boolean> {
         isLoading.value = true
+        error.value = ''
         try {
-            const res = await useApi().get<CategoriesResponse>('/categories')
+            const res = await api.get<CategoriesResponse>('/categories')
             items.value = res.items
+            loaded.value = true
             return true
         } catch (e){
-            useAppToast().error(e instanceof ApiError ? e.message : 'خطا در دریافت دسته بندی ها')
+            error.value = e instanceof ApiError ? e.message : 'خطا در دریافت دسته بندی ها'
             return false
         } finally {
             isLoading.value = false
         }
     }
 
-    return { items, isLoading, fetchCategories}
+    return { items, isLoading, loaded, error, fetchCategories}
 })

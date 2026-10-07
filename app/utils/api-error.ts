@@ -16,6 +16,16 @@ export class ApiError extends Error {
   }
 }
 
+/** Plain state for Nuxt payloads; Error instances must not enter Pinia state. */
+export function serializeApiError(error: unknown, fallback: string) {
+  return {
+    message: error instanceof ApiError ? error.message : fallback,
+    status: error instanceof ApiError ? error.status : undefined,
+    code: error instanceof ApiError ? error.code : undefined,
+    kind: error instanceof ApiError ? error.kind : 'network',
+  }
+}
+
 function messageForStatus(status: number | undefined, context: ApiErrorContext, kind: ApiErrorKind) {
   if (kind === 'cancelled') return 'درخواست لغو شد.'
   if (kind === 'timeout') return 'پاسخی از سرور دریافت نشد. لطفاً کمی بعد دوباره تلاش کنید.'

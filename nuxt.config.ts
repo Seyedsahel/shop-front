@@ -30,6 +30,7 @@ export default defineNuxtConfig({
     backendRequestTimeoutMs: 20_000,
     useMockData: true,
     public: {
+      siteUrl: '',
       apiRequestTimeoutMs: 30_000,
       imageBaseUrl: 'http://78.39.57.118:80/images',
     },

@@ -1,7 +1,10 @@
 export const useCommentStore = defineStore('comment', () => {
+  const api = useApi()
   const byTarget = ref<Record<string, AppComment[]>>({})
   const pendingByTarget = ref<Record<string, AppComment[]>>({})
   const isLoading = ref(false)
+  const errors = ref<Record<string, string>>({})
+  const pending = new Map<string, Promise<void>>()
   const isSubmitting = ref(false)
   const authStore = useAuthStore()
 
@@ -16,20 +19,23 @@ export const useCommentStore = defineStore('comment', () => {
     return `${targetType}:${targetId}`
   }
 
-  async function fetchComments(targetType: CommentTargetType, targetId: string) {
+  function fetchComments(targetType: CommentTargetType, targetId: string, force = false): Promise<void> {
+    const key = keyFor(targetType, targetId)
+    if (pending.has(key)) return pending.get(key)!
+    if (!force && Object.hasOwn(byTarget.value, key)) return Promise.resolve()
     isLoading.value = true
-    try {
-      const query = new URLSearchParams({ targetType, targetId })
-      const res = await useApi().get<CommentsResponse>(`/comments?${query}`)
-      byTarget.value[keyFor(targetType, targetId)] = res.items
-      const approvedIds = new Set(res.items.map(comment => comment.id))
-      pendingByTarget.value[keyFor(targetType, targetId)] = (pendingByTarget.value[keyFor(targetType, targetId)] ?? [])
-        .filter(comment => !approvedIds.has(comment.id))
-    } catch (e) {
-      useAppToast().error(e instanceof ApiError ? e.message : 'خطا در دریافت نظرات.')
-    } finally {
-      isLoading.value = false
-    }
+    delete errors.value[key]
+    const query = new URLSearchParams({ targetType, targetId })
+    const request = api.get<CommentsResponse>(`/comments?${query}`)
+      .then(res => {
+        byTarget.value[key] = res.items
+        const approvedIds = new Set(res.items.map(comment => comment.id))
+        pendingByTarget.value[key] = (pendingByTarget.value[key] ?? []).filter(comment => !approvedIds.has(comment.id))
+      })
+      .catch(cause => { errors.value[key] = serializeApiError(cause, 'خطا در دریافت نظرات.').message })
+      .finally(() => { pending.delete(key); isLoading.value = pending.size > 0 })
+    pending.set(key, request)
+    return request
   }
 
   async function submitComment(targetType: CommentTargetType, targetId: string, content: string, parentId?: string) {
@@ -44,7 +50,7 @@ export const useCommentStore = defineStore('comment', () => {
 
     isSubmitting.value = true
     try {
-      const created = await useApi().post<CreatedCommentResponse>('/comments', {
+      const created = await api.post<CreatedCommentResponse>('/comments', {
         targetType, targetId, content: content.trim(), parentId,
       } satisfies SubmitCommentPayload)
       const key = keyFor(targetType, targetId)
@@ -52,7 +58,7 @@ export const useCommentStore = defineStore('comment', () => {
         id: created.id,
         authorName: authStore.user?.name || 'شما',
         content: created.body,
-        createdAt: new Date(created.created_at * 1000).toLocaleString('fa-IR'),
+        createdAt: new Date(created.created_at * 1000).toLocaleString('fa-IR', { timeZone: 'Asia/Tehran' }),
         parentId: created.parent_id,
         pending: !created.is_confirmed,
       }
@@ -68,5 +74,5 @@ export const useCommentStore = defineStore('comment', () => {
     }
   }
 
-  return { byTarget, pendingByTarget, isLoading, isSubmitting, keyFor, fetchComments, submitComment }
+  return { byTarget, pendingByTarget, errors, isLoading, isSubmitting, keyFor, fetchComments, submitComment }
 })

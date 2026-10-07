@@ -1,6 +1,5 @@
 <script setup lang="ts">
 const offerStore = useOfferStore()
-onMounted(() => offerStore.fetchOffer())
 </script>
 
 <template>

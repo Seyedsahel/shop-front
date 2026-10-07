@@ -2,7 +2,9 @@
 const wishlistStore = useWishlistStore()
 const cartStore = useCartStore()
 const toast = useAppToast()
-onMounted(() => { void wishlistStore.fetchWishlist().catch(() => {}) })
+const auth = useAuthStore()
+await callOnce(`wishlist:${auth.sessionScope ?? 'anonymous'}`, () => wishlistStore.fetchWishlist().catch(() => {}), { mode: 'navigation' })
+useSeoMeta({ robots: 'noindex, nofollow' })
 
 async function run(action: () => Promise<unknown>, message: string) {
   try { await action(); toast.success(message) }

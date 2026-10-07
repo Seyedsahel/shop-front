@@ -3,7 +3,7 @@ import { test } from 'node:test'
 import { readFile } from 'node:fs/promises'
 import ts from 'typescript'
 import { createPinia, setActivePinia, defineStore } from 'pinia'
-import { ref, watch, reactive } from 'vue'
+import { ref, watch, reactive, computed } from 'vue'
 import * as h3 from 'h3'
 
 async function load(path) {
@@ -188,7 +188,7 @@ test('payment retry checks server status and pays the existing order without che
   const orders = { current: null, async fetchOne(id) { events.push(id); this.current = { ...order } } }
   api.post = async (path, body) => { calls.push({ path, body }); return { redirect_url: 'https://gateway.test/pay' } }
   const dependencies = {
-    defineProps: () => ({ orderId: order.id }), ref, onMounted() {},
+    defineProps: () => ({ orderId: order.id }), ref, computed, onMounted() {}, callOnce: async () => {},
     usePaymentStore: () => payments, useOrderStore: () => orders,
     useCheckoutStore: () => checkout, useAuthStore: () => auth,
     ApiError, getUserFriendlyApiErrorMessage, window: { location: { assign: url => redirects.push(url) } },
@@ -197,7 +197,8 @@ test('payment retry checks server status and pays the existing order without che
   const source = component.match(/<script setup lang="ts">([\s\S]*?)<\/script>/)[1]
     + '\nreturn { methodId, retryPayment, error };'
   const { outputText } = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ESNext } })
-  const state = new Function(...Object.keys(dependencies), outputText)(...Object.values(dependencies))
+  const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor
+  const state = await new AsyncFunction(...Object.keys(dependencies), outputText)(...Object.values(dependencies))
   state.methodId.value = 'gateway'
   await state.retryPayment()
   assert.deepEqual(events, [order.id])

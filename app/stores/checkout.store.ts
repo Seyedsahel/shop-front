@@ -9,6 +9,9 @@ export const useCheckoutStore = defineStore('checkout', () => {
   const couponDraft = ref('')
   const couponCode = ref('')
   const loadingMethods = ref(false)
+  const methodsLoaded = ref(false)
+  const methodsError = ref('')
+  let methodsRequest: Promise<void> | null = null
   const previewing = ref(false)
   const submitting = ref(false)
   let previewGeneration = 0
@@ -21,15 +24,19 @@ export const useCheckoutStore = defineStore('checkout', () => {
     couponCode.value = ''
   }, { flush: 'sync' })
 
-  async function fetchMethods() {
+  function fetchMethods(force = false): Promise<void> {
+    if (methodsRequest) return methodsRequest
+    if (methodsLoaded.value && !force) return Promise.resolve()
     loadingMethods.value = true
-    try {
-      methods.value = (await api.get<ShippingMethod[]>('/shipping/methods')).filter(method => method.enabled)
-    } catch (cause) {
-      throw withApiErrorContext(cause, 'checkout')
-    } finally {
-      loadingMethods.value = false
-    }
+    methodsError.value = ''
+    methodsRequest = api.get<ShippingMethod[]>('/shipping/methods').then(result => {
+      methods.value = result.filter(method => method.enabled)
+      methodsLoaded.value = true
+    }).catch(cause => {
+      methodsError.value = serializeApiError(cause, 'دریافت روش‌های سفارش ناموفق بود.').message
+      throw cause
+    }).finally(() => { loadingMethods.value = false; methodsRequest = null })
+    return methodsRequest
   }
 
   function clearPreview() {
@@ -139,5 +146,5 @@ export const useCheckoutStore = defineStore('checkout', () => {
     }
   }
 
-  return { methods, preview, order, attempt, couponDraft, couponCode, loadingMethods, previewing, submitting, fetchMethods, fetchPreview, clearPreview, restoreAttempt, saveAttempt, forgetAttempt, recordPaymentFailure, createOrder }
+  return { methods, methodsLoaded, methodsError, preview, order, attempt, couponDraft, couponCode, loadingMethods, previewing, submitting, fetchMethods, fetchPreview, clearPreview, restoreAttempt, saveAttempt, forgetAttempt, recordPaymentFailure, createOrder }
 })

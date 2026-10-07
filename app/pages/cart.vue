@@ -15,7 +15,8 @@ const cartSignature = computed(() => JSON.stringify({
 const activeCouponPreview = computed(() => previewSignature.value === cartSignature.value
   && checkoutStore.couponDraft.trim() === checkoutStore.couponCode ? couponPreview.value : null)
 watch(cartSignature, () => { couponPreview.value = null })
-onMounted(() => { void cartStore.fetchCart().catch(() => {}) })
+await callOnce(`cart:${auth.sessionScope ?? 'anonymous'}`, () => cartStore.fetchCart().catch(() => {}), { mode: 'navigation' })
+useSeoMeta({ robots: 'noindex, nofollow' })
 
 async function applyCoupon() {
   if (couponPending.value || cartStore.busy || cartStore.stale || !cartStore.cart?.id) return

@@ -2,11 +2,6 @@
 const categoryStore = useCategoryStore()
 const productListStore = useProductListStore()
 const displayedCategories = computed(() => categoryStore.items.slice(0, 15))
-
-onMounted(() => {
-  categoryStore.fetchCategories()
-  productListStore.fetchDiscountedAvailability()
-})
 </script>
 
 <template>

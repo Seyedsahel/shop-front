@@ -1,5 +1,6 @@
 
 export const useProductListStore = defineStore('productList', () => {
+  const api = useApi()
   const items = ref<Product[]>([])
   const total = ref(0)
   const page = ref(1)
@@ -8,6 +9,7 @@ export const useProductListStore = defineStore('productList', () => {
   const isLoadingMore = ref(false)
   const loaded = ref(false)
   const error = ref('')
+  const errorStatus = ref<number | undefined>()
   const failedRead = ref<{ mode: 'replace' | 'append'; page: number } | null>(null)
   let listController: AbortController | undefined
   const sort = ref('relevant')
@@ -16,6 +18,9 @@ export const useProductListStore = defineStore('productList', () => {
   const hasDiscountedProducts = ref<boolean | null>(null)
   const isDiscountedAvailabilityLoading = ref(false)
   let listRequestId = 0
+  let owner: symbol | undefined
+  function claimListOwner() { owner = Symbol('product-list'); listRequestId++; listController?.abort(); return owner }
+  function ownsList(token: symbol) { return token === owner }
   let searchRequestId = 0
   
   const lastPageSize = ref(0)
@@ -40,6 +45,7 @@ export const useProductListStore = defineStore('productList', () => {
     const controller = new AbortController()
     listController = controller
     error.value = ''
+    errorStatus.value = undefined
     failedRead.value = null
     if (mode === 'replace') {
       items.value = []
@@ -51,7 +57,7 @@ export const useProductListStore = defineStore('productList', () => {
     else isLoading.value = true
 
     try {
-      const res = await useApi().post<ProductListResponse>(context.collection.kind === 'discounted' ? '/discounts/products' : '/products/list', {
+      const res = await api.post<ProductListResponse>(context.collection.kind === 'discounted' ? '/discounts/products' : '/products/list', {
         ...request,
         categoryIds: context.categoryIds,
         discountId: context.discountId,
@@ -75,6 +81,7 @@ export const useProductListStore = defineStore('productList', () => {
     } catch (e) {
       if (requestId !== listRequestId) return false
       if (!(e instanceof ApiError && e.kind === 'cancelled')) {
+        errorStatus.value = e instanceof ApiError ? e.status : undefined
         error.value = e instanceof ApiError ? e.message : 'خطا در دریافت محصولات.'
         failedRead.value = { mode, page: requestedPage }
       }
@@ -88,7 +95,8 @@ export const useProductListStore = defineStore('productList', () => {
     }
   }
 
-  function invalidateListRequests() {
+  function invalidateListRequests(token?: symbol) {
+    if (token && !ownsList(token)) return
     listRequestId++
     listController?.abort()
     listController = undefined
@@ -101,10 +109,12 @@ export const useProductListStore = defineStore('productList', () => {
     listSearch.value = ''
     loaded.value = false
     error.value = ''
+    errorStatus.value = undefined
     failedRead.value = null
   }
 
-  function fetchList(params: { context: ProductBrowseContext; request: ProductListRequest; sort: string }) {
+  function fetchList(params: { context: ProductBrowseContext; request: ProductListRequest; sort: string }, token?: symbol) {
+    if (token && !ownsList(token)) return Promise.resolve(false)
     // Store an immutable applied snapshot. Load-more must not use unapplied UI drafts.
     browseRequest.value = {
       context: {
@@ -135,18 +145,20 @@ export const useProductListStore = defineStore('productList', () => {
     return refetch(failed.mode, failed.page)
   }
 
+  const availabilityError = ref('')
   async function fetchDiscountedAvailability() {
     if (hasDiscountedProducts.value !== null || isDiscountedAvailabilityLoading.value) return
     isDiscountedAvailabilityLoading.value = true
+    availabilityError.value = ''
     try {
-      const res = await useApi().post<ProductListResponse>('/discounts/products', {
+      const res = await api.post<ProductListResponse>('/discounts/products', {
         page: 1,
         limit: 1,
       } satisfies ProductListRequest)
       hasDiscountedProducts.value = res.total > 0
     } catch (e) {
-      hasDiscountedProducts.value = false
-      useAppToast().error(e instanceof ApiError ? e.message : 'خطا در دریافت محصولات تخفیف‌دار.')
+      hasDiscountedProducts.value = null
+      availabilityError.value = e instanceof ApiError ? e.message : 'دریافت مجموعه تخفیف‌ها ناموفق بود.'
     } finally {
       isDiscountedAvailabilityLoading.value = false
     }
@@ -175,7 +187,7 @@ export const useProductListStore = defineStore('productList', () => {
     isSearchLoading.value = true
 
     try {
-      const res = await useApi().post<ProductListResponse>('/products/list', {
+      const res = await api.post<ProductListResponse>('/products/list', {
         search: normalizedSearch,
         page: params.page ?? 1,
         limit: params.limit ?? searchLimit.value,
@@ -213,28 +225,41 @@ export const useProductListStore = defineStore('productList', () => {
   const previewsByCategory = ref<Record<string, Product[]>>({})
   const previewLoading = ref<Record<string, boolean>>({})
 
-  async function fetchPreview(categoryId: string) {
+  const previewError = ref<Record<string, string>>({})
+  const previewPending = new Map<string, Promise<void>>()
+
+  function fetchPreview(categoryId: string, force = false) {
+    if (!force && Object.hasOwn(previewsByCategory.value, categoryId)) return Promise.resolve()
+    const pending = previewPending.get(categoryId)
+    if (pending) return pending
+    const request = loadPreview(categoryId).finally(() => previewPending.delete(categoryId))
+    previewPending.set(categoryId, request)
+    return request
+  }
+
+  async function loadPreview(categoryId: string) {
+    previewError.value[categoryId] = ''
     previewLoading.value[categoryId] = true
     try {
-      const res = await useApi().post<ProductListResponse>('/products/list', {
+      const res = await api.post<ProductListResponse>('/products/list', {
         categoryIds: [categoryId],
         page: 1,
         limit: 12,
       } satisfies ProductListRequest)
       previewsByCategory.value[categoryId] = res.items
     } catch (e) {
-      useAppToast().error(e instanceof ApiError ? e.message : 'خطا در دریافت محصولات.')
+      previewError.value[categoryId] = e instanceof ApiError ? e.message : 'خطا در دریافت محصولات.'
     } finally {
       previewLoading.value[categoryId] = false
     }
   }
 
   return {
-    items, total, page, limit, isLoading, isLoadingMore, loaded, error, sort, listSearch, browseRequest, lastPageSize, hasMore,
+    items, total, page, limit, isLoading, isLoadingMore, loaded, error, errorStatus, sort, listSearch, browseRequest, lastPageSize, hasMore,
     hasDiscountedProducts, isDiscountedAvailabilityLoading, fetchDiscountedAvailability,
-    fetchList, loadMore, retryList, invalidateListRequests,
+    fetchList, loadMore, retryList, invalidateListRequests, claimListOwner, ownsList,
     searchItems, searchTotal, searchPage, searchLimit, searchQuery, isSearchLoading, searchError,
     searchProducts, clearSearch,
-    previewsByCategory, previewLoading, fetchPreview,
+    previewsByCategory, previewLoading, previewError, fetchPreview, availabilityError,
   }
 })

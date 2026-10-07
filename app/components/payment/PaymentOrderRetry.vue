@@ -7,10 +7,11 @@ const auth = useAuthStore()
 const methodId = ref('')
 const pending = ref(false)
 const error = ref('')
+const methodError = computed(() => payments.methodsError)
 
 async function loadMethods() {
   try { await payments.fetchMethods() }
-  catch (cause) { error.value = getUserFriendlyApiErrorMessage(cause) }
+  catch { /* The resource store owns the serialized method error. */ }
 }
 
 async function retryPayment() {
@@ -40,14 +41,14 @@ async function retryPayment() {
   } finally { pending.value = false }
 }
 
-onMounted(loadMethods)
+await callOnce('payment:methods', loadMethods, { mode: 'navigation' })
 </script>
 
 <template>
   <section class="mt-6 rounded-2xl border border-border bg-card p-6">
     <h2 class="text-lg font-bold text-text-primary">پرداخت سفارش موجود</h2>
     <CheckoutPaymentMethods v-model="methodId" class="mt-4" :methods="payments.methods" :loading="payments.loadingMethods" :disabled="pending || payments.starting" />
-    <p v-if="error" role="alert" class="mt-4 text-sm text-danger">{{ error }}</p>
+    <p v-if="error || methodError" role="alert" class="mt-4 text-sm text-danger">{{ error || methodError }} <button v-if="methodError" type="button" class="underline" @click="loadMethods">تلاش دوباره</button></p>
     <button type="button" class="mt-4 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50" :disabled="pending || payments.starting || !methodId" @click="retryPayment">{{ pending ? 'در حال بررسی سفارش…' : 'تلاش دوباره برای پرداخت' }}</button>
   </section>
 </template>

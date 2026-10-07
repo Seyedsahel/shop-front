@@ -7,12 +7,19 @@ const auth = useAuthStore()
 const id = computed(() => String(route.params.id))
 const order = computed(() => orders.current?.id === id.value ? orders.current : null)
 
-function loadOrder() {
+const setStatus = usePageResponse()
+async function loadOrder() {
   if (!auth.isAuthenticated) return
-  void orders.fetchOne(id.value).catch(() => {})
+  try { await orders.fetchOne(id.value) } catch (cause) {
+    const status = cause instanceof ApiError ? cause.status : undefined
+    if (import.meta.server && status === 404) throw createError({ statusCode: 404, statusMessage: 'Order not found' })
+    setStatus(status ?? 503)
+  }
 }
 
-watch(() => [id.value, auth.sessionScope, auth.isAuthenticated], loadOrder, { immediate: true })
+watch(() => [id.value, auth.sessionScope, auth.isAuthenticated], loadOrder)
+usePageSeo(() => order.value ? `سفارش ${order.value.order_number}` : 'سفارش', 'جزئیات سفارش', true)
+await callOnce(`order:${auth.sessionScope}:${id.value}`, loadOrder, { mode: 'navigation' })
 </script>
 
 <template>

@@ -3,6 +3,7 @@ export default defineEventHandler(async (event): Promise<ProductListResponse> =>
 
   const raw = await backendFetch<any>('/discounts/products', {
     method: 'POST',
+    authorization: 'none',
     body: {
       discounted_only: true,
       discount_id: body.discountId,

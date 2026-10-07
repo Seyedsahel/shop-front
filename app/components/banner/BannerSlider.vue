@@ -1,7 +1,6 @@
 <!-- app/components/banner/BannerSlider.vue -->
 <script setup lang="ts">
 const bannerStore = useBannerStore()
-onMounted(() => bannerStore.fetchBanners())
 
 const active = ref(0)
 const hovered = ref<number | null>(null)
@@ -52,6 +51,7 @@ function handleTouchEnd(event: TouchEvent) {
 watch(() => bannerStore.homeTop.length, (len) => {
   if (len > 1) start()
 })
+onMounted(start)
 onBeforeUnmount(stop)
 </script>
 

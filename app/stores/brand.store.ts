@@ -1,12 +1,14 @@
 export const useBrandStore = defineStore('brand', () => {
+  const api = useApi()
   const items = ref<Brand[]>([])
   const isLoading = ref(false)
-  let fetched = false
+  const loaded = ref(false)
+  const error = ref('')
 
   let pending: Promise<boolean> | undefined
 
   function fetchBrands(): Promise<boolean> {
-    if (fetched) return Promise.resolve(true)
+    if (loaded.value) return Promise.resolve(true)
     if (pending) return pending
     pending = load().finally(() => { pending = undefined })
     return pending
@@ -14,13 +16,14 @@ export const useBrandStore = defineStore('brand', () => {
 
   async function load(): Promise<boolean> {
     isLoading.value = true
+    error.value = ''
     try {
-      const res = await useApi().get<BrandsResponse>('/brands')
+      const res = await api.get<BrandsResponse>('/brands')
       items.value = res.items
-      fetched = true
+      loaded.value = true
       return true
     } catch (e) {
-      useAppToast().error(e instanceof ApiError ? e.message : 'خطا در دریافت برندها.')
+      error.value = e instanceof ApiError ? e.message : 'خطا در دریافت برندها.'
       return false
     } finally {
       isLoading.value = false
@@ -31,5 +34,5 @@ export const useBrandStore = defineStore('brand', () => {
     return slug ? items.value.find(brand => brand.slug === slug) : undefined
   }
 
-  return { items, isLoading, fetchBrands, findBySlug }
+  return { items, isLoading, loaded, error, fetchBrands, findBySlug }
 })

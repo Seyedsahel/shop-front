@@ -23,7 +23,8 @@ const confirmedAddress = ref<AddressInput | null>(null)
 const draft = ref<AddressInput>(emptyDraft())
 const errors = ref<Partial<Record<keyof AddressInput, string>>>({})
 const previewError = ref('')
-const loadError = ref('')
+const loadError = useState<string>(`checkout:error:${auth.sessionScope ?? auth.identity}`, () => '')
+const recoveryReady = ref(false)
 const recoveringAttempt = computed(() => !!checkout.attempt && !checkout.attempt.rejected)
 
 function emptyDraft(): AddressInput {
@@ -117,7 +118,7 @@ async function refreshPreview() {
   checkout.clearPreview()
   previewError.value = ''
   const input = currentInput.value
-  if (!input || cart.stale || recoveringAttempt.value || finalizing.value) return
+  if (!import.meta.client || !recoveryReady.value || !input || cart.stale || recoveringAttempt.value || finalizing.value) return
   try {
     await checkout.fetchPreview(input)
   } catch (cause) {
@@ -181,12 +182,15 @@ async function submitOrder() {
 async function recoverOrder() {
   recoveryError.value = ''
   const id = checkout.attempt?.orderId
+  const scope = auth.sessionScope ?? auth.identity
   if (!id) return
   try {
     await orders.fetchOne(id)
+    if ((auth.sessionScope ?? auth.identity) !== scope) return
     if (!orders.current || orders.current.id !== id) throw new Error('Order unavailable')
     checkout.order = orders.current
   } catch (cause) {
+    if ((auth.sessionScope ?? auth.identity) !== scope) return
     recoveryError.value = cause instanceof ApiError ? cause.message : 'بازیابی سفارش ناموفق بود. سفارش‌های حساب کاربری را بررسی کنید.'
     throw cause
   }
@@ -263,7 +267,8 @@ function startNewCheckout() {
   void loadCheckout()
 }
 
-onMounted(async () => {
+async function restoreCheckout() {
+  const scope = auth.sessionScope ?? auth.identity
   try {
     checkout.restoreAttempt()
     selectedPaymentMethodId.value = checkout.attempt?.paymentMethodId ?? ''
@@ -271,7 +276,6 @@ onMounted(async () => {
     recoveryFailed.value = true
     recoveryError.value = cause instanceof ApiError ? cause.message : 'بازیابی سفارش ناموفق بود.'
   }
-  await loadCheckout()
   const saved = checkout.attempt?.input
   if (saved && checkout.attempt?.rejected) {
     selectedMethodId.value = saved.shipping_method_id
@@ -285,7 +289,29 @@ onMounted(async () => {
     } else if (address) selectAddress(address)
   }
   await recoverOrder().catch(() => {})
-})
+  if ((auth.sessionScope ?? auth.identity) === scope) recoveryReady.value = true
+}
+onMounted(restoreCheckout)
+watch(() => auth.sessionScope ?? auth.identity, async (scope, previous) => {
+  if (!import.meta.client || scope === previous) return
+  recoveryReady.value = false
+  selectedAddressId.value = null
+  selectedMethodId.value = ''
+  selectedPaymentMethodId.value = ''
+  confirmedAddress.value = null
+  draft.value = emptyDraft()
+  errors.value = {}
+  addressFormOpen.value = false
+  addressSheetOpen.value = false
+  recoveryFailed.value = false
+  recoveryError.value = ''
+  paymentError.value = ''
+  previewError.value = ''
+  await nextTick()
+  if (!auth.isAuthenticated || (auth.sessionScope ?? auth.identity) !== scope) return
+  await loadCheckout()
+  if ((auth.sessionScope ?? auth.identity) === scope) await restoreCheckout()
+}, { flush: 'sync' })
 
 watch(() => addresses.items.map(item => item.id), ids => {
   if (selectedAddressId.value && !ids.includes(selectedAddressId.value)) addAddress()
@@ -299,13 +325,15 @@ watch(() => checkout.methods.map(item => item.id), ids => {
   if (!ids.includes(selectedMethodId.value)) selectedMethodId.value = ''
 })
 watch(() => auth.isAuthenticated, authenticated => {
-  if (!authenticated) auth.requireAuth('/checkout')
+  if (import.meta.client && !authenticated) auth.requireAuth('/checkout')
 })
 watch(() => JSON.stringify(currentInput.value),
   () => { void refreshPreview() })
-watch(() => [cart.loaded, cart.busy, cart.itemCount, cart.error] as const, ([loaded, busy, count, error]) => {
-  if (loaded && !busy && !count && !error && !checkout.attempt && !recoveryFailed.value) void navigateTo('/cart')
+watch(() => [cart.loaded, cart.busy, cart.itemCount, cart.error, recoveryReady.value] as const, ([loaded, busy, count, error]) => {
+  if (import.meta.client && recoveryReady.value && loaded && !busy && !count && !error && !checkout.attempt && !recoveryFailed.value) void navigateTo('/cart')
 })
+usePageSeo('تکمیل سفارش', 'اطلاعات تحویل و پرداخت سفارش.', true)
+await callOnce(`checkout:${auth.sessionScope ?? auth.identity}`, loadCheckout, { mode: 'navigation' })
 </script>
 
 <template>
@@ -313,7 +341,8 @@ watch(() => [cart.loaded, cart.busy, cart.itemCount, cart.error] as const, ([loa
     <CartCheckoutStepper :step="checkout.order ? 3 : 2" />
     <div class="mx-auto max-w-7xl px-4 py-7 sm:px-6 sm:py-10 lg:px-8">
       <p v-if="loadError" role="alert" class="mb-4 rounded-xl border border-danger-border p-4 text-sm text-danger">{{ loadError }} <button type="button" class="underline" @click="loadCheckout">تلاش دوباره</button></p>
-      <section v-if="recoveringAttempt || recoveryFailed" class="mx-auto max-w-2xl rounded-2xl border border-border bg-card p-6 sm:p-10">
+      <p v-if="!recoveryReady" role="status" class="p-8 text-center text-text-secondary">در حال بررسی سفارش ذخیره‌شده…</p>
+      <section v-else-if="recoveringAttempt || recoveryFailed" class="mx-auto max-w-2xl rounded-2xl border border-border bg-card p-6 sm:p-10">
         <h1 class="text-xl font-bold text-text-primary">پیگیری سفارش و پرداخت</h1>
         <p v-if="checkout.attempt?.orderId" class="mt-3 text-sm text-text-secondary">شناسه سفارش: <bdi>{{ checkout.attempt.orderId }}</bdi></p>
         <p v-if="checkout.order" class="mt-3 text-sm text-text-secondary">شماره سفارش: <bdi>{{ checkout.order.order_number }}</bdi> · {{ orderStatusLabel(checkout.order.status) }}</p>

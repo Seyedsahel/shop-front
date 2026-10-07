@@ -13,7 +13,7 @@ function mapComment(comment: BackendComment): AppComment {
     id: comment.id,
     authorName: comment.author_name || comment.user_name || 'کاربر',
     content: comment.body,
-    createdAt: new Date(comment.created_at * 1000).toLocaleString('fa-IR'),
+    createdAt: new Date(comment.created_at * 1000).toLocaleString('fa-IR', { timeZone: 'Asia/Tehran' }),
     parentId: comment.parent_id,
   }
 }

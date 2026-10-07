@@ -7,7 +7,7 @@ import { ref, computed, watch, reactive, nextTick } from 'vue'
 
 async function load(path) {
   const source = await readFile(new URL('../' + path, import.meta.url), 'utf8')
-  const { outputText } = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext } })
+  const { outputText } = ts.transpileModule(source.replaceAll('import.meta.client', 'true').replaceAll('import.meta.server', 'false'), { compilerOptions: { target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext } })
   return import('data:text/javascript;base64,' + Buffer.from(outputText).toString('base64'))
 }
 
@@ -75,6 +75,7 @@ async function setupCheckout() {
   const locations = reactive({ loaded: true, provinces })
   const dependencies = {
     ref, computed, watch, definePageMeta() {}, onMounted() {},
+    useState: (_key, initial) => ref(initial()), usePageSeo() {}, callOnce: async () => {},
     useCartStore: () => reactive({ cart: { id: 'cart-1' } }),
     useAddressStore: () => addresses,
     useShippingLocationsStore: () => locations,
@@ -86,8 +87,9 @@ async function setupCheckout() {
   const page = await readFile(new URL('../app/pages/checkout.vue', import.meta.url), 'utf8')
   const source = page.match(/<script setup lang="ts">([\s\S]*?)<\/script>/)[1]
     + '\nreturn { draft, selectedMethodId, submitAddress, selectAddress, addAddress, currentInput, errors, saveToAccount };'
-  const { outputText } = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ESNext } })
-  const state = new Function(...Object.keys(dependencies), outputText)(...Object.values(dependencies))
+  const { outputText } = ts.transpileModule(source.replaceAll('import.meta.client', 'true').replaceAll('import.meta.server', 'false'), { compilerOptions: { target: ts.ScriptTarget.ESNext } })
+  const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor
+  const state = await new AsyncFunction(...Object.keys(dependencies), outputText)(...Object.values(dependencies))
   return { state, calls, addresses, locations }
 }
 

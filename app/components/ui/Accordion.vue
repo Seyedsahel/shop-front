@@ -1,7 +1,8 @@
 <script setup lang="ts">
-defineProps<{ title: string; icon?: string }>()
+const props = defineProps<{ title: string; icon?: string; panelId?: string }>()
 const open = ref(false)
-const panelId = useId()
+const generatedId = useId()
+const panelId = computed(() => props.panelId ?? generatedId)
 </script>
 
 <template>

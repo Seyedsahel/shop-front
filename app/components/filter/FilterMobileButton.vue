@@ -35,7 +35,7 @@ function apply() {
         </div>
     </template>
     <div class="min-h-0 flex-1 overflow-y-auto px-4 py-2">
-      <FilterPanel @applied="apply" />
+      <FilterPanel id-prefix="product-filters-mobile" @applied="apply" />
     </div>
   </UiModal>
 </template>

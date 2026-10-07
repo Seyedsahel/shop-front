@@ -4,12 +4,24 @@ export const usePaymentStore = defineStore('payments', () => {
   const publish = useSessionSync()
   const methods = ref<PaymentMethod[]>([])
   const loadingMethods = ref(false)
+  const methodsLoaded = ref(false)
+  const methodsError = ref('')
+  let methodsRequest: Promise<void> | null = null
   const starting = ref(false)
 
-  async function fetchMethods() {
+  function fetchMethods(force = false): Promise<void> {
+    if (methodsRequest) return methodsRequest
+    if (methodsLoaded.value && !force) return Promise.resolve()
     loadingMethods.value = true
-    try { methods.value = await api.get<PaymentMethod[]>('/payment-methods') }
-    finally { loadingMethods.value = false }
+    methodsError.value = ''
+    methodsRequest = api.get<PaymentMethod[]>('/payment-methods').then(result => {
+      methods.value = result
+      methodsLoaded.value = true
+    }).catch(cause => {
+      methodsError.value = serializeApiError(cause, 'دریافت روش‌های سفارش ناموفق بود.').message
+      throw cause
+    }).finally(() => { loadingMethods.value = false; methodsRequest = null })
+    return methodsRequest
   }
 
   async function start(orderId: string, methodId: string) {
@@ -24,5 +36,5 @@ export const usePaymentStore = defineStore('payments', () => {
     } finally { starting.value = false }
   }
 
-  return { methods, loadingMethods, starting, fetchMethods, start }
+  return { methods, methodsLoaded, methodsError, loadingMethods, starting, fetchMethods, start }
 })
