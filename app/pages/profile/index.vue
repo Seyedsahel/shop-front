@@ -115,7 +115,10 @@ useSeoMeta({ robots: 'noindex, nofollow' })
     <header class="mb-6 rounded-2xl bg-primary-subtle p-6 sm:p-8">
       <div class="flex flex-wrap items-center justify-between gap-4">
         <div class="flex items-center gap-3"><span class="grid size-12 place-items-center rounded-full bg-card text-primary"><UIcon name="solar:user-outline" class="size-7" /></span><div><h1 class="text-2xl font-bold text-text-primary">حساب کاربری</h1><p class="mt-1 text-sm text-text-secondary">{{ auth.user?.name || auth.user?.phone || 'خوش آمدید' }}</p></div></div>
-        <button type="button" :disabled="loggingOut" class="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold text-text-primary hover:border-primary disabled:opacity-50" @click="logout"><UIcon name="solar:logout-2-outline" class="size-5" />{{ loggingOut ? 'در حال خروج…' : 'خروج از حساب' }}</button>
+        <div class="flex flex-wrap items-center gap-3">
+          <NuxtLink to="/profile/notifications" class="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold text-text-primary hover:border-primary"><UIcon name="solar:bell-outline" class="size-5 text-primary" />اعلان‌های من</NuxtLink>
+          <button type="button" :disabled="loggingOut" class="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold text-text-primary hover:border-primary disabled:opacity-50" @click="logout"><UIcon name="solar:logout-2-outline" class="size-5" />{{ loggingOut ? 'در حال خروج…' : 'خروج از حساب' }}</button>
+        </div>
       </div>
     </header>
 

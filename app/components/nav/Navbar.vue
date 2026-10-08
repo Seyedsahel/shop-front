@@ -1,15 +1,22 @@
 <script setup lang="ts">
-import { useWindowSize } from '@vueuse/core'
+import { useEventListener, useWindowSize } from '@vueuse/core'
 
 const authStore = useAuthStore()
 const shop = useShopStore()
 const cartStore = useCartStore()
 const wishlistStore = useWishlistStore()
+const notifications = useNotificationStore()
 const badgesReady = ref(false)
 onMounted(() => {
   badgesReady.value = true
   if (!cartStore.loaded) void cartStore.fetchCart().catch(() => {})
   if (!wishlistStore.loaded) void wishlistStore.fetchWishlist().catch(() => {})
+  watch(() => authStore.isAuthenticated, authenticated => {
+    if (authenticated) void notifications.fetchCounts(true).catch(() => {})
+  }, { immediate: true })
+})
+useEventListener(import.meta.client ? document : undefined, 'visibilitychange', () => {
+  if (document.visibilityState === 'visible' && authStore.isAuthenticated) void notifications.fetchCounts(true).catch(() => {})
 })
 
 const navLinks = [
@@ -79,10 +86,10 @@ watch(width, () => {
     </Transition>
 
     <!-- Top row -->
-    <div class="max-w-4/5 mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
-      <NuxtLink to="/" class="flex items-center gap-2 text-text-primary font-semibold tracking-wide shrink-0">
-        <img v-if="shop.info?.logoImageUrl" :src="shop.info.logoImageUrl" :alt="`لوگوی ${shop.name}`" width="40" height="40" class="size-10 object-contain" />
-        <span>{{ shop.name }}</span>
+    <div class="max-w-full md:max-w-4/5 mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2 md:gap-4">
+      <NuxtLink to="/" class="flex min-w-0 items-center gap-2 text-text-primary font-semibold tracking-wide md:shrink-0">
+        <img v-if="shop.info?.logoImageUrl" :src="shop.info.logoImageUrl" :alt="`لوگوی ${shop.name}`" width="40" height="40" class="size-8 shrink-0 object-contain md:size-10" />
+        <span class="truncate text-sm md:text-base">{{ shop.name }}</span>
       </NuxtLink>
 
       <div ref="searchWrapper" class="relative z-50 hidden flex-1 md:block md:max-w-2xl">
@@ -113,40 +120,43 @@ watch(width, () => {
         </Transition>
       </div>
 
-      <div class="flex items-center gap-3 shrink-0">
-        <button type="button" aria-label="جستجوی محصولات" class="md:hidden text-text-secondary mt-2" @click="mobileSearchOpen = true">
-          <UIcon name="solar:magnifer-linear" class="size-5" />
-        </button>
+      <div class="flex flex-row-reverse items-center gap-3 shrink-0 md:flex-row">
+        <div class="order-2 flex flex-row-reverse items-center gap-1 md:order-1 md:flex-row md:gap-2">
+          <button
+            type="button"
+            :aria-label="authStore.isAuthenticated ? 'پروفایل' : 'ورود'"
+            class="inline-flex h-9 w-7 cursor-pointer items-center justify-center gap-2 rounded-md text-sm text-text-primary transition-colors hover:bg-surface-hover md:h-auto md:w-auto md:px-3 md:py-1.5"
+            @click="navigateTo(authStore.isAuthenticated ? '/profile' : '/auth')"
+          >
+            <UIcon :name="authStore.isAuthenticated ? 'solar:user-outline' : 'solar:login-2-broken'" class="size-5" />
+            <span class="hidden md:inline">{{ authStore.isAuthenticated ? 'پروفایل' : 'ورود' }}</span>
+          </button>
+          <NotificationDropdown v-if="badgesReady && authStore.isAuthenticated" />
+        </div>
 
-        <button
-          type="button"
-          :aria-label="authStore.isAuthenticated ? 'پروفایل' : 'ورود'"
-          class="inline-flex cursor-pointer items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm text-text-primary transition-colors hover:bg-surface-hover"
-          @click="navigateTo(authStore.isAuthenticated ? '/profile' : '/auth')"
-        >
-          <UIcon :name="authStore.isAuthenticated ? 'solar:user-outline' : 'solar:login-2-broken'" class="size-5" />
-          <span class="hidden sm:inline">{{ authStore.isAuthenticated ? 'پروفایل' : 'ورود' }}</span>
-        </button>
-
-        <NuxtLink to="/wishlist" class="relative inline-flex items-center justify-center rounded-md px-3 py-1.5 text-sm text-text-primary transition-colors hover:bg-surface-hover" aria-label="علاقه‌مندی‌ها">
-          <span class="flex items-center gap-2">
-            <UIcon name="solar:heart-outline" class="size-5" />
-            <span class="hidden sm:inline">علاقه‌مندی‌ها</span>
-            <UiCounterBadge :count="badgesReady ? wishlistStore.itemCount : 0" />
-          </span>
-        </NuxtLink>
-
-        <button
-          type="button"
-          aria-label="سبد خرید"
-          class="relative inline-flex cursor-pointer items-center justify-center rounded-md px-3 py-1.5 text-sm text-text-primary transition-colors hover:bg-surface-hover"
-          @click="navigateTo('/cart')"
-        >
-          <div class="flex items-center gap-2">
+        <div class="order-1 flex flex-row-reverse items-center gap-1 md:order-2 md:flex-row md:gap-2">
+          <button
+            type="button"
+            aria-label="سبد خرید"
+            class="relative inline-flex h-9 w-7 cursor-pointer items-center justify-center gap-2 rounded-md text-sm text-text-primary transition-colors hover:bg-surface-hover md:h-auto md:w-auto md:px-3 md:py-1.5"
+            @click="navigateTo('/cart')"
+          >
             <UIcon name="solar:cart-4-outline" class="size-5" />
-            <span class="hidden sm:inline">سبد خرید</span>
+            <span class="hidden md:inline">سبد خرید</span>
             <UiCounterBadge :count="badgesReady ? cartStore.itemCount : 0" />
-          </div>
+          </button>
+
+          <NuxtLink to="/wishlist" class="relative inline-flex h-9 w-7 items-center justify-center rounded-md text-sm text-text-primary transition-colors hover:bg-surface-hover md:h-auto md:w-auto md:px-3 md:py-1.5" aria-label="علاقه‌مندی‌ها">
+            <span class="flex items-center gap-2">
+              <UIcon name="solar:heart-outline" class="size-5" />
+              <span class="hidden md:inline">علاقه‌مندی‌ها</span>
+              <UiCounterBadge :count="badgesReady ? wishlistStore.itemCount : 0" />
+            </span>
+          </NuxtLink>
+        </div>
+
+        <button type="button" aria-label="جستجوی محصولات" class="order-3 inline-flex h-9 w-7 items-center justify-center rounded-md text-text-secondary hover:bg-surface-hover md:hidden" @click="mobileSearchOpen = true">
+          <UIcon name="solar:magnifer-linear" class="size-5" />
         </button>
       </div>
     </div>
