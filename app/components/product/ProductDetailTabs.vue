@@ -1,6 +1,17 @@
 <script setup lang="ts">
 const props = defineProps<{ product: ProductDetail }>()
 const activeTab = ref(props.product.descriptionBlocks.length ? 'block-0' : 'comments')
+const tabTrack = ref<{ revealItem: (index: number) => void }>()
+const commentStore = useCommentStore()
+const commentKey = computed(() => commentStore.keyFor('product', props.product.id))
+const commentCount = computed(() => {
+  if (!Object.hasOwn(commentStore.byTarget, commentKey.value)) return undefined
+  return (commentStore.byTarget[commentKey.value]?.length ?? 0)
+    + (commentStore.pendingByTarget[commentKey.value]?.length ?? 0)
+})
+
+await callOnce(`comments:product:${props.product.id}`, () => commentStore.fetchComments('product', props.product.id), { mode: 'navigation' })
+watch(() => props.product.id, id => { void commentStore.fetchComments('product', id) })
 
 const tabs = computed(() => [
   ...props.product.descriptionBlocks.map((block, index) => ({ id: `block-${index}`, label: block.title })),
@@ -12,26 +23,52 @@ watch(() => props.product.descriptionBlocks.length, () => {
     activeTab.value = props.product.descriptionBlocks.length ? 'block-0' : 'comments'
   }
 })
+
+watch(activeTab, async () => {
+  await nextTick()
+  tabTrack.value?.revealItem(tabs.value.findIndex(tab => tab.id === activeTab.value))
+})
+
+async function onTabKeydown(event: KeyboardEvent, index: number) {
+  let nextIndex: number
+  switch (event.key) {
+    case 'ArrowLeft': nextIndex = (index + 1) % tabs.value.length; break
+    case 'ArrowRight': nextIndex = (index - 1 + tabs.value.length) % tabs.value.length; break
+    case 'Home': nextIndex = 0; break
+    case 'End': nextIndex = tabs.value.length - 1; break
+    default: return
+  }
+  event.preventDefault()
+  const tab = tabs.value[nextIndex]
+  if (!tab) return
+  activeTab.value = tab.id
+  await nextTick()
+  document.getElementById(`product-${tab.id}-tab`)?.focus({ preventScroll: true })
+}
 </script>
 
 <template>
   <section class="overflow-hidden rounded-2xl border border-border bg-card">
-    <div class="flex gap-1 overflow-x-auto border-b border-divider bg-surface p-2" role="tablist" aria-label="اطلاعات تکمیلی محصول">
+    <UiScrollTrack ref="tabTrack" variant="tabs" aria-label="اطلاعات تکمیلی محصول" class="border-b border-divider bg-surface p-2">
       <button
-        v-for="tab in tabs"
+        v-for="(tab, index) in tabs"
         :id="`product-${tab.id}-tab`"
         :key="tab.id"
         type="button"
         role="tab"
         :aria-controls="`product-${tab.id}-panel`"
         :aria-selected="activeTab === tab.id"
-        class="shrink-0 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors"
+        :tabindex="activeTab === tab.id ? 0 : -1"
+        class="inline-flex items-center gap-2 shrink-0 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
         :class="activeTab === tab.id ? 'bg-card text-text-primary shadow-sm' : 'text-text-secondary hover:bg-card hover:text-text-primary'"
         @click="activeTab = tab.id"
+        @focus="tabTrack?.revealItem(index)"
+        @keydown="onTabKeydown($event, index)"
       >
         {{ tab.label }}
+        <UiCounterBadge v-if="tab.id === 'comments' && commentCount !== undefined" :count="commentCount" placement="inline" />
       </button>
-    </div>
+    </UiScrollTrack>
 
     <div class="p-5 sm:p-6">
       <template v-for="(block, index) in product.descriptionBlocks" :key="index">
