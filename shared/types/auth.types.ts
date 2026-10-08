@@ -34,7 +34,7 @@ export interface BackendLogoutResponse {
 
 export interface BackendAuthValidateResponse {
   valid: boolean
-  user_id: string
+  id: string
   role: string
 }
 

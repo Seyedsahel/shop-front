@@ -29,15 +29,15 @@ export const backendFetch = async <T = unknown>(
   try {
     return await deadline.wait($fetch<T>(url, { baseURL: `${config.backendUrl.replace(/\/+$/, '')}/tbt`, ...options, headers, signal: deadline.signal, timeout: undefined, retry: 0 }) as Promise<T>)
   } catch (error: any) {
-    if (deadline.timedOut) throw createError({ statusCode: 504, message: 'Upstream request timed out', data: { code: 'UPSTREAM_TIMEOUT' } })
-    if (options.signal?.aborted) throw error
+    if (!deadline.timedOut && options.signal?.aborted) throw error
     const status = error.response?.status ?? error.statusCode ?? error.status
-    console.log('Backend request failed:', {
-      url,
-      status,
-      data: error.data ?? error.response?._data,
-      message: error.message,
+    // Allowlisted metadata only: paths, error bodies and messages can contain customer data.
+    console.error('backend_request_failed', {
+      method: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'].includes(options.method ?? 'GET') ? options.method ?? 'GET' : 'OTHER',
+      status: typeof status === 'number' && Number.isInteger(status) && status >= 400 && status < 600 ? status : null,
+      kind: deadline.timedOut ? 'timeout' : typeof status === 'number' && status >= 400 && status < 600 ? 'http' : 'network',
     })
+    if (deadline.timedOut) throw createError({ statusCode: 504, message: 'Upstream request timed out', data: { code: 'UPSTREAM_TIMEOUT' } })
     if (status === 401 && event && credential) {
       clearCredential(event, credential.kind)
       throw createError({

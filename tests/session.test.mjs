@@ -21,6 +21,7 @@ async function load(path, server = false) {
 }
 Object.assign(globalThis, await load('server/utils/session.ts'))
 Object.assign(globalThis, await load('shared/utils/requestDeadline.ts'))
+Object.assign(globalThis, await load('shared/utils/authInput.ts'))
 Object.assign(globalThis, await load('server/utils/backendFetch.ts'))
 Object.assign(globalThis, await load('server/utils/readSession.ts'))
 const guest = (await load('server/api/auth/guest.post.ts')).default
@@ -65,7 +66,7 @@ test('guest creation persists a private 30-day cookie, then reuses it', async ()
       return { token: 'guest-jwt' }
     }
     assert.equal(options.headers.get('authorization'), 'Bearer guest-jwt')
-    return { valid: true, role: 'guest', user_id: 'guest-id' }
+    return { valid: true, role: 'guest', id: 'guest-id' }
   }
   const response = await request(guest)
   assert.deepEqual(await response.json(), {
@@ -86,7 +87,7 @@ test('authenticated identity wins and guest issuance is skipped', async () => {
   globalThis.$fetch = async (url, options) => {
     assert.equal(url, '/auth/validate')
     assert.equal(options.headers.get('authorization'), 'Bearer user')
-    return { valid: true, role: 'user', user_id: 'user-id' }
+    return { valid: true, role: 'user', id: 'user-id' }
   }
   const response = await request(guest, 'auth_token=user; guest_token=guest')
   assert.equal((await response.json()).isAuthenticated, true)
@@ -98,7 +99,7 @@ test('login forwards the guest bearer token, replaces guest identity, refresh re
     assert.equal(options.headers.get('authorization'), 'Bearer guest')
     return { token: 'new-user' }
   }
-  const response = await request(login, 'guest_token=guest', { phone: '123', code: '1234' })
+  const response = await request(login, 'guest_token=guest', { phone: '9123456789', code: '1234' })
   assert.deepEqual(await response.json(), { success: true })
   assert.match(response.headers.get('set-cookie'), /auth_token=new-user/)
   assert.match(response.headers.get('set-cookie'), /guest_token=; Max-Age=0/)
@@ -124,13 +125,40 @@ test('token rotation retains the authenticated resource scope', async () => {
   globalThis.$fetch = async (url, options) => {
     assert.equal(url, '/auth/validate')
     assert.match(options.headers.get('authorization'), /^Bearer /)
-    return { valid: true, role: 'user', user_id: 'user-id' }
+    return { valid: true, role: 'user', id: 'user-id' }
   }
   const before = await (await request(me, 'auth_token=before-refresh')).json()
   const after = await (await request(me, 'auth_token=after-refresh')).json()
   assert.notEqual(before.identity, after.identity)
   assert.equal(before.scope, sessionIdentity('user:user-id'))
   assert.equal(after.scope, before.scope)
+})
+
+test('validation response ID identifies the account and separates resource scopes', async () => {
+  const accountIds = ['96d12e58-e762-4c84-b3c6-eb4c87441542', 'other-user-id']
+  const sessions = []
+  for (const id of accountIds) {
+    globalThis.$fetch = async () => ({ valid: true, id, role: 'user' })
+    const response = await request(me, 'auth_token=user')
+    assert.equal(response.status, 200)
+    const session = await response.json()
+    assert.deepEqual(session.user, { id, role: 'user' })
+    assert.equal(session.scope, sessionIdentity(`user:${id}`))
+    sessions.push(session)
+  }
+  assert.notEqual(sessions[0].scope, sessions[1].scope)
+})
+
+test('missing or malformed account IDs fail without creating a scope or deleting the credential', async () => {
+  for (const id of [undefined, null, '', '   ', 123]) {
+    globalThis.$fetch = async () => ({ valid: true, id, role: 'user' })
+    const response = await request(me, 'auth_token=user')
+    assert.equal(response.status, 502)
+    const body = await response.json()
+    assert.equal(body.scope, undefined)
+    assert.equal(body.user, undefined)
+    assert.doesNotMatch(response.headers.get('set-cookie') ?? '', /auth_token=/)
+  }
 })
 
 test('expired guest can be replaced; expired user cannot silently become guest', async () => {

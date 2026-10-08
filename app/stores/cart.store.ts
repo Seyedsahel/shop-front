@@ -116,11 +116,15 @@ export const useCartStore = defineStore('cart', () => {
     if (!Number.isSafeInteger(quantity) || quantity < 1) return Promise.reject(new ApiError('تعداد معتبر نیست.'))
     return mutate(() => api.post('/cart/items', { product_id: productId, quantity, variant_id: variantId } satisfies CartItemPayload), true)
   }
-  function updateQuantity(id: string, quantity: number) {
+  function updateQuantity(id: string, quantity: number, productMaxPerOrder = 0) {
     const item = cart.value?.products[id]
     if (!item || !Number.isSafeInteger(quantity) || quantity < 1) return Promise.reject(new ApiError('کالا یا تعداد معتبر نیست.'))
-    if (item.max_per_order > 0 && quantity > item.max_per_order) {
+    const limits = cartLineQuantityLimits(item, items.value, productMaxPerOrder)
+    if (quantity > item.quantity && quantity > limits.orderMaximum) {
       return Promise.reject(new ApiError('شما به محدودیت تعداد انتخابی برای سفارش این محصول رسیدید.'))
+    }
+    if (quantity > item.quantity && quantity > limits.maxQuantity) {
+      return Promise.reject(new ApiError('تعداد انتخابی بیش از موجودی کالا است.'))
     }
     return mutate(() => api.patch(`/cart/items/${encodeURIComponent(id)}`, {
       product_id: item.product_id, variant_id: item.variant_id?.trim() || null, quantity,

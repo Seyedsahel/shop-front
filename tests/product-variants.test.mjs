@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { readFile } from 'node:fs/promises'
 import ts from 'typescript'
+import { createError } from 'h3'
 import { computed, nextTick, reactive, ref, watch } from 'vue'
 
 async function load(path) {
@@ -12,8 +13,9 @@ async function load(path) {
   return import('data:text/javascript;base64,' + Buffer.from(outputText).toString('base64'))
 }
 
-Object.assign(globalThis, { computed, ref, watch, toBackendImageUrl: value => value })
+Object.assign(globalThis, { createError, computed, ref, watch, toBackendImageUrl: value => value })
 globalThis.ApiError = (await load('app/utils/api-error.ts')).ApiError
+Object.assign(globalThis, await load('app/utils/productQuantity.ts'))
 globalThis.onMounted = () => {}
 const { useProductVariants } = await load('app/composables/useProductVariants.ts')
 globalThis.useProductVariants = useProductVariants
@@ -21,7 +23,7 @@ const { mapProductDetail } = await load('server/utils/productDetail.ts')
 
 function variant(variantId, stock, options) {
   return {
-    variantId, sku: variantId, finalPrice: 12, priceAdjustment: 0, stock,
+    variantId, sku: variantId, maxPerOrder: 0, finalPrice: 12, priceAdjustment: 0, stock,
     options: Object.entries(options).map(([slug, value]) => ({
       variantOptionId: variantId, attributeId: slug, slug, name: slug.toUpperCase(), value,
     })),
@@ -29,12 +31,12 @@ function variant(variantId, stock, options) {
 }
 
 test('detail mapper keeps purchase combination IDs, max order limit, and nested option fields', () => {
-  const detail = mapProductDetail({ id: 'product', max_per_order: 3, price: { final: 12 }, purchase_variants: [{
-    variant_id: 'purchase-id', sku: 'sku-1', final_price: 15, price_adjustment: 3, stock: 2,
+  const detail = mapProductDetail({ id: 'product', name: 'Product', slug: 'product', max_per_order: 3, price: { final: 12 }, purchase_variants: [{
+    variant_id: 'purchase-id', sku: 'sku-1', max_per_order: 2, final_price: 15, price_adjustment: 3, stock: 2,
     options: [{ variant_option_id: 'option-id', attribute_id: 'attribute-id', slug: 'pack-size', name: 'Pack Size', value: '100 ml' }],
   }] })
   assert.deepEqual(detail.purchaseVariants[0], {
-    variantId: 'purchase-id', sku: 'sku-1', finalPrice: 15, priceAdjustment: 3, stock: 2,
+    variantId: 'purchase-id', sku: 'sku-1', maxPerOrder: 2, finalPrice: 15, priceAdjustment: 3, stock: 2,
     options: [{ variantOptionId: 'option-id', attributeId: 'attribute-id', slug: 'pack-size', name: 'Pack Size', value: '100 ml' }],
   })
   assert.equal(detail.maxPerOrder, 3)
@@ -104,7 +106,7 @@ test('purchase panel hides stock until resolved and sends only the purchase vari
   } })
   const calls = []
   const warnings = []
-  globalThis.useCartStore = () => ({ busy: false, stale: false, async addItem(...args) { calls.push(args) } })
+  globalThis.useCartStore = () => ({ loaded: true, busy: false, stale: false, itemsForProduct: () => [], async addItem(...args) { calls.push(args) } })
   globalThis.useWishlistStore = () => ({ findItem: () => undefined, fetchWishlist: async () => {} })
   globalThis.useAppToast = () => ({ success() {}, warning(message) { warnings.push(message) }, error(message) { throw new Error(message) } })
   globalThis.defineProps = () => props
@@ -149,7 +151,7 @@ test('quick add uses the same nested variant selection and cart ID', async () =>
   const warnings = []
   globalThis.useProductDetailStore = () => detailStore
   globalThis.useCartStore = () => ({
-    busy: false, stale: false, itemsForProduct: () => [],
+    loaded: true, busy: false, stale: false, itemsForProduct: () => [],
     async addItem(...args) { calls.push(args) },
   })
   globalThis.useAppToast = () => ({ success() {}, warning(message) { warnings.push(message) }, error(message) { throw new Error(message) } })
@@ -173,4 +175,97 @@ test('quick add uses the same nested variant selection and cart ID', async () =>
   quickAdd.increaseQuantity()
   quickAdd.increaseQuantity()
   assert.deepEqual(warnings, ['شما به محدودیت تعداد انتخابی برای سفارش این محصول رسیدید.'])
+})
+
+async function componentScript(file, exports, suffix) {
+  const source = (await readFile(new URL('../app/components/product/' + file, import.meta.url), 'utf8'))
+    .match(/<script setup lang="ts">([\s\S]*?)<\/script>/)[1]
+  const { outputText } = ts.transpileModule(source + '\nexport { ' + exports + ' }', {
+    compilerOptions: { target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext },
+  })
+  return import('data:text/javascript;base64,' + Buffer.from(outputText).toString('base64') + '#' + suffix)
+}
+
+test('purchase panel counts existing variants, blocks excess adds and reclamps after cart changes', async () => {
+  const props = reactive({ product: {
+    id: 'p', baseStock: 10, maxPerOrder: 5, price: { final: 12, original: 12, discountPercent: 0 },
+    purchaseVariants: [{ ...variant('blue', 10, { color: 'blue' }), maxPerOrder: 2 }, variant('red', 10, { color: 'red' })],
+  } })
+  const cart = reactive({ loaded: true, busy: false, stale: false,
+    lines: [{ variant_id: 'blue', quantity: 1 }, { variant_id: 'red', quantity: 3 }],
+    itemsForProduct() { return this.lines }, async addItem(...args) { calls.push(args) },
+  })
+  const calls = []
+  globalThis.useCartStore = () => cart
+  globalThis.useWishlistStore = () => ({ findItem: () => undefined })
+  globalThis.useAppToast = () => ({ success() {}, warning() {}, error(message) { throw new Error(message) } })
+  globalThis.defineProps = () => props
+  const panel = await componentScript('ProductPurchasePanel.vue', 'addToCart, increaseQuantity, quantity, quantityLimits, select', 'cart-limits')
+  assert.equal(panel.quantityLimits.value.maxAdditional, 1)
+  panel.increaseQuantity()
+  assert.equal(panel.quantity.value, 1)
+  panel.quantity.value = 2
+  await panel.addToCart()
+  assert.equal(calls.length, 0)
+  panel.quantity.value = 1
+  await panel.addToCart()
+  assert.deepEqual(calls, [['p', 1, 'blue']])
+  cart.lines[0].quantity = 2
+  await nextTick()
+  assert.equal(panel.quantityLimits.value.maxAdditional, 0)
+  await panel.addToCart()
+  assert.equal(calls.length, 1)
+  cart.lines[1].quantity = 0
+  panel.select('color', 'red')
+  await nextTick()
+  panel.quantity.value = 3
+  cart.lines[1].quantity = 2
+  await nextTick()
+  assert.equal(panel.quantity.value, 1)
+  cart.loaded = false
+  await panel.addToCart()
+  assert.equal(calls.length, 1)
+})
+
+test('quick add uses remaining capacity for additions and total capacity for existing cart lines', async () => {
+  const props = reactive({ product: { id: 'p', slug: 'p', maxPerOrder: 5, price: { final: 12 } } })
+  const product = { id: 'p', baseStock: 10, maxPerOrder: 5, price: { final: 12 },
+    purchaseVariants: [{ ...variant('blue', 10, { color: 'blue' }), maxPerOrder: 2 }] }
+  const details = reactive({ bySlug: { p: product }, async loadBySlug() { return product } })
+  const calls = []
+  const cart = reactive({ loaded: true, busy: false, stale: false,
+    lines: [
+      { id: 'blue-line', product_id: 'p', variant_id: 'blue', quantity: 1, stock: 10, max_per_order: 2 },
+      { id: 'red-line', product_id: 'p', variant_id: 'red', quantity: 3, stock: 10, max_per_order: 4 },
+    ], itemsForProduct() { return this.lines },
+    async addItem(...args) { calls.push(['add', ...args]) },
+    async updateQuantity(...args) { calls.push(['update', ...args]) },
+  })
+  globalThis.useProductDetailStore = () => details
+  globalThis.useCartStore = () => cart
+  globalThis.useAppToast = () => ({ success() {}, warning() {} })
+  globalThis.defineProps = () => props
+  globalThis.defineModel = () => ref(true)
+  const quick = await componentScript('ProductQuickAdd.vue', 'add, increaseQuantity, quantity, quantityLimits, changeCartLineQuantity', 'cart-limits')
+  await new Promise(resolve => setImmediate(resolve))
+  quick.increaseQuantity()
+  assert.equal(quick.quantity.value, 1)
+  quick.quantity.value = 2
+  await quick.add()
+  assert.equal(calls.length, 0)
+  quick.quantity.value = 1
+  await quick.add()
+  assert.deepEqual(calls[0], ['add', 'p', 1, 'blue'])
+  await quick.changeCartLineQuantity(cart.lines[0], 1)
+  assert.deepEqual(calls[1], ['update', 'blue-line', 2, 5])
+  cart.lines[0].quantity = 2
+  await nextTick()
+  await quick.changeCartLineQuantity(cart.lines[1], 1)
+  assert.equal(calls.length, 2)
+  await quick.changeCartLineQuantity(cart.lines[1], -1)
+  assert.deepEqual(calls[2], ['update', 'red-line', 2, 5])
+})
+
+test('detail mapper rejects incomplete backend products with a controlled error', () => {
+  assert.throws(() => mapProductDetail({ purchase_variants: [] }), error => error.statusCode === 502)
 })

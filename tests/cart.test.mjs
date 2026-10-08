@@ -16,6 +16,7 @@ async function load(path) {
 }
 Object.assign(globalThis, h3, { ref, computed, watch, defineStore })
 Object.assign(globalThis, await load('app/utils/api-error.ts'))
+Object.assign(globalThis, await load('app/utils/productQuantity.ts'))
 globalThis.useSessionSync = () => () => {}
 globalThis.useResourceRefresh = (await load('app/composables/useResourceRefresh.ts')).useResourceRefresh
 const { useCartStore } = await load('app/stores/cart.store.ts')
@@ -102,6 +103,47 @@ test('quantity updates reject an amount above the endpoint-supplied order limit'
   await store.fetchCart()
   await assert.rejects(store.updateQuantity('item', 4), /شما به محدودیت تعداد انتخابی برای سفارش این محصول رسیدید\./)
   assert.equal(calls.some(call => call[0] === 'patch'), false)
+})
+
+test('product cap counts other variants without treating a variant line cap as the product cap', async () => {
+  const { store, respond, calls } = setup()
+  const cart = fixture()
+  cart.products.item.max_per_order = 2
+  cart.products.item.quantity = 1
+  cart.products.other = { ...cart.products.item, id: 'other', variant_id: 'other', max_per_order: 4, quantity: 4, stock: 10 }
+  respond(cart)
+  await store.fetchCart()
+  await assert.rejects(store.updateQuantity('item', 2, 5), /محدودیت/)
+  assert.equal(calls.some(call => call[0] === 'patch'), false)
+  // Total is five: the variant cap of two must not be applied to all five units.
+  cart.products.other.quantity = 3
+  respond(cart)
+  await store.fetchCart()
+  await store.updateQuantity('item', 2, 5)
+  assert.equal(calls.filter(call => call[0] === 'patch').length, 1)
+})
+
+test('quantity decreases remain possible when stock or product limits have fallen below the cart total', async () => {
+  const { store, respond, calls } = setup()
+  const cart = fixture()
+  cart.products.item.quantity = 5
+  cart.products.item.stock = 1
+  cart.products.item.max_per_order = 2
+  respond(cart)
+  await store.fetchCart()
+  await store.updateQuantity('item', 4, 2)
+  assert.equal(calls.find(call => call[0] === 'patch')[2].quantity, 4)
+  await assert.rejects(store.updateQuantity('item', 6, 2), /محدودیت/)
+})
+
+test('unlimited quantity still respects stock', async () => {
+  const { store, respond } = setup()
+  const cart = fixture()
+  cart.products.item.max_per_order = 0
+  respond(cart)
+  await store.fetchCart()
+  await store.updateQuantity('item', 4, 0)
+  await assert.rejects(store.updateQuantity('item', 5, 0), /موجودی/)
 })
 
 test('duplicate actions are rejected while mutation and reconciliation are pending', async () => {

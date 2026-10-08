@@ -65,7 +65,7 @@ export function mapProductDetail(raw: any): ProductDetail {
       attributeId: s.attribute_id, slug: s.slug, name: s.name, dataType: s.data_type, unit: s.unit, value: s.value,
     })),
     purchaseVariants: array(raw.purchase_variants ?? [], 'purchase variants').map((v: any) => ({
-      variantId: v.variant_id, sku: v.sku,
+      variantId: v.variant_id, sku: v.sku, maxPerOrder: Number(v.max_per_order ?? 0),
       priceAdjustment: v.price_adjustment, finalPrice: v.final_price, stock: v.stock,
       options: array(v.options ?? [], 'variant options').map((option: any) => ({
         variantOptionId: option.variant_option_id,

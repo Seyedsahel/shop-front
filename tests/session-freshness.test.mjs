@@ -14,6 +14,7 @@ async function load(path) {
 }
 Object.assign(globalThis, { ref, computed, watch, defineStore, defineNuxtPlugin: fn => fn })
 Object.assign(globalThis, await load('app/utils/api-error.ts'))
+Object.assign(globalThis, await load('app/utils/productQuantity.ts'))
 Object.assign(globalThis, await load('app/composables/useResourceRefresh.ts'))
 Object.assign(globalThis, await load('app/composables/useSessionSync.ts'))
 const { useAuthStore } = await load('app/stores/auth.store.ts')
@@ -33,7 +34,7 @@ async function setup(path = '/profile', fallback = false) {
   const app = { isHydrating: true, hook(key, fn) { hooks.set(key, fn); return () => hooks.delete(key) }, async callHook(key, value) { hooks.get(key)?.(value) }, vueApp: { onUnmount(fn) { cleanup = fn } } }
   const router = { currentRoute: ref({ path, fullPath: path, params: path.includes('/orders/') ? { id: 'order-1' } : {}, query: path.startsWith('/pay/') ? { order_id: 'order-1', status: 'OK', ref_id: 'untrusted-hint' } : {} }), replace: async value => { redirects.push(value) } }
   const backend = { session: { identity: 'token-1', scope: 'account-1', isAuthenticated: true, hasGuestSession: false, user: { id: 'user-1', first_name: 'Before' } }, quantity: 1, wish: ['p1'], addresses: [{ id: 'a1' }], orders: [{ id: 'order-1', status: 'before' }] }
-  const checkout = reactive({ submitting: false })
+  const checkout = reactive({ submitting: false, cleanupCompletedAttempt(order) { this.confirmedOrder = { ...order } } })
   const api = { async get(path) {
     calls.push(['get', path])
     if (path === '/auth/me') return structuredClone(backend.session)
@@ -227,6 +228,7 @@ test('token rotation preserves scope and deduplicates refresh; order detail is r
   assert.equal(f.cart.loaded, true)
   await f.visible()
   assert.equal(f.orders.current.status, 'paid')
+    assert.equal(f.checkout.confirmedOrder.status, 'paid')
   assert.equal(f.calls.filter(([, path]) => path === '/auth/refresh').length, 1)
   f.cleanup()
 })
@@ -280,6 +282,7 @@ test('both payment return routes revalidate the backend order on return without 
     f.backend.orders[0].status = 'paid'
     await f.visible()
     assert.equal(f.orders.current.status, 'paid')
+    assert.equal(f.checkout.confirmedOrder.status, 'paid')
     assert.equal(f.calls.some(([method]) => method !== 'get'), false)
     f.cleanup()
   }

@@ -4,27 +4,15 @@ const shop = useShopStore()
 const phone = ref('')
 const validationError = ref('')
 
-function normalizePhone(value: string) {
-  return value
-    .replace(/[۰-۹]/g, digit => '۰۱۲۳۴۵۶۷۸۹'.indexOf(digit).toString())
-    .replace(/[٠-٩]/g, digit => '٠١٢٣٤٥٦٧٨٩'.indexOf(digit).toString())
-    .replace(/\D/g, '')
-    .slice(0, 11)
-}
-
-function validatePhone(value: string) {
-  if (!value) return 'شماره تماس الزامی است.'
-  if (!/^9\d{9}$/.test(value)) return 'شماره تماس معتبر نیست.'
-  return ''
-}
-
 function onPhoneInput(event: Event) {
-  phone.value = normalizePhone((event.target as HTMLInputElement).value)
-  if (validationError.value) validationError.value = validatePhone(phone.value)
+  phone.value = normalizeAuthPhone((event.target as HTMLInputElement).value)
+  if (validationError.value) validationError.value = authPhoneError(phone.value)
 }
 
 async function submit() {
-  validationError.value = validatePhone(phone.value)
+  if (authStore.isLoading) return
+  phone.value = normalizeAuthPhone(phone.value)
+  validationError.value = authPhoneError(phone.value)
   if (validationError.value) return
   await authStore.requestOtp(phone.value)
 }
@@ -47,10 +35,10 @@ async function submit() {
       <div class="space-y-2">
         <div class="flex items-center justify-between"><label for="auth-phone" class="text-xs font-semibold text-text-secondary">شماره موبایل</label><span class="text-[11px] text-text-muted">نمونه: ۹۱۲۳۴۵۶۷۸۹</span></div>
         <div class="flex items-center rounded-xl border bg-surface/40 transition focus-within:border-primary focus-within:bg-card focus-within:ring-2 focus-within:ring-focus-ring/40" :class="validationError ? 'border-danger-border' : 'border-divider'">
-          <input id="auth-phone" :value="phone" type="tel" name="phone" autocomplete="tel" inputmode="tel" maxlength="10" placeholder="9xxxxxxxxx" class="w-full bg-transparent px-4 py-3 text-left text-base font-medium tracking-wider text-text-primary outline-none placeholder:text-text-muted" dir="ltr" @input="onPhoneInput" @blur="validationError = validatePhone(phone)" />
+          <input id="auth-phone" :aria-invalid="!!validationError" :aria-describedby="validationError ? 'auth-phone-error' : undefined" :value="phone" type="tel" name="phone" autocomplete="tel" inputmode="tel" maxlength="20" placeholder="9xxxxxxxxx" class="w-full bg-transparent px-4 py-3 text-left text-base font-medium tracking-wider text-text-primary outline-none placeholder:text-text-muted" dir="ltr" @input="onPhoneInput" @blur="validationError = authPhoneError(phone)" />
           <div class="flex shrink-0 items-center gap-1.5 border-r border-divider px-3 py-1 text-xs font-semibold text-text-secondary" dir="ltr"><span>🇮🇷</span><span class="text-text-muted">+98</span></div>
         </div>
-        <p v-if="validationError" class="text-xs text-danger">{{ validationError }}</p>
+        <p v-if="validationError" id="auth-phone-error" role="alert" class="text-xs text-danger">{{ validationError }}</p>
         <p v-else class="flex items-center gap-1.5 pt-1 text-[11px] text-text-muted"><UIcon name="solar:info-circle-linear" class="size-3.5 text-success" />کد تایید یک‌بار مصرف از طریق پیامک ارسال خواهد شد.</p>
       </div>
 

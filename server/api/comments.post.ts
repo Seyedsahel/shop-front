@@ -1,8 +1,9 @@
 export default defineEventHandler(async (event): Promise<CreatedCommentResponse> => {
-  const body = await readBody<SubmitCommentPayload>(event)
+  const body = parseCommentInput(await readBody<unknown>(event))
 
-  if ((body.targetType !== 'product' && body.targetType !== 'post') || !body.targetId || !body.content?.trim()) {
-    throw createError({ statusCode: 400, message: 'Invalid comment' })
+  if (!body) {
+    const message = 'اطلاعات نظر معتبر نیست؛ متن و شناسه هدف را بررسی کنید.'
+    throw createError({ statusCode: 400, statusMessage: 'Bad Request', message, data: { validationMessage: message } })
   }
 
   return await backendFetch<CreatedCommentResponse>('/comments', {

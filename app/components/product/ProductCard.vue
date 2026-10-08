@@ -17,9 +17,10 @@ const inlineCartItem = computed(() => {
   return item
 })
 const cartActionDisabled = computed(() => cartStore.busy || cartStore.stale)
-const orderLimitReached = computed(() => !!inlineCartItem.value
-  && inlineCartItem.value.max_per_order > 0
-  && inlineCartItem.value.quantity >= inlineCartItem.value.max_per_order)
+const quantityLimits = computed(() => inlineCartItem.value
+  ? cartLineQuantityLimits(inlineCartItem.value, cartItems.value, props.product.maxPerOrder) : null)
+const orderLimitReached = computed(() => !!inlineCartItem.value && !!quantityLimits.value
+  && inlineCartItem.value.quantity >= quantityLimits.value.orderMaximum)
 
 watch(() => props.product.imageUrl, () => {
   imageFailed.value = false
@@ -40,8 +41,10 @@ async function changeQuantity(amount: number) {
       toast.success('کالا از سبد حذف شد.')
       return
     }
-    await cartStore.updateQuantity(item.id, item.quantity + amount)
-    if (amount > 0 && item.max_per_order > 0 && item.quantity + amount === item.max_per_order) {
+    const limits = quantityLimits.value!
+    if (amount > 0 && item.quantity + amount > limits.maxQuantity) return
+    await cartStore.updateQuantity(item.id, item.quantity + amount, props.product.maxPerOrder)
+    if (amount > 0 && item.quantity + amount === limits.orderMaximum) {
       toast.warning('شما به محدودیت تعداد انتخابی برای سفارش این محصول رسیدید.')
     } else {
       toast.success('تعداد کالا به‌روزرسانی شد.')
@@ -87,7 +90,7 @@ async function changeQuantity(amount: number) {
             <div class="flex min-h-11 items-center justify-between rounded-lg bg-primary px-1 text-primary-foreground">
               <button type="button" class="grid size-9 place-items-center rounded-md transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-40" aria-label="کاهش تعداد" :disabled="cartActionDisabled" @click="changeQuantity(-1)"><UIcon name="solar:minus-circle-outline" class="size-5" /></button>
               <output class="min-w-8 text-center text-sm font-bold">{{ inlineCartItem.quantity.toLocaleString('fa-IR') }}</output>
-              <button type="button" class="grid size-9 place-items-center rounded-md transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-40" aria-label="افزایش تعداد" :disabled="cartActionDisabled || inlineCartItem.quantity >= inlineCartItem.stock || orderLimitReached" @click="changeQuantity(1)"><UIcon name="solar:add-circle-outline" class="size-5" /></button>
+              <button type="button" class="grid size-9 place-items-center rounded-md transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-40" aria-label="افزایش تعداد" :disabled="cartActionDisabled || inlineCartItem.quantity >= (quantityLimits?.maxQuantity ?? 0)" @click="changeQuantity(1)"><UIcon name="solar:add-circle-outline" class="size-5" /></button>
             </div>
             <p v-if="orderLimitReached" role="status" class="mt-2 text-xs text-danger-subtle">شما به محدودیت تعداد انتخابی برای سفارش این محصول رسیدید.</p>
           </template>

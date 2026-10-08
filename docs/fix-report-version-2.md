@@ -1,6 +1,69 @@
-# Fix Report Version 1
+# Fix Report Version 2
 
-Consolidated project contracts and fix record, updated 2026-10-07. This replaces `product-browsing.md`, `session-resource-freshness.md`, `payment-flow.md`, `catalog-failure-handling.md`, and `ssr-migration-plan.md`. Earlier verification is identified in its original section; it is not a claim that every live backend flow was exercised again during SSR migration.
+Consolidated project contracts and fix record, updated 2026-10-08. Version 2 retains the earlier integration and SSR records and adds the production-readiness fixes below. This replaces `product-browsing.md`, `session-resource-freshness.md`, `payment-flow.md`, `catalog-failure-handling.md`, and `ssr-migration-plan.md`. Earlier verification is identified in its original section; it is not a claim that every live backend flow was exercised again during SSR migration.
+
+## Production-readiness fixes added in version 2
+
+### Authentication response contract
+
+- Updated the token-validation response contract to match the real backend response: `{ valid: true, id, role }`. User identity now comes from `id` rather than the obsolete `user_id` field.
+- Invalid successful validation responses without an ID produce a controlled 502 instead of creating an incomplete authenticated session. Backend failures do not incorrectly erase an existing credential. Account scope remains stable across token rotation.
+- Updated session and SSR fixtures and added regression coverage for the real response and malformed responses.
+
+### Product and variant quantity limits
+
+- Preserved variant `max_per_order` as `maxPerOrder` in product-detail mapping and shared types.
+- Purchase panels, quick-add controls and cart edits consider stock, the variant limit, the product-wide limit and quantities already in the cart, including other variants of the same product. Adding another unit and editing an existing cart line use their respective remaining capacities.
+- Cart lines retain their effective line limit; product details supply the separate product-wide limit. Controls wait for the necessary limits, react to cart changes and prevent excessive additions. Decreasing an existing quantity remains possible when that quantity already exceeds a limit.
+- Added mapper, quantity-helper, component, cart-store and cart-page regression coverage.
+
+### OTP and comment input validation
+
+- Added shared parsers and normalizers for authentication and comment input instead of assuming request bodies have valid shapes.
+- OTP handlers and comment submission reject malformed objects, wrong types, empty required values and invalid fields with controlled 400 responses before sending backend requests. Existing JSON/content-type and credential behavior is preserved.
+- Phone and comment forms show validation feedback and block invalid or duplicate submissions. Comment text and IDs are trimmed; failed comment submissions preserve the draft and reply selection.
+
+### Phone formats, localized digits and resend timing
+
+- Accept canonical mobile numbers, `09…`, `+98…` and `0098…` formats, including common separators. Persian and Arabic digits normalize to the backend's existing format; OTP typing and paste retain leading zeroes.
+- Renamed the resend deadline to `otpResendAvailableAt`. The countdown describes when another SMS can be requested, rather than claiming to show OTP validity.
+- Countdown completion does not mark the code as expired or block verification. The backend determines actual OTP expiry; resend and verification actions retain pending-state guards.
+
+### Backend error logging
+
+- Replaced complete backend payload/message/path logging with the structured `backend_request_failed` event and allowlisted HTTP method, numeric status and failure kind (`http`, `network` or `timeout`). Customer data, credentials, request paths, query parameters and raw error messages are excluded.
+- Removed the duplicate raw product-list error logger. HTTP validation responses, session-expiry handling, cancellation and timeout behavior remain intact.
+- Added regression coverage for private-data exclusion and preserved HTTP/network/timeout responses.
+
+### Test repairs
+
+- Address proxy tests now expect backend-relative `/addresses` paths; the shared transport supplies the `/tbt` prefix.
+- The product-variant mapper fixture includes required product fields and verifies variant limits. Its harness supplies `createError`, and malformed product responses have a controlled-error regression test.
+- Updated affected session/freshness harnesses for the corrected contracts and checkout cleanup integration. The previously deferred mapper-fixture failure recorded in the historical verification section is resolved.
+
+### Footer navigation
+
+- Corrected the footer's Products link from `/blog` to `/products`; the Blog link continues to open `/blog`.
+
+### Checkout recovery storage retention
+
+- Defined the policy in [Checkout storage retention](checkout-storage-retention.md).
+- Remove a recovery record only when authenticated backend order data for the current account confirms the same `orderId` as `paid`, `processing`, `shipped`, `delivered` or `cancelled`. Cleanup runs for confirmed checkout responses and order detail/list reads, including payment-return and profile flows, and works after reload without restoring the attempt into memory first.
+- Keep the displayed order in memory. Preserve unresolved attempts, lost responses without an order ID, pending/review/unknown states and unrelated order/account records. URL hints never authorize deletion; unresolved attempts have no automatic age-based expiry that could permit duplicate orders.
+- Storage read/parse/removal failures do not turn successful order reads into failures. Existing account isolation and explicit new-checkout safeguards remain in place.
+- Added coverage for confirmed cleanup, reload recovery, unresolved outcomes, account/order isolation, malformed storage and denied removal.
+
+### Generic error-page presentation
+
+- The large background number and visible error badge now show the actual HTTP status, defaulting to 500 when absent, instead of displaying a hardcoded 404.
+- Added distinct titles and descriptions: 404 for a missing page/resource, 500 for an internal server error, 502 for an upstream/backend problem and 503 for an unavailable service. Other statuses retain their actual code and a generic message.
+- All text owned by `app/error.vue` is in Persian, including descriptions, search placeholder, navigation and help links; the error section uses `lang="fa"` and right-to-left direction. The [production bug report](production-bug-report.md) remains in English.
+
+### Verification and remaining work
+
+- After the production-readiness code fixes, all 154 local tests and the production SSR regression passed (155 tests total). Typecheck and production build passed. The subsequent error-page status mapping and English-text changes passed typecheck; whitespace checks also passed.
+- These results use local fixtures and do not establish that real provider callbacks or live authenticated payment scenarios work in staging. Earlier browser/live-read observations below belong to the historical SSR work and were not repeated for each fix.
+- Open items are tracked in [Production bug report](production-bug-report.md): comment author mapping, real staging-payment verification, the hardcoded homepage category and production SEO configuration/sitemap/structured data/social images. They were recorded rather than implemented. Consultation remains deferred.
 
 ## SSR migration implemented
 
@@ -21,12 +84,12 @@ Consolidated project contracts and fix record, updated 2026-10-07. This replaces
 - Financial uncertainty still requires the identical persisted checkout body/idempotency key and authenticated order truth. A timeout, success route name or reference hint never proves payment or authorizes a new order/charge/cart deletion.
 - SSR private pages were verified with isolated fixture users/guests. Live authenticated OTP/account/order/payment verification still requires a dedicated test account. No live financial mutation is authorized or was performed.
 
-## Verification for this version
+## Earlier SSR verification (version 1)
 
 - `npm run typecheck` and `npm run build` pass. Build output retains Nuxt/Rolldown plugin timing notices; they are not hydration or runtime failures.
 - Six existing scripted suites pass: product browsing (17, including new overlapping-controller disposal), catalog failures (9), sessions (11), freshness (11), cart (21), wishlist (6). The new production SSR regression also passes.
 - `test:ssr` checks actual HTML body content, successful empty lists, entry-page 2, supported canonical URLs, 400/404/422/503 responses, private caching/robots, anonymous rendering without guest creation, existing guest reads, concurrent user isolation, credentials absent from hydration payloads, and no financial/shopping mutations during rendering. HTML requests include browser `Accept: text/html`; JSON error negotiation is a different response contract.
-- Payment tests (18), checkout address/selection tests (9), and checkout proxy tests (6) also pass. Their affected component harnesses now support awaited setup; unrelated tooling was not changed. The variant suite passes 6/7: its pre-existing mapper fixture omits required `name`/`slug` and does not stub `createError`. The mapper and that fixture are unchanged from HEAD; fixture/tooling repair remains deferred.
+- Payment tests (18), checkout address/selection tests (9), and checkout proxy tests (6) also pass. Their affected component harnesses now support awaited setup; unrelated tooling was not changed. The variant suite passes 6/7: its pre-existing mapper fixture omits required `name`/`slug` and does not stub `createError`. At the time of version 1, the mapper and fixture were unchanged from HEAD and fixture/tooling repair was deferred; version 2 resolves this failure.
 - Fresh Chrome checks against the matching production build pass for home, collections, product/article detail, stories, cart, wishlist, profile, order detail, checkout and both payment-return routes: no hydration mismatches or uncaught exceptions, no repeated initial page reads, collection switching, product A → B → A, query Back/Forward and refresh at entry page 2, and late failures after navigating to `/blog`. Additional navbar metadata/badge reads remain intentional where the page has not loaded those resources.
 - A persisted checkout attempt was restored after hydration and recovered its existing pending order; no preview, checkout creation or payment request ran. Success query hints did not authorize payment confirmation.
 - Read-only live backend/page checks returned 200 for home, catalog, discounted collection, blog, stories, anonymous cart/wishlist and a real product. Live missing product/article pages returned 404. Initial HTML had 30 catalog product links; the homepage had 32 product links. Observed response times were 0.02–1.08 seconds and HTML sizes 33–147 KB on this run; these are measurements, not production guarantees. None issued cookies or modified resources.

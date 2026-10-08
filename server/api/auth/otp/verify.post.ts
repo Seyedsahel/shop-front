@@ -1,5 +1,9 @@
 export default defineEventHandler(async (event) => {
-  const body = await readBody<VerifyOtpPayload>(event)
+  const body = parseOtpVerifyInput(await readBody<unknown>(event))
+  if (!body) {
+    const message = 'شماره موبایل و کد تایید ۴ رقمی معتبر وارد کنید.'
+    throw createError({ statusCode: 400, statusMessage: 'Bad Request', message, data: { validationMessage: message } })
+  }
 
   const res = await backendFetch<BackendOtpVerifyResponse>('/auth/otp/verify', {
     method: 'POST',

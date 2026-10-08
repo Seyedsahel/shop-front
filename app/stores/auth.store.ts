@@ -5,7 +5,7 @@ export const useAuthStore = defineStore('auth', () => {
   const isAuthenticated = ref(false)
   const user = ref<User | null>(null)
   const sessionChecked = ref(false)
-  const otpRequestedAt = ref<string | null>(null)
+  const otpResendAvailableAt = ref<string | null>(null)
   const returnTo = ref<string | null>(null)
   const identity = ref<string | null>(null)
   const sessionScope = ref<string | null>(null)
@@ -74,7 +74,7 @@ export const useAuthStore = defineStore('auth', () => {
       await useApi().post<RequestOtpResponse>('/auth/otp/request', { phone: value } satisfies RequestOtpPayload)
       phone.value = value
       step.value = 'otp'
-      otpRequestedAt.value = new Date(Date.now() + 60_000).toISOString()
+      otpResendAvailableAt.value = new Date(Date.now() + 60_000).toISOString()
     } catch (e) {
       useAppToast().error(getUserFriendlyApiErrorMessage(e, 'auth'))
     } finally {
@@ -151,7 +151,7 @@ export const useAuthStore = defineStore('auth', () => {
         applySession({ identity: null, scope: null, isAuthenticated: false, hasGuestSession: false })
         step.value = 'phone'
         phone.value = ''
-        otpRequestedAt.value = null
+        otpResendAvailableAt.value = null
       })
       publish('session')
       toast.success('با موفقیت خارج شدید.')
@@ -162,7 +162,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   function goBackToPhone() {
     step.value = 'phone'
-    otpRequestedAt.value = null
+    otpResendAvailableAt.value = null
   }
 
   
@@ -178,5 +178,5 @@ export const useAuthStore = defineStore('auth', () => {
     return target
   }
 
-  return { identity, sessionScope, withShoppingSession, hasGuestSession, sessionRevision, ensureShoppingSession, handleSessionError, step, phone, isLoading, isAuthenticated, user, sessionChecked, otpRequestedAt, requestOtp, verifyOtp, resendOtp, fetchSession, refreshSession, logout, goBackToPhone, requireAuth, consumeReturnTo }
+  return { identity, sessionScope, withShoppingSession, hasGuestSession, sessionRevision, ensureShoppingSession, handleSessionError, step, phone, isLoading, isAuthenticated, user, sessionChecked, otpResendAvailableAt, requestOtp, verifyOtp, resendOtp, fetchSession, refreshSession, logout, goBackToPhone, requireAuth, consumeReturnTo }
 })

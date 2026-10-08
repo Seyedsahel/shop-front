@@ -82,6 +82,29 @@ export const useCheckoutStore = defineStore('checkout', () => {
     clearPreview()
   }
 
+  // Call only with authenticated order data returned by the backend, never URL hints.
+  function cleanupCompletedAttempt(confirmedOrder: Pick<OrderSummary, 'id' | 'status'>): boolean {
+    const scope = auth.sessionScope ?? auth.identity
+    if (!import.meta.client || !scope || !auth.isAuthenticated
+      || !['paid', 'processing', 'shipped', 'delivered', 'cancelled'].includes(confirmedOrder.status)) return false
+    try {
+      const storageKey = checkoutAttemptStorageKey(scope)
+      const saved = localStorage.getItem(storageKey)
+      if (!saved) return false
+      const parsed: unknown = JSON.parse(saved)
+      if (!parsed || typeof parsed !== 'object'
+        || typeof confirmedOrder.id !== 'string' || !confirmedOrder.id
+        || (parsed as CheckoutAttempt).orderId !== confirmedOrder.id) return false
+      // Unknown outcomes and attempts for another order/account must remain recoverable.
+      localStorage.removeItem(storageKey)
+      if (attempt.value?.orderId === confirmedOrder.id) attempt.value = null
+      return true
+    } catch {
+      // Storage restrictions must not turn a successful order read into a failure.
+      return false
+    }
+  }
+
   function recordPaymentFailure(cause: unknown) {
     if (!attempt.value || !(cause instanceof ApiError)) return
     const blocked = cause.status === 409
@@ -130,6 +153,7 @@ export const useCheckoutStore = defineStore('checkout', () => {
       publish('cart')
       order.value = result
       saveAttempt({ ...saved, rejected: false, orderId: result.id })
+      cleanupCompletedAttempt(result)
       clearPreview()
       return result
     } catch (cause) {
@@ -146,5 +170,5 @@ export const useCheckoutStore = defineStore('checkout', () => {
     }
   }
 
-  return { methods, methodsLoaded, methodsError, preview, order, attempt, couponDraft, couponCode, loadingMethods, previewing, submitting, fetchMethods, fetchPreview, clearPreview, restoreAttempt, saveAttempt, forgetAttempt, recordPaymentFailure, createOrder }
+  return { methods, methodsLoaded, methodsError, preview, order, attempt, couponDraft, couponCode, loadingMethods, previewing, submitting, fetchMethods, fetchPreview, clearPreview, restoreAttempt, saveAttempt, forgetAttempt, cleanupCompletedAttempt, recordPaymentFailure, createOrder }
 })

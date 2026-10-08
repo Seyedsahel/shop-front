@@ -16,11 +16,26 @@ const canShowDiscount = computed(() =>
   && props.product.price.original > props.product.price.final,
 )
 const isInStock = computed(() => availableStock.value !== null && availableStock.value > 0)
-const orderLimitReached = computed(() => props.product.maxPerOrder > 0 && quantity.value >= props.product.maxPerOrder)
+const quantityLimits = computed(() => {
+  const lines = cartStore.itemsForProduct(props.product.id)
+  return productQuantityLimits({
+    stock: availableStock.value ?? 0,
+    productMaxPerOrder: props.product.maxPerOrder,
+    variantMaxPerOrder: selectedVariant.value?.maxPerOrder,
+    productQuantity: lines.reduce((total, item) => total + item.quantity, 0),
+    variantQuantity: lines.filter(item => (item.variant_id || null) === (selectedVariant.value?.variantId ?? null))
+      .reduce((total, item) => total + item.quantity, 0),
+  })
+})
+const orderLimitReached = computed(() => availableStock.value !== null && quantity.value >= quantityLimits.value.orderRemaining)
+const canAdd = computed(() => cartStore.loaded && isInStock.value && quantity.value <= quantityLimits.value.maxAdditional)
 const totalPrice = computed(() => unitPrice.value * quantity.value)
 const favoriteItem = computed(() => wishlistStore.findItem(props.product.id, selectedVariant.value?.variantId))
 
-onMounted(() => { if (!wishlistStore.loaded) void wishlistStore.fetchWishlist().catch(() => {}) })
+onMounted(() => {
+  if (!wishlistStore.loaded) void wishlistStore.fetchWishlist().catch(() => {})
+  if (!cartStore.loaded) void cartStore.fetchCart().catch(() => {})
+})
 
 watch(
   () => props.product.id,
@@ -32,17 +47,21 @@ watch(
 )
 
 watch(() => selectedVariant.value?.variantId, () => { quantity.value = 1 })
+watch(() => quantityLimits.value.maxAdditional, maximum => {
+  quantity.value = Math.max(1, Math.min(quantity.value, maximum))
+})
 
 function increaseQuantity() {
+  if (!cartStore.loaded || cartStore.busy || cartStore.stale || quantity.value >= quantityLimits.value.maxAdditional) return
   const nextQuantity = quantity.value + 1
   quantity.value = nextQuantity
-  if (props.product.maxPerOrder > 0 && nextQuantity === props.product.maxPerOrder) {
+  if (nextQuantity === quantityLimits.value.orderRemaining) {
     toast.warning('شما به محدودیت تعداد انتخابی برای سفارش این محصول رسیدید.')
   }
 }
 
 async function addToCart() {
-  if (!isInStock.value || cartStore.busy || cartStore.stale) return
+  if (!canAdd.value || cartStore.busy || cartStore.stale) return
   if (props.product.purchaseVariants.length && !selectedVariant.value) return
   try {
     await cartStore.addItem(props.product.id, quantity.value, selectedVariant.value?.variantId ?? null)
@@ -113,12 +132,12 @@ async function toggleFavorite() {
           <UIcon name="solar:minus-circle-outline" class="size-5" />
         </button>
         <span class="text-sm font-semibold text-text-primary">{{ quantity.toLocaleString('fa-IR') }}</span>
-        <button type="button" class="grid size-11 place-items-center text-text-secondary hover:text-primary disabled:opacity-40" :disabled="!isInStock || availableStock === null || quantity >= availableStock || orderLimitReached" aria-label="افزایش تعداد" @click="increaseQuantity">
+        <button type="button" class="grid size-11 place-items-center text-text-secondary hover:text-primary disabled:opacity-40" :disabled="!cartStore.loaded || cartStore.busy || cartStore.stale || quantity >= quantityLimits.maxAdditional" aria-label="افزایش تعداد" @click="increaseQuantity">
           <UIcon name="solar:add-circle-outline" class="size-5" />
         </button>
       </div>
       <div class="flex w-full gap-3 sm:flex-1">
-        <button type="button" class="inline-flex min-h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:bg-disabled-bg disabled:text-disabled-text sm:h-12 sm:py-0" :disabled="!isInStock || cartStore.busy || cartStore.stale" @click="addToCart">
+        <button type="button" class="inline-flex min-h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:bg-disabled-bg disabled:text-disabled-text sm:h-12 sm:py-0" :disabled="!canAdd || cartStore.busy || cartStore.stale" @click="addToCart">
           <UIcon name="solar:cart-large-2-outline" class="size-5 shrink-0" />
           <span class="truncate">{{ cartStore.isMutating ? 'در حال افزودن به سبد…' : availableStock === null ? 'گزینه محصول را انتخاب کنید' : isInStock ? `افزودن به سبد · ${formatMoney(totalPrice)}` : 'این محصول ناموجود است' }}</span>
         </button>
@@ -128,6 +147,7 @@ async function toggleFavorite() {
       </div>
       </div>
       <p v-if="orderLimitReached" role="status" class="text-sm text-danger-subtle">شما به محدودیت تعداد انتخابی برای سفارش این محصول رسیدید.</p>
+      <p v-else-if="isInStock && quantityLimits.maxAdditional === 0" role="status" class="text-sm text-text-secondary">تمام موجودی این گزینه در سبد خرید شماست.</p>
     </div>
 
     <!-- TODO: Replace with backend-backed delivery and support promises when available. -->

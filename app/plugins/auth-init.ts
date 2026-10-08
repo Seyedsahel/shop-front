@@ -12,6 +12,10 @@ export default defineNuxtPlugin(async (nuxtApp) => {
   const orders = useOrderStore()
   const checkout = useCheckoutStore()
   const payments = usePaymentStore()
+  watch([() => orders.current, () => orders.items], ([current, items]) => {
+    if (current) checkout.cleanupCompletedAttempt(current)
+    for (const order of items) checkout.cleanupCompletedAttempt(order)
+  }, { immediate: true })
   const resources: SessionResource[] = ['cart', 'wishlist', 'addresses', 'orders']
   const allowed = new Set<SessionResource>(['session', ...resources])
   const pending = new Set<SessionResource>()

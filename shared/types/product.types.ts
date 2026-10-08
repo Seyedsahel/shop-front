@@ -89,6 +89,8 @@ export interface ProductVariantOption {
 
 export interface ProductVariant {
   variantId: string
+  /** Zero means this variant has no per-line quantity limit. */
+  maxPerOrder: number
   sku: string
   priceAdjustment: number
   finalPrice: number

@@ -14,7 +14,7 @@ export interface CartItem {
   name: string
   slug: string
   stock: number
-  /** Zero means this product has no per-order quantity limit. */
+  /** Effective per-line cap (product/variant minimum); zero means unlimited. */
   max_per_order: number
   image_url: string | null
   pricing: CartItemPricing

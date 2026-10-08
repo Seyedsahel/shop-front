@@ -2,7 +2,7 @@
 
 The existing Cart UI now uses the backend through one canonical Cart store.
 
-For current visibility, scope and cross-tab behavior, read [session/resource freshness](fix-report-version-1.md#session-and-resource-freshness). The deferred-API section below is historical and contains superseded checkout/address/wishlist notes.
+For current visibility, scope and cross-tab behavior, read [session/resource freshness](fix-report-version-2.md#session-and-resource-freshness). The deferred-API section below is historical and contains superseded checkout/address/wishlist notes.
 
 ## Request and session flow
 

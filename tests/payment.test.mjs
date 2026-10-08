@@ -47,13 +47,65 @@ function setup() {
   setActivePinia(createPinia())
   const saved = new Map()
   globalThis.localStorage = { getItem: name => saved.get(name) ?? null, setItem: (name, value) => saved.set(name, value), removeItem: name => saved.delete(name) }
-  const auth = reactive({ identity: 'user-1', sessionScope: 'user-1' })
+  const auth = reactive({ identity: 'user-1', sessionScope: 'user-1', isAuthenticated: true })
   const calls = []
   const api = { async post(path, body, options) { calls.push({ path, body: JSON.parse(JSON.stringify(body)), options }); return { ...order } } }
   globalThis.useAuthStore = () => auth
   globalThis.useApi = () => api
   return { store: useCheckoutStore(), auth, api, calls, saved }
 }
+
+test('confirmed completed orders remove matching recovery details, including after reload', () => {
+  for (const status of ['paid', 'processing', 'shipped', 'delivered', 'cancelled']) {
+    const { store, saved } = setup()
+    store.saveAttempt({ key, input: { ...input, address: { first_name: 'Private', phone: '09120000000' } }, orderId: order.id })
+    store.order = { ...order, status }
+    assert.equal(store.cleanupCompletedAttempt({ ...order, status }), true)
+    assert.equal(saved.size, 0)
+    assert.equal(store.attempt, null)
+    assert.equal(store.order.status, status)
+  }
+  const { store, saved } = setup()
+  store.saveAttempt({ key, input, orderId: order.id })
+  setActivePinia(createPinia())
+  const reloaded = useCheckoutStore()
+  assert.equal(reloaded.attempt, null)
+  assert.equal(reloaded.cleanupCompletedAttempt({ ...order, status: 'paid' }), true)
+  assert.equal(saved.size, 0)
+})
+
+test('cleanup preserves unresolved outcomes, pending/review orders, and other account/order attempts', () => {
+  const { store, auth, saved } = setup()
+  store.saveAttempt({ key, input, paymentUncertain: true })
+  assert.equal(store.cleanupCompletedAttempt({ ...order, status: 'paid' }), false)
+  store.saveAttempt({ key, input, orderId: order.id })
+  for (const status of ['pending_payment', 'review', 'unknown']) {
+    assert.equal(store.cleanupCompletedAttempt({ ...order, status }), false)
+  }
+  assert.equal(store.cleanupCompletedAttempt({ id: 'another-order', status: 'paid' }), false)
+  auth.isAuthenticated = false
+  assert.equal(store.cleanupCompletedAttempt({ ...order, status: 'paid' }), false)
+  auth.isAuthenticated = true
+  auth.sessionScope = 'user-2'
+  assert.equal(store.cleanupCompletedAttempt({ ...order, status: 'paid' }), false)
+  assert.equal(saved.size, 1)
+  assert.equal(JSON.parse([...saved.values()][0]).orderId, order.id)
+})
+
+test('cleanup tolerates corrupt storage and removal failures without losing in-memory recovery', () => {
+  const { store, saved } = setup()
+  const storageKey = checkoutAttemptStorageKey('user-1')
+  for (const bad of ['broken', 'null', '[]']) {
+    saved.set(storageKey, bad)
+    assert.equal(store.cleanupCompletedAttempt({ ...order, status: 'paid' }), false)
+    assert.equal(saved.get(storageKey), bad)
+  }
+  store.saveAttempt({ key, input, orderId: order.id })
+  globalThis.localStorage.removeItem = () => { throw new Error('Denied') }
+  assert.equal(store.cleanupCompletedAttempt({ ...order, status: 'paid' }), false)
+  assert.equal(saved.size, 1)
+  assert.equal(store.attempt.orderId, order.id)
+})
 
 test('uncertain checkout retry after reload keeps identical body and UUID', async () => {
   const { store, api, calls, saved } = setup()

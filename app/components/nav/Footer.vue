@@ -3,7 +3,7 @@ const shop = useShopStore()
 const navLinks = [
   { label: 'خانه', to: '/' },
   { label: 'مشاوره', to: '/consultation' },
-  { label: 'محصولات', to: '/blog' },
+  { label: 'محصولات', to: '/products' },
   { label: 'وبلاگ', to: '/blog' },
 ]
 

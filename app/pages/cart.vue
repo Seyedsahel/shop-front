@@ -5,6 +5,36 @@ const auth = useAuthStore()
 const addresses = useAddressStore()
 const checkoutStore = useCheckoutStore()
 const toast = useAppToast()
+const productDetails = useProductDetailStore()
+const productLimitStatus = ref<Record<string, 'loading' | 'ready' | 'error'>>({})
+const limitRequests = new Map<string, Promise<void>>()
+function loadProductLimit(slug: string): Promise<void> {
+  if (limitRequests.has(slug)) return limitRequests.get(slug)!
+  if (productLimitStatus.value[slug] === 'ready') return Promise.resolve()
+  productLimitStatus.value[slug] = 'loading'
+  const request = productDetails.loadBySlug(slug).then(() => {
+    productLimitStatus.value[slug] = 'ready'
+  }).catch(() => {
+    productLimitStatus.value[slug] = 'error'
+  }).finally(() => { limitRequests.delete(slug) })
+  limitRequests.set(slug, request)
+  return request
+}
+function loadCartProductLimits() {
+  return Promise.all([...new Set(cartStore.items.filter(item => item.variant_id).map(item => item.slug))].map(loadProductLimit))
+}
+function productLimit(item: CartItem) {
+  return item.variant_id ? productDetails.bySlug[item.slug]?.maxPerOrder ?? 0 : item.max_per_order
+}
+function lineLimits(item: CartItem) {
+  return cartLineQuantityLimits(item, cartStore.items, productLimit(item))
+}
+function limitsReady(item: CartItem) {
+  return !item.variant_id || (productLimitStatus.value[item.slug] === 'ready'
+    && productDetails.bySlug[item.slug]?.id === item.product_id)
+}
+watch(() => [...new Set(cartStore.items.filter(item => item.variant_id).map(item => item.slug))].sort().join('|'),
+  () => { void loadCartProductLimits() })
 const couponPending = ref(false)
 const couponPreview = ref<CheckoutPreview | null>(null)
 const previewSignature = ref('')
@@ -16,6 +46,7 @@ const activeCouponPreview = computed(() => previewSignature.value === cartSignat
   && checkoutStore.couponDraft.trim() === checkoutStore.couponCode ? couponPreview.value : null)
 watch(cartSignature, () => { couponPreview.value = null })
 await callOnce(`cart:${auth.sessionScope ?? 'anonymous'}`, () => cartStore.fetchCart().catch(() => {}), { mode: 'navigation' })
+await loadCartProductLimits()
 useSeoMeta({ robots: 'noindex, nofollow' })
 
 async function applyCoupon() {
@@ -67,9 +98,11 @@ async function remove(id: string) {
 }
 async function changeQuantity(item: CartItem, amount: number) {
   if (item.quantity + amount < 1) return remove(item.id)
+  const limits = lineLimits(item)
+  if (amount > 0 && (!limitsReady(item) || item.quantity + amount > limits.maxQuantity)) return
   try {
-    await cartStore.updateQuantity(item.id, item.quantity + amount)
-    if (amount > 0 && item.max_per_order > 0 && item.quantity + amount === item.max_per_order) {
+    await cartStore.updateQuantity(item.id, item.quantity + amount, productLimit(item))
+    if (amount > 0 && item.quantity + amount === limits.orderMaximum) {
       toast.warning('شما به محدودیت تعداد انتخابی برای سفارش این محصول رسیدید.')
     } else {
       toast.success('تعداد کالا به‌روزرسانی شد.')
@@ -119,7 +152,10 @@ function checkout() {
             <div class="flex items-center gap-2"><h1 class="text-lg font-bold text-text-primary">سبد خرید شما</h1><span class="rounded-full bg-surface px-2 py-1 text-[10px] text-text-secondary">{{ cartStore.itemCount.toLocaleString('fa-IR') }} کالا</span></div>
             <button type="button" class="inline-flex items-center gap-1 text-xs text-text-secondary transition-colors hover:text-danger" :disabled="cartStore.busy || cartStore.stale" @click="clear"><UIcon name="solar:trash-bin-trash-outline" class="size-4" />خالی کردن سبد</button>
           </div>
-          <CartItemCard v-for="item in cartStore.items" :key="item.id" :item="item" :disabled="cartStore.busy || cartStore.stale || wishlistStore.busy" @increase="changeQuantity(item, 1)" @decrease="changeQuantity(item, -1)" @remove="remove(item.id)" @move-to-wishlist="moveToWishlist(item)" />
+          <div v-for="item in cartStore.items" :key="item.id">
+            <CartItemCard :item="item" :max-quantity="lineLimits(item).maxQuantity" :order-limit-reached="item.quantity >= lineLimits(item).orderMaximum" :limits-loading="!!item.variant_id && productLimitStatus[item.slug] === 'loading'" :limits-error="!limitsReady(item)" :disabled="cartStore.busy || cartStore.stale || wishlistStore.busy" @increase="changeQuantity(item, 1)" @decrease="changeQuantity(item, -1)" @remove="remove(item.id)" @move-to-wishlist="moveToWishlist(item)" />
+            <p v-if="item.variant_id && productLimitStatus[item.slug] !== 'loading' && !limitsReady(item)" role="alert" class="mt-2 text-sm text-danger">بررسی تعداد مجاز خرید ناموفق بود. <button type="button" class="underline" @click="productLimitStatus[item.slug] = 'error'; loadProductLimit(item.slug)">تلاش دوباره</button></p>
+          </div>
           <div class="flex gap-3 rounded-2xl border border-warning-border bg-warning-subtle p-4"><UIcon name="solar:verified-check-outline" class="size-6 shrink-0 text-warning" /><div><h2 class="text-sm font-semibold text-text-primary">خرید مطمئن از فروشگاه</h2><p class="mt-1 text-xs leading-6 text-text-secondary">جزئیات زمان و هزینه ارسال پس از انتخاب آدرس نمایش داده می‌شود.</p></div></div>
         </section>
         <div class="lg:col-span-4 lg:sticky lg:top-24"><CartOrderSummary v-model:coupon="checkoutStore.couponDraft" :item-count="cartStore.itemCount" :subtotal-original="cartStore.subtotalOriginal" :total="cartStore.total" :disabled="cartStore.busy || cartStore.stale || couponPending" :discount="cartStore.discount" :preview="activeCouponPreview" :coupon-pending="couponPending" :coupon-applied="!!activeCouponPreview && !!checkoutStore.couponCode" @apply-coupon="applyCoupon" @checkout="checkout" /></div>

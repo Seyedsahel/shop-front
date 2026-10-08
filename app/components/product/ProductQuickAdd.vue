@@ -17,9 +17,18 @@ const stock = computed(() => detail.value?.purchaseVariants.length
   ? selectedVariant.value?.stock ?? null
   : detail.value?.baseStock ?? null)
 const unitPrice = computed(() => selectedVariant.value?.finalPrice ?? detail.value?.price.final ?? props.product.price.final)
-const ready = computed(() => !loading.value && !loadError.value && !!detail.value && stock.value !== null && stock.value > 0)
-const orderLimitReached = computed(() => (detail.value?.maxPerOrder ?? props.product.maxPerOrder) > 0
-  && quantity.value >= (detail.value?.maxPerOrder ?? props.product.maxPerOrder))
+const quantityLimits = computed(() => productQuantityLimits({
+  stock: stock.value ?? 0,
+  productMaxPerOrder: detail.value?.maxPerOrder ?? props.product.maxPerOrder,
+  variantMaxPerOrder: selectedVariant.value?.maxPerOrder,
+  productQuantity: cartLines.value.reduce((total, item) => total + item.quantity, 0),
+  variantQuantity: cartLines.value.filter(item => (item.variant_id || null) === (selectedVariant.value?.variantId ?? null))
+    .reduce((total, item) => total + item.quantity, 0),
+}))
+const ready = computed(() => !loading.value && !loadError.value && !!detail.value && cart.loaded
+  && stock.value !== null && stock.value > 0 && quantity.value <= quantityLimits.value.maxAdditional)
+const orderLimitReached = computed(() => stock.value !== null && quantity.value >= quantityLimits.value.orderRemaining)
+const lineLimits = (item: CartItem) => cartLineQuantityLimits(item, cartLines.value, detail.value?.maxPerOrder ?? props.product.maxPerOrder)
 
 async function load() {
   const active = ++requestId
@@ -28,7 +37,7 @@ async function load() {
   loadError.value = false
   quantity.value = 1
   try {
-    const product = await details.loadBySlug(props.product.slug)
+    await Promise.all([details.loadBySlug(props.product.slug), cart.loaded ? Promise.resolve() : cart.fetchCart()])
     if (active !== requestId) return
     reset()
   } catch (caught) {
@@ -45,12 +54,15 @@ watch(() => [open.value, props.product.slug] as const, ([visible]) => {
   else requestId++
 }, { immediate: true })
 watch(() => selectedVariant.value?.variantId, () => { quantity.value = 1 })
+watch(() => quantityLimits.value.maxAdditional, maximum => {
+  quantity.value = Math.max(1, Math.min(quantity.value, maximum))
+})
 
 function increaseQuantity() {
+  if (!cart.loaded || loading.value || submitting.value || cart.busy || cart.stale || quantity.value >= quantityLimits.value.maxAdditional) return
   const nextQuantity = quantity.value + 1
   quantity.value = nextQuantity
-  const maxPerOrder = detail.value?.maxPerOrder ?? props.product.maxPerOrder
-  if (maxPerOrder > 0 && nextQuantity === maxPerOrder) {
+  if (nextQuantity === quantityLimits.value.orderRemaining) {
     toast.warning('شما به محدودیت تعداد انتخابی برای سفارش این محصول رسیدید.')
   }
 }
@@ -79,8 +91,10 @@ async function changeCartLineQuantity(item: CartItem, amount: number) {
       toast.success('کالا از سبد حذف شد.')
       return
     }
-    await cart.updateQuantity(item.id, item.quantity + amount)
-    if (amount > 0 && item.max_per_order > 0 && item.quantity + amount === item.max_per_order) {
+    const limits = lineLimits(item)
+    if (amount > 0 && item.quantity + amount > limits.maxQuantity) return
+    await cart.updateQuantity(item.id, item.quantity + amount, detail.value?.maxPerOrder ?? props.product.maxPerOrder)
+    if (amount > 0 && item.quantity + amount === limits.orderMaximum) {
       toast.warning('شما به محدودیت تعداد انتخابی برای سفارش این محصول رسیدید.')
     } else {
       toast.success('تعداد کالا به‌روزرسانی شد.')
@@ -91,7 +105,11 @@ async function changeCartLineQuantity(item: CartItem, amount: number) {
 }
 async function retry() {
   if (cart.stale) {
-    try { await cart.fetchCart(); error.value = '' } catch { error.value = cart.error }
+    try {
+      await cart.fetchCart()
+      error.value = ''
+      if (loadError.value) await load()
+    } catch { error.value = cart.error }
   } else await load()
 }
 </script>
@@ -118,10 +136,10 @@ async function retry() {
           <div class="flex shrink-0 items-center gap-3 rounded-lg bg-card p-1">
             <button type="button" aria-label="کاهش تعداد" class="size-9 rounded-md disabled:opacity-40" :disabled="cart.busy || cart.stale" @click="changeCartLineQuantity(item, -1)">−</button>
             <output class="min-w-5 text-center text-sm font-semibold">{{ item.quantity.toLocaleString('fa-IR') }}</output>
-            <button type="button" aria-label="افزایش تعداد" class="size-9 rounded-md disabled:opacity-40" :disabled="cart.busy || cart.stale || item.quantity >= item.stock || (item.max_per_order > 0 && item.quantity >= item.max_per_order)" @click="changeCartLineQuantity(item, 1)">+</button>
+            <button type="button" aria-label="افزایش تعداد" class="size-9 rounded-md disabled:opacity-40" :disabled="cart.busy || cart.stale || item.quantity >= lineLimits(item).maxQuantity" @click="changeCartLineQuantity(item, 1)">+</button>
           </div>
         </div>
-        <p v-if="cartLines.some(item => item.max_per_order > 0 && item.quantity >= item.max_per_order)" role="status" class="text-xs text-danger-subtle">شما به محدودیت تعداد انتخابی برای سفارش این محصول رسیدید.</p>
+        <p v-if="cartLines.some(item => item.quantity >= lineLimits(item).orderMaximum)" role="status" class="text-xs text-danger-subtle">شما به محدودیت تعداد انتخابی برای سفارش این محصول رسیدید.</p>
       </section>
       <ProductVariantSelectors
         v-if="detail.purchaseVariants.length"
@@ -137,7 +155,7 @@ async function retry() {
           <div class="flex items-center gap-4 rounded-xl bg-surface p-1">
             <button type="button" aria-label="کاهش تعداد" class="size-10 rounded-lg bg-card disabled:opacity-40" :disabled="quantity <= 1 || submitting" @click="quantity--">−</button>
             <output class="min-w-5 text-center">{{ quantity.toLocaleString('fa-IR') }}</output>
-            <button type="button" aria-label="افزایش تعداد" class="size-10 rounded-lg bg-card disabled:opacity-40" :disabled="stock === null || quantity >= stock || orderLimitReached || submitting" @click="increaseQuantity">+</button>
+            <button type="button" aria-label="افزایش تعداد" class="size-10 rounded-lg bg-card disabled:opacity-40" :disabled="!cart.loaded || cart.busy || cart.stale || quantity >= quantityLimits.maxAdditional || submitting" @click="increaseQuantity">+</button>
           </div>
         </div>
         <button type="button" class="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50" :disabled="!ready || submitting || cart.busy || cart.stale" @click="add">
@@ -145,6 +163,7 @@ async function retry() {
         </button>
       </div>
       <p v-if="orderLimitReached" role="status" class="mt-3 text-sm text-warning">شما به محدودیت تعداد انتخابی برای سفارش این محصول رسیدید.</p>
+      <p v-else-if="stock !== null && stock > 0 && quantityLimits.maxAdditional === 0" role="status" class="mt-3 text-sm text-text-secondary">تمام موجودی این گزینه در سبد خرید شماست.</p>
     </template>
   </UiModal>
 </template>

@@ -43,7 +43,7 @@ test('address writes forward text/plain JSON with user bearer', async () => {
   }
   assert.equal((await request(create, 'POST', input)).status, 200)
   assert.equal((await request(update, 'PUT', input)).status, 200)
-  assert.deepEqual(calls.map(call => [call.method, call.path]), [['POST', '/api/addresses'], ['PUT', `/api/addresses/${id}`]])
+  assert.deepEqual(calls.map(call => [call.method, call.path]), [['POST', '/addresses'], ['PUT', `/addresses/${id}`]])
   for (const call of calls) {
     assert.equal(call.authorization, 'Bearer user')
     assert.equal(call.contentType, 'text/plain')
@@ -71,5 +71,5 @@ test('address list and deletion use the authenticated backend routes', async () 
   }
   assert.equal((await request(list, 'GET')).status, 200)
   assert.equal((await request(remove, 'DELETE')).status, 200)
-  assert.deepEqual(calls, [['GET', '/api/addresses', 'Bearer user'], ['DELETE', `/api/addresses/${id}`, 'Bearer user']])
+  assert.deepEqual(calls, [['GET', '/addresses', 'Bearer user'], ['DELETE', `/addresses/${id}`, 'Bearer user']])
 })

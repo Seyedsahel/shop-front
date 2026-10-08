@@ -23,7 +23,7 @@ export async function startSsrBackend() {
         if (path === '/tbt/shop')
             return reply({ shop_name: 'SSR Shop', shop_description: 'SSR shop description', address: 'SSR shop address', phone_number: '02112345678', email: 'shop@example.test', instagram_id: 'ssr_shop', telegram_id: '', logo_image_filename: 'shops/logo.png', enamad_image_filename: 'shops/enamad.png' });
         if (path === '/tbt/auth/validate')
-            return reply({ valid: true, user_id: 'user-' + identity, role: identity.startsWith('guest') ? 'guest' : 'user' });
+            return reply({ valid: true, id: 'user-' + identity, role: identity.startsWith('guest') ? 'guest' : 'user' });
         if (path === '/tbt/cart')
             return reply({ id: 'cart-' + identity, products: { item: { id: 'item', product_id: 'p', name: 'Cart ' + identity, stock: 9, slug: 'product-a', pricing: { total: 200, unit_price: 100, original_price: 100, discount: 0 }, quantity: 2, price: 100, unit_price: 100, total: 200, max_per_order: 9 } }, pricing: { subtotal_original: 200, subtotal: 200, discount: 0, total: 200 } });
         if (path === '/tbt/wishlist')

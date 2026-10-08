@@ -15,16 +15,29 @@ const comments = computed(() => {
 })
 
 const newComment = ref('')
+const commentError = ref('')
+const validateCommentText = (value: string) => value.trim() ? '' : 'متن نظر نمی‌تواند خالی باشد.'
 const replyingTo = ref<AppComment | null>(null)
+watch(newComment, () => { if (commentError.value) commentError.value = validateCommentText(newComment.value) })
 watch(() => [props.targetType, props.targetId], () => {
   newComment.value = ''
+  commentError.value = ''
   replyingTo.value = null
 })
 
 async function submit() {
-  const ok = await commentStore.submitComment(props.targetType, props.targetId, newComment.value, replyingTo.value?.id)
+  if (commentStore.isSubmitting) return
+  commentError.value = validateCommentText(newComment.value)
+  if (commentError.value) return
+  const input = parseCommentInput({ targetType: props.targetType, targetId: props.targetId, content: newComment.value, parentId: replyingTo.value?.id })
+  if (!input) {
+    commentError.value = 'اطلاعات نظر معتبر نیست؛ صفحه را دوباره بارگذاری کنید.'
+    return
+  }
+  const ok = await commentStore.submitComment(input.targetType, input.targetId, input.content, input.parentId)
   if (ok) {
     newComment.value = ''
+    commentError.value = ''
     replyingTo.value = null
   }
 }
@@ -45,7 +58,7 @@ async function submit() {
         <span>پاسخ به {{ replyingTo.authorName }}</span>
         <button type="button" class="text-primary hover:underline" @click="replyingTo = null">لغو پاسخ</button>
       </div>
-      <UiTextarea v-model="newComment" placeholder="نظر خود را بنویسید..." :rows="3" />
+      <UiTextarea v-model="newComment" v-model:error="commentError" :validate="validateCommentText" placeholder="نظر خود را بنویسید..." :rows="3" />
       <button
         type="submit"
         :disabled="commentStore.isSubmitting"

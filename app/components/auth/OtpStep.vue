@@ -4,7 +4,7 @@ const authStore = useAuthStore()
 const digits = ref<string[]>(Array.from({ length: OTP_LENGTH }, () => ''))
 const codeError = ref('')
 const inputs = ref<HTMLInputElement[]>([])
-const timeLeft = useCountdown(computed(() => authStore.otpRequestedAt))
+const timeLeft = useCountdown(computed(() => authStore.otpResendAvailableAt))
 const canResend = computed(() => timeLeft.expired)
 const code = computed(() => digits.value.join(''))
 
@@ -13,13 +13,11 @@ function setInput(element: unknown, index: number) {
 }
 
 function validateCode(value: string) {
-  if (value.length !== OTP_LENGTH) return 'کد تایید ۴ رقمی را وارد کنید.'
-  if (!/^\d{4}$/.test(value)) return 'کد تایید معتبر نیست.'
-  return ''
+  return otpCodeError(value)
 }
 
 function onDigitInput(event: Event, index: number) {
-  const value = (event.target as HTMLInputElement).value.replace(/\D/g, '').slice(-1)
+  const value = normalizeAuthDigits((event.target as HTMLInputElement).value).replace(/\D/g, '').slice(-1)
   digits.value[index] = value
   if (codeError.value) codeError.value = validateCode(code.value)
   if (value && index < OTP_LENGTH - 1) inputs.value[index + 1]?.focus()
@@ -30,7 +28,7 @@ function onKeydown(event: KeyboardEvent, index: number) {
 }
 
 function onPaste(event: ClipboardEvent) {
-  const pasted = event.clipboardData?.getData('text').replace(/\D/g, '').slice(0, OTP_LENGTH) ?? ''
+  const pasted = normalizeAuthDigits(event.clipboardData?.getData('text') ?? '').replace(/\D/g, '').slice(0, OTP_LENGTH)
   if (!pasted) return
   event.preventDefault()
   digits.value = Array.from({ length: OTP_LENGTH }, (_, index) => pasted[index] ?? '')
@@ -38,6 +36,7 @@ function onPaste(event: ClipboardEvent) {
 }
 
 async function submit() {
+  if (authStore.isLoading) return
   codeError.value = validateCode(code.value)
   if (codeError.value) return
   try {
@@ -49,6 +48,7 @@ async function submit() {
 }
 
 async function handleResend() {
+  if (!canResend.value || authStore.isLoading) return
   digits.value = Array.from({ length: OTP_LENGTH }, () => '')
   codeError.value = ''
   await authStore.resendOtp()
@@ -80,7 +80,7 @@ async function handleResend() {
       </div>
 
       <div class="space-y-3 rounded-2xl border border-divider bg-surface/80 p-4 text-xs">
-        <div class="flex items-center justify-between text-text-secondary"><span>مدت زمان اعتبار کد:</span><span v-if="!canResend" class="inline-flex items-center gap-1.5 rounded-full bg-warning-subtle px-3 py-1 font-semibold text-warning"><span class="size-2 animate-pulse rounded-full bg-warning" />{{ String(timeLeft.minutes).padStart(2, '0') }}:{{ String(timeLeft.seconds).padStart(2, '0') }}</span><span v-else class="text-text-muted">کد منقضی شده است</span></div>
+        <div class="flex items-center justify-between text-text-secondary"><span>زمان باقی‌مانده تا ارسال مجدد:</span><span v-if="!canResend" class="inline-flex items-center gap-1.5 rounded-full bg-warning-subtle px-3 py-1 font-semibold text-warning"><span class="size-2 animate-pulse rounded-full bg-warning" />{{ String(timeLeft.minutes).padStart(2, '0') }}:{{ String(timeLeft.seconds).padStart(2, '0') }}</span><span v-else class="text-text-muted">امکان ارسال مجدد فراهم است</span></div>
         <div class="flex items-center justify-between border-t border-divider pt-3 text-text-muted"><span>کد را دریافت نکرده‌اید؟</span><button type="button" :disabled="!canResend || authStore.isLoading" class="font-medium text-primary transition enabled:hover:text-primary-hover disabled:cursor-not-allowed disabled:opacity-40" @click="handleResend">ارسال مجدد پیامک</button></div>
       </div>
 
