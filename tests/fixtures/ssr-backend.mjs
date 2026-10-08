@@ -21,7 +21,7 @@ export async function startSsrBackend() {
         const credential = req.headers.authorization?.replace('Bearer ', '') || 'anonymous';
         const identity = credential.replace(/^fixture-/, 'visitor-').replace(/^guest-/, 'guest-visitor-');
         if (path === '/tbt/shop')
-            return reply({ shop_name: 'SSR Shop', shop_description: 'SSR shop description', address: 'SSR shop address', phone_number: '02112345678', email: 'shop@example.test', instagram_id: 'ssr_shop', telegram_id: '', logo_image_id: null, enamad_image_id: null });
+            return reply({ shop_name: 'SSR Shop', shop_description: 'SSR shop description', address: 'SSR shop address', phone_number: '02112345678', email: 'shop@example.test', instagram_id: 'ssr_shop', telegram_id: '', logo_image_filename: 'shops/logo.png', enamad_image_filename: 'shops/enamad.png' });
         if (path === '/tbt/auth/validate')
             return reply({ valid: true, user_id: 'user-' + identity, role: identity.startsWith('guest') ? 'guest' : 'user' });
         if (path === '/tbt/cart')

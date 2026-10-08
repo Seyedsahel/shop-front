@@ -16,11 +16,12 @@ const scrollToTop = () => {
 
 <template>
   <footer class="bg-surface border-t border-divider mt-10">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-1 py-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-1 py-10 grid grid-cols-1 sm:grid-cols-2 gap-8" :class="shop.info?.enamadImageUrl ? 'lg:grid-cols-5' : 'lg:grid-cols-4'">
 
       <!-- Brand -->
       <div class="flex flex-col gap-3">
         <NuxtLink to="/" class="flex items-center gap-2">
+          <img v-if="shop.info?.logoImageUrl" :src="shop.info.logoImageUrl" :alt="`لوگوی ${shop.name}`" width="40" height="40" loading="lazy" class="size-10 object-contain" />
           <span class="text-text-primary font-semibold">{{ shop.name }}</span>
         </NuxtLink>
         <p v-if="shop.info?.description" class="text-xs text-text-secondary leading-relaxed">
@@ -70,6 +71,11 @@ const scrollToTop = () => {
         <a v-if="shop.info?.email" :href="`mailto:${shop.info.email}`" class="text-xs text-text-secondary hover:text-text-primary transition-colors">
           <span dir="ltr">{{ shop.info.email }}</span>
         </a>
+      </div>
+
+      <div v-if="shop.info?.enamadImageUrl" class="flex flex-col gap-3 items-start sm:items-end lg:items-start">
+        <h3 class="text-sm font-semibold text-text-primary">نماد اعتماد</h3>
+        <img :src="shop.info.enamadImageUrl" alt="نماد اعتماد الکترونیکی" width="96" height="96" loading="lazy" class="size-24 object-contain" />
       </div>
 
       <div>

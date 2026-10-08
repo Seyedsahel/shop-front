@@ -6,6 +6,7 @@ export interface ShopInfo {
   email: string
   name: string
   description: string
-  logoImageId: string
-  enamadImageId: string
+  /** Backend filenames are exposed through the shared /api/images proxy. */
+  logoImageUrl: string
+  enamadImageUrl: string
 }

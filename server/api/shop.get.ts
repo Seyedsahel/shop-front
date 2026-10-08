@@ -12,6 +12,7 @@ export default defineEventHandler(async (event): Promise<ShopInfo> => {
     name: text('shop_name'), description: text('shop_description'),
     address: text('address'), phoneNumber: text('phone_number'), email: text('email'),
     instagramId: text('instagram_id'), telegramId: text('telegram_id'),
-    logoImageId: text('logo_image_id'), enamadImageId: text('enamad_image_id'),
+    logoImageUrl: toBackendImageUrl(text('logo_image_filename')),
+    enamadImageUrl: toBackendImageUrl(text('enamad_image_filename')),
   }
 })

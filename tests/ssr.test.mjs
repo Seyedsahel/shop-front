@@ -50,6 +50,8 @@ test('production SSR renders content, statuses and isolated read-only sessions',
     }
     assert.ok(!shopPage.html.includes('https://t.me/'))
     assert.ok(shopPage.html.includes('<title>SSR Shop</title>'))
+    assert.equal((shopPage.html.match(/src="\/api\/images\/shops\/logo.png"/g) ?? []).length, 2, 'Header and footer render the proxied shop logo')
+    assert.ok(shopPage.html.includes('src="/api/images/shops/enamad.png"'), 'Footer renders the proxied trust badge')
     assert.ok((await read('/auth')).html.includes('ورود امن به SSR Shop'))
     for (const path of ['/products/missing', '/blog/missing', '/stories/missing']) await read(path, '', 404)
     await read('/products/service', '', 503)
