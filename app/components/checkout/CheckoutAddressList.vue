@@ -1,6 +1,7 @@
 <script setup lang="ts">
-const props = defineProps<{ addresses: Address[]; provinces: ShippingProvince[]; selectedId: string | null; disabled?: boolean }>()
+const props = defineProps<{ addresses: Address[]; provinces: ShippingProvince[]; selectedId: string | null; disabled?: boolean; addressLimitError?: string }>()
 defineEmits<{ select: [id: string]; add: []; edit: [address: Address] }>()
+const fieldId = useId()
 
 function location(address: Address) {
   const province = props.provinces.find(item => item.code === address.province_code)
@@ -11,7 +12,13 @@ function location(address: Address) {
 
 <template>
   <section class="rounded-2xl border border-border bg-card p-5 sm:p-6">
-    <div class="flex items-center justify-between gap-3"><h2 class="text-lg font-bold text-text-primary">نشانی و اطلاعات تحویل‌گیرنده</h2><button type="button" :disabled="disabled" class="text-sm font-semibold text-primary disabled:opacity-50" @click="$emit('add')">افزودن نشانی</button></div>
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <h2 class="text-lg font-bold text-text-primary">نشانی و اطلاعات تحویل‌گیرنده</h2>
+      <div class="flex flex-wrap items-center gap-3">
+        <button type="button" :disabled="disabled" :aria-describedby="addressLimitError ? `${fieldId}-limit` : undefined" class="shrink-0 text-sm font-semibold text-primary disabled:opacity-50" @click="$emit('add')">افزودن نشانی</button>
+        <p v-if="addressLimitError" :id="`${fieldId}-limit`" role="alert" class="max-w-md text-sm leading-7 text-danger">{{ addressLimitError }}</p>
+      </div>
+    </div>
     <div class="mt-4 space-y-3">
       <article v-for="address in addresses" :key="address.id" class="rounded-xl border p-4" :class="address.id === selectedId ? 'border-primary bg-primary-subtle' : 'border-border bg-card'">
         <div class="flex items-start gap-3">

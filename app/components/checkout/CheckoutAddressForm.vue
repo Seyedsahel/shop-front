@@ -9,6 +9,7 @@ const props = defineProps<{
   pending?: boolean
   selectedAddress?: Address | null
   open?: boolean
+  addressLimitError?: string
 }>()
 const emit = defineEmits<{ chooseAddress: []; changeAddress: []; submit: []; newAddress: [] }>()
 const fieldId = useId()
@@ -42,10 +43,11 @@ function changeProvince(code: number | undefined) {
           <span class="mt-3 block text-sm font-semibold text-text-primary">انتخاب از آدرس‌های ذخیره‌شده</span>
           <span class="mt-2 block text-xs text-text-secondary">اطلاعات نشانی قبلی را بررسی یا ویرایش کنید.</span>
         </button>
-        <button type="button" class="relative rounded-xl border border-border bg-card p-4 text-start transition-colors hover:border-border-strong" @click="emit('newAddress')">
+        <button type="button" :disabled="!!addressLimitError" :aria-describedby="addressLimitError ? `${fieldId}-limit` : undefined" class="relative rounded-xl border border-border bg-card p-4 text-start transition-colors enabled:hover:border-border-strong disabled:cursor-not-allowed disabled:bg-disabled-bg" @click="emit('newAddress')">
           <span class="grid size-10 place-items-center rounded-xl bg-surface text-primary"><UIcon name="solar:add-circle-outline" class="size-6" /></span>
           <span class="mt-3 block text-sm font-semibold text-text-primary">نشانی جدید</span>
           <span class="mt-2 block text-xs text-text-secondary">نشانی و اطلاعات تحویل‌گیرنده را وارد کنید.</span>
+          <span v-if="addressLimitError" :id="`${fieldId}-limit`" role="alert" class="mt-2 block text-sm leading-7 text-danger">{{ addressLimitError }}</span>
         </button>
       </div>
     </template>
@@ -53,9 +55,10 @@ function changeProvince(code: number | undefined) {
       <div class="flex flex-wrap items-center justify-between gap-3">
         <h2 class="text-lg font-bold text-text-primary">{{ pickup ? 'اطلاعات تحویل‌گیرنده حضوری' : 'مشخصات تحویل‌گیرنده و نشانی' }}</h2>
         <div class="flex flex-wrap items-center gap-4 text-sm font-semibold text-primary">
-          <button type="button" @click="emit('newAddress')">{{ pickup ? 'اطلاعات تحویل‌گیرنده جدید' : 'افزودن نشانی جدید' }}</button>
+          <button type="button" :aria-describedby="!pickup && addressLimitError ? `${fieldId}-limit` : undefined" @click="emit('newAddress')">{{ pickup ? 'اطلاعات تحویل‌گیرنده جدید' : 'افزودن نشانی جدید' }}</button>
           <button type="button" @click="emit('changeAddress')">{{ pickup ? 'انتخاب اطلاعات ذخیره‌شده' : 'انتخاب از نشانی‌های ذخیره‌شده' }}</button>
         </div>
+        <p v-if="!pickup && addressLimitError" :id="`${fieldId}-limit`" role="alert" class="text-sm leading-7 text-danger">{{ addressLimitError }}</p>
       </div>
       <p v-if="pickup" class="mt-2 text-sm text-text-secondary">برای تحویل حضوری اطلاعات خواسته‌شده را وارد کنید.</p>
       <p v-else-if="selectedAddress" class="mt-2 text-xs text-text-secondary">اطلاعات نشانی انتخاب‌شده را بررسی و فیلدهای لازم را تکمیل کنید.</p>

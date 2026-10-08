@@ -45,6 +45,7 @@ function validate(): AddressInput | null {
 }
 
 function addAddress() {
+  if (addresses.limitReached) return
   editingId.value = null
   draft.value = emptyDraft()
   errors.value = {}
@@ -129,10 +130,16 @@ useSeoMeta({ robots: 'noindex, nofollow' })
 
     <section aria-labelledby="addresses-title">
       <button id="addresses-toggle" type="button" aria-controls="addresses-panel" :aria-expanded="addressesOpen" class="flex w-full items-center justify-between rounded-2xl border border-border bg-card p-5 text-text-primary hover:border-primary" @click="addressesOpen = !addressesOpen">
-        <span class="flex items-center gap-3 font-semibold"><UIcon name="solar:map-point-outline" class="size-6 text-primary" /><h2 id="addresses-title">نشانی‌های من</h2></span><UIcon name="solar:arrow-left-outline" class="size-5 transition-transform" :class="addressesOpen ? '-rotate-90' : ''" />
+        <span class="flex items-center gap-3 font-semibold"><UIcon name="solar:map-point-outline" class="size-6 text-primary" /><h2 id="addresses-title">نشانی‌های من</h2><span v-if="addresses.loaded" class="rounded-full bg-primary-subtle px-2.5 py-1 text-xs text-primary" :aria-label="`${addresses.items.length} از ${addresses.maxSavedAddresses} نشانی ذخیره شده`"><bdi dir="ltr">{{ addresses.items.length }}/{{ addresses.maxSavedAddresses }}</bdi></span></span><UIcon name="solar:arrow-left-outline" class="size-5 transition-transform" :class="addressesOpen ? '-rotate-90' : ''" />
       </button>
       <div id="addresses-panel" v-show="addressesOpen" role="region" aria-labelledby="addresses-toggle" class="mt-5 space-y-5">
-        <div class="flex flex-wrap items-center justify-between gap-3"><p class="text-sm text-text-secondary">نشانی‌های تحویل خود را مدیریت کنید.</p><button type="button" :disabled="addresses.loading || locations.loading || !locations.loaded" class="rounded-xl bg-secondary px-4 py-3 text-sm font-semibold text-secondary-foreground hover:bg-secondary-hover disabled:opacity-50" @click="addAddress">افزودن نشانی</button></div>
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <p class="text-sm text-text-secondary">نشانی‌های تحویل خود را مدیریت کنید.</p>
+          <div class="flex flex-wrap items-center gap-3">
+            <p v-if="addresses.limitReached" id="profile-address-limit" role="alert" class="max-w-md text-sm leading-7 text-danger">{{ addresses.addressLimitMessage }}</p>
+            <button type="button" :disabled="addresses.loading || locations.loading || !locations.loaded || addresses.limitReached" :aria-describedby="addresses.limitReached ? 'profile-address-limit' : undefined" class="shrink-0 rounded-xl bg-secondary px-4 py-3 text-sm font-semibold text-secondary-foreground hover:bg-secondary-hover disabled:opacity-50" @click="addAddress">افزودن نشانی</button>
+          </div>
+        </div>
         <p v-if="addresses.error" role="alert" class="rounded-xl border border-danger-border p-4 text-sm text-danger">{{ addresses.error }} <button type="button" class="underline" :disabled="addresses.loading" @click="addresses.fetchAll().catch(() => {})">تلاش دوباره</button></p>
         <p v-if="locations.error" role="alert" class="rounded-xl border border-danger-border p-4 text-sm text-danger">{{ locations.error }} <button type="button" class="underline" :disabled="locations.loading" @click="locations.fetchAll().catch(() => {})">تلاش دوباره</button></p>
         <p v-if="addresses.loading && !addresses.loaded" role="status" class="p-8 text-center text-text-secondary">در حال دریافت نشانی‌ها…</p>

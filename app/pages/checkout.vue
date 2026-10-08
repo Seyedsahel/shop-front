@@ -366,7 +366,7 @@ await callOnce(`checkout:${auth.sessionScope ?? auth.identity}`, loadCheckout, {
           <main class="space-y-6 lg:col-span-8">
             <CheckoutDeliveryMethods v-model="selectedMethodId" :methods="checkout.methods" :loading="checkout.loadingMethods" />
             <p v-if="addresses.error || locations.error" role="alert" class="rounded-xl border border-danger-border p-4 text-sm text-danger">{{ addresses.error || locations.error }} <button type="button" class="underline" @click="loadCheckout">تلاش دوباره</button></p>
-            <CheckoutAddressForm v-model="draft" v-model:save-to-account="saveToAccount" :pickup="pickup" :requirements="addressRequirements" :open="addressFormOpen" :provinces="locations.provinces" :errors="errors" :pending="addresses.mutating || !selectedMethod || (needsLocations && !locations.loaded)" :selected-address="selectedAddress" @choose-address="addressSheetOpen = true" @change-address="addressSheetOpen = true" @new-address="addAddress" @submit="submitAddress" />
+            <CheckoutAddressForm v-model="draft" v-model:save-to-account="saveToAccount" :pickup="pickup" :address-limit-error="addresses.limitReached ? addresses.addressLimitMessage : undefined" :requirements="addressRequirements" :open="addressFormOpen" :provinces="locations.provinces" :errors="errors" :pending="addresses.mutating || !selectedMethod || (needsLocations && !locations.loaded)" :selected-address="selectedAddress" @choose-address="addressSheetOpen = true" @change-address="addressSheetOpen = true" @new-address="addAddress" @submit="submitAddress" />
             <p v-if="selectedMethod && selectedAddress && !addressReady && !currentInput" class="rounded-xl border border-warning-border bg-warning-subtle p-4 text-sm text-text-secondary">اطلاعات این نشانی برای روش ارسال انتخاب‌شده کامل نیست. آن را تکمیل و تأیید کنید.</p>
             <p v-if="checkout.previewing" role="status" class="text-sm text-text-secondary">در حال محاسبه هزینه سفارش…</p>
             <p v-if="previewError" role="alert" class="rounded-xl border border-danger-border p-4 text-sm text-danger">{{ previewError }} <button type="button" class="underline" @click="refreshPreview">محاسبه دوباره</button></p>
@@ -375,6 +375,6 @@ await callOnce(`checkout:${auth.sessionScope ?? auth.identity}`, loadCheckout, {
         </div>
       </template>
     </div>
-    <UiBottomSheet v-model="addressSheetOpen" title="آدرس‌های ذخیره‌شده"><CheckoutAddressList :addresses="addresses.items" :provinces="locations.provinces" :selected-id="selectedAddressId" :disabled="addresses.loading || addresses.mutating" @select="id => { const address = addresses.items.find(item => item.id === id); if (address) selectAddress(address) }" @add="addAddress" @edit="selectAddress" /></UiBottomSheet>
+    <UiBottomSheet v-model="addressSheetOpen" title="آدرس‌های ذخیره‌شده"><CheckoutAddressList :address-limit-error="addresses.limitReached ? addresses.addressLimitMessage : undefined" :addresses="addresses.items" :provinces="locations.provinces" :selected-id="selectedAddressId" :disabled="addresses.loading || addresses.mutating" @select="id => { const address = addresses.items.find(item => item.id === id); if (address) selectAddress(address) }" @add="addAddress" @edit="selectAddress" /></UiBottomSheet>
   </div>
 </template>

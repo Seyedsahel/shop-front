@@ -62,6 +62,50 @@ async function setup(path = '/profile', fallback = false) {
   return { auth, cart, wishlist, addresses, orders, checkout, backend, api, calls, sent, redirects, router, cleanup: () => cleanup(), timer: () => timer(), async visible() { document.visibilityState = 'visible'; listeners.visibilitychange(); await settle() }, hidden() { document.visibilityState = 'hidden' }, async receive(resource) { const data = { version: 1, resource }; if (channel) channel.onmessage({ data }); else listeners.storage({ key: 'shop:session-invalidation:v1', newValue: JSON.stringify(data) }); await settle() }, settle, app }
 }
 
+test('saved addresses allow five entries, block further saves, and free a slot after deletion', async () => {
+  const f = await setup()
+  try {
+    f.backend.addresses = Array.from({ length: 4 }, (_, index) => ({ id: `a${index + 1}` }))
+    await f.addresses.fetchAll()
+    const writes = []
+    f.api.post = async (path, input) => {
+      writes.push(['post', path])
+      const address = { ...input, id: 'new-address' }
+      f.backend.addresses.unshift(address)
+      return address
+    }
+    f.api.put = async (path, input) => {
+      writes.push(['put', path])
+      return { ...input, id: 'a1' }
+    }
+    f.api.delete = async path => {
+      writes.push(['delete', path])
+      f.backend.addresses = f.backend.addresses.filter(item => path !== `/addresses/${item.id}`)
+    }
+    assert.equal(f.addresses.limitReached, false)
+    await f.addresses.create({ name: 'Fifth' })
+    assert.equal(f.addresses.items.length, 5)
+    assert.equal(f.addresses.maxSavedAddresses, 5)
+    assert.equal(f.addresses.limitReached, true)
+    const message = 'حداکثر تعداد آدرس ذخیره شده 5 عدد می باشد، برای ثبت آدرس جدید میتوانید یکی از قدیمی تر هارا حذف کنید'
+    await assert.rejects(f.addresses.create({ name: 'Sixth' }), { message })
+    assert.equal(writes.filter(([method]) => method === 'post').length, 1)
+    await f.addresses.update('a1', { name: 'Edited' })
+    assert.equal(f.addresses.items.length, 5)
+    await f.addresses.remove('new-address')
+    assert.equal(f.addresses.items.length, 4)
+    assert.equal(f.addresses.limitReached, false)
+    await f.addresses.create({ name: 'Replacement' })
+    assert.equal(f.addresses.items.length, 5)
+    f.backend.addresses.push({ id: 'legacy-extra' })
+    await f.addresses.fetchAll()
+    await assert.rejects(f.addresses.create({}), { message })
+    assert.equal(writes.filter(([method]) => method === 'post').length, 2)
+  } finally {
+    f.cleanup()
+  }
+})
+
 test('same-scope visibility return refreshes profile, cart, wishlist, addresses and orders', async () => {
   const f = await setup()
   assert.equal(f.cart.items[0].quantity, 1)

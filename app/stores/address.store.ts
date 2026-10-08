@@ -2,6 +2,9 @@ export const useAddressStore = defineStore('addresses', () => {
   const api = useApi()
   const auth = useAuthStore()
   const items = ref<Address[]>([])
+  const maxSavedAddresses = 5
+  const addressLimitMessage = 'حداکثر تعداد آدرس ذخیره شده 5 عدد می باشد، برای ثبت آدرس جدید میتوانید یکی از قدیمی تر هارا حذف کنید'
+  const limitReached = computed(() => items.value.length >= maxSavedAddresses)
   const loading = ref(false)
   const mutating = ref(false)
   const loaded = ref(false)
@@ -45,6 +48,7 @@ export const useAddressStore = defineStore('addresses', () => {
 
   async function create(input: AddressWriteInput) {
     if (mutating.value) throw new ApiError('لطفاً تا پایان عملیات نشانی صبر کنید.')
+    if (limitReached.value) throw new ApiError(addressLimitMessage)
     const current = generation
     mutating.value = true
     try {
@@ -91,5 +95,5 @@ export const useAddressStore = defineStore('addresses', () => {
     }
   }
 
-  return { items, loading, mutating, loaded, requested, error, fetchAll, revalidate, create, update, remove }
+  return { items, maxSavedAddresses, addressLimitMessage, limitReached, loading, mutating, loaded, requested, error, fetchAll, revalidate, create, update, remove }
 })
