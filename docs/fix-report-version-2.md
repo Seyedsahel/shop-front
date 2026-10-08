@@ -41,6 +41,11 @@ Consolidated project contracts and fix record, updated 2026-10-08. Version 2 ret
 - The product-variant mapper fixture includes required product fields and verifies variant limits. Its harness supplies `createError`, and malformed product responses have a controlled-error regression test.
 - Updated affected session/freshness harnesses for the corrected contracts and checkout cleanup integration. The previously deferred mapper-fixture failure recorded in the historical verification section is resolved.
 
+### Product sorting integration
+
+- Fixed the frontend/backend sort-key mismatch: price sorting sends `price`, while relevance sends `relevance` and newest sends `created_at`. Updated the search-results request, shared types and server validation.
+- Preserved collection-wide backend ordering, URL facets, pagination reset and captured sort state for load-more/retries. See [Backend sorting integrated](#backend-sorting-integrated) for checks and remaining verification limits.
+
 ### Footer navigation
 
 - Corrected the footer's Products link from `/blog` to `/products`; the Blog link continues to open `/blog`.
@@ -78,7 +83,7 @@ Consolidated project contracts and fix record, updated 2026-10-08. Version 2 ret
 
 ## Current boundaries and future revisions
 
-- Backend sorting and consultation integration remain deferred. Sorting state synchronization is implemented, but lifecycle tests do not prove backend ordering. Existing production cookie/HTTPS TODOs and unrelated lint/test tooling are outside this migration.
+- Consultation integration remains deferred. Backend sorting now uses confirmed query keys; see the sorting section for validation evidence and limitations. Existing production cookie/HTTPS TODOs and unrelated lint/test tooling are outside this migration.
 - The URL `page` remains the entry page; infinite-scroll append does not rewrite it. Refresh/history reload the entry page, not an implicit accumulated-page cache.
 - Canonical category/brand collections and public previews/methods cache successful results (including empty results) during a visit. Define explicit freshness/force policies if these collections become mutable. Navbar resource badges and navigation metadata may load in the browser where the current page has not already loaded them; those additional reads are not duplicate page loaders.
 - Financial uncertainty still requires the identical persisted checkout body/idempotency key and authenticated order truth. A timeout, success route name or reference hint never proves payment or authorizes a new order/charge/cart deletion.
@@ -93,7 +98,7 @@ Consolidated project contracts and fix record, updated 2026-10-08. Version 2 ret
 - Fresh Chrome checks against the matching production build pass for home, collections, product/article detail, stories, cart, wishlist, profile, order detail, checkout and both payment-return routes: no hydration mismatches or uncaught exceptions, no repeated initial page reads, collection switching, product A → B → A, query Back/Forward and refresh at entry page 2, and late failures after navigating to `/blog`. Additional navbar metadata/badge reads remain intentional where the page has not loaded those resources.
 - A persisted checkout attempt was restored after hydration and recovered its existing pending order; no preview, checkout creation or payment request ran. Success query hints did not authorize payment confirmation.
 - Read-only live backend/page checks returned 200 for home, catalog, discounted collection, blog, stories, anonymous cart/wishlist and a real product. Live missing product/article pages returned 404. Initial HTML had 30 catalog product links; the homepage had 32 product links. Observed response times were 0.02–1.08 seconds and HTML sizes 33–147 KB on this run; these are measurements, not production guarantees. None issued cookies or modified resources.
-- Live OTP/login/account/address/order/provider callbacks remain unverified without a dedicated account. Cookie rotation, visibility, mutation queuing and old-scope suppression retain their existing regression coverage. Backend sorting and consultation remain deferred.
+- Live OTP/login/account/address/order/provider callbacks remain unverified without a dedicated account. Cookie rotation, visibility, mutation queuing and old-scope suppression retain their existing regression coverage. Backend sorting was deferred during the earlier SSR verification; it is now integrated as recorded in the sorting section. Consultation remains deferred.
 
 The permanent `npm run test:ssr` check requires `npm run build` first and starts its own isolated upstream/production server; it uses no live credentials. Browser checks additionally exercise hydration reuse, console mismatches and client navigation.
 
@@ -163,11 +168,20 @@ Live verification during the category-flow fix established:
 
 Observed examples were 243 medicine products, 49 pain-relief products, 24 discounted medicine products, and five discounted pain-relief products. Pain-relief price metadata narrowed from 2–20 to 3–7 with the discount flag, with narrower attribute options. These are test observations, not constants or guarantees about changing inventory.
 
-### Sorting is deferred
+### Backend sorting integrated
 
-URL/store synchronization for sort is implemented and tested. Actual backend ordering is still deferred at the user's request. Existing `sortOptions.ts` mappings (`created_at` and `base_price`, with ascending/descending direction) remain unchanged; treat them as mappings to verify, not proof that results are correctly ordered.
+Swagger's `requests.ProductQuery` exposes `sort_by` and `sort_dir` on both product-list collections, but does not enumerate field values. Read-only checks against the configured `/tbt` backend confirmed that `base_price` is rejected with 400 and the validation message identifies `relevance`, `created_at` and `price` as accepted values.
 
-When backend sorting is ready, check every option on catalog and discounted collections, combined facets, equal-value ties, and multiple pages. Verify stable ordering so pagination does not lose or repeat products, and update these notes and the tests with the confirmed contract. Do not implement client sorting of only loaded pages as a substitute for collection-wide backend sorting.
+- Relevant: `relevance`, `desc`.
+- Newest: `created_at`, `desc`.
+- Cheapest: `price`, `asc`.
+- Most expensive: `price`, `desc`.
+
+Corrected both price options and the navbar/mobile search request, which also used the rejected `base_price` key. Shared request types constrain the accepted keys, and server input validation rejects unsupported values before forwarding them. Sorting remains server-side across the collection; no sorting of only the loaded pages was introduced.
+
+Existing URL behavior is retained: selecting a sort preserves facets/search and resets the entry page; pagination and retry reuse the applied sort. Regression tests cover all four options on both collections, combined facets, page reset, load-more, proxy snake_case mapping, invalid keys and append retries.
+
+Verification: product-browsing tests (18), catalog-failure/proxy tests (10), and typecheck passed. Live price ascending/descending requests returned correctly ordered samples for both catalog and discounted collections; explicit relevance and newest queries were accepted. The newest sample had equal timestamps, so it does not demonstrate ordering across different creation dates. Stable backend tie-breaking across multiple pages remains a backend guarantee to verify against a suitable dataset.
 
 ### Further revisions
 

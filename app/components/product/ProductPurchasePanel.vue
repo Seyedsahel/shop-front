@@ -4,6 +4,41 @@ const wishlistStore = useWishlistStore()
 const toast = useAppToast()
 const props = defineProps<{ product: ProductDetail }>()
 
+const summaryId = useId()
+const summaryExpanded = ref(false)
+const summaryOverflows = ref(false)
+const titleElement = ref<HTMLElement>()
+const descriptionElement = ref<HTMLElement>()
+const titleSize = computed(() => {
+  const length = props.product.name.length
+  if (length > 160) return 'text-lg sm:text-xl'
+  if (length > 80) return 'text-xl sm:text-2xl'
+  return 'text-2xl sm:text-3xl'
+})
+
+function measureSummary() {
+  if (summaryExpanded.value) return
+  summaryOverflows.value = [titleElement.value, descriptionElement.value]
+    .some(element => element && element.scrollHeight > element.clientHeight + 1)
+}
+
+let summaryObserver: ResizeObserver | undefined
+onMounted(() => {
+  summaryObserver = new ResizeObserver(measureSummary)
+  if (titleElement.value) summaryObserver.observe(titleElement.value)
+  if (descriptionElement.value) summaryObserver.observe(descriptionElement.value)
+  measureSummary()
+})
+onBeforeUnmount(() => summaryObserver?.disconnect())
+watch(() => [props.product.id, props.product.name, props.product.description], async () => {
+  summaryExpanded.value = false
+  await nextTick()
+  summaryObserver?.disconnect()
+  if (titleElement.value) summaryObserver?.observe(titleElement.value)
+  if (descriptionElement.value) summaryObserver?.observe(descriptionElement.value)
+  measureSummary()
+})
+
 const quantity = ref(1)
 const { attributes, selectedOptions, selectedVariant, select, reset } = useProductVariants(() => props.product.purchaseVariants)
 const availableStock = computed(() => props.product.purchaseVariants.length
@@ -89,17 +124,36 @@ async function toggleFavorite() {
 </script>
 
 <template>
-  <section class="flex flex-col gap-5">
-    <div class="space-y-2">
+  <section class="min-w-0 flex flex-col gap-5">
+    <div :id="summaryId" class="min-w-0 space-y-2">
       <NuxtLink
         v-if="product.brand"
         :to="`/products?brand=${product.brand.slug}`"
-        class="text-sm font-semibold text-primary hover:text-primary-hover"
+        class="inline-block max-w-full wrap-anywhere text-sm font-semibold text-primary hover:text-primary-hover"
       >
         {{ product.brand.name }}
       </NuxtLink>
-      <h1 class="text-2xl font-bold leading-10 text-text-primary sm:text-3xl">{{ product.name }}</h1>
-      <p v-if="product.description" class="text-sm leading-7 text-text-secondary sm:text-base">{{ product.description }}</p>
+      <h1
+        ref="titleElement"
+        class="wrap-anywhere font-bold leading-snug text-text-primary"
+        :class="[titleSize, { 'line-clamp-3': !summaryExpanded }]"
+        dir="auto"
+      >{{ product.name }}</h1>
+      <p
+        v-if="product.description"
+        ref="descriptionElement"
+        class="wrap-anywhere whitespace-pre-line text-sm leading-7 text-text-secondary sm:text-base"
+        :class="{ 'line-clamp-3': !summaryExpanded }"
+        dir="auto"
+      >{{ product.description }}</p>
+      <button
+        v-if="summaryOverflows"
+        type="button"
+        :aria-expanded="summaryExpanded"
+        :aria-controls="summaryId"
+        class="rounded-md py-1 text-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        @click="summaryExpanded = !summaryExpanded"
+      >{{ summaryExpanded ? 'نمایش کمتر' : 'نمایش متن کامل' }}</button>
     </div>
 
     <div class="rounded-2xl bg-primary-subtle p-4 sm:p-5">

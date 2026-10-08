@@ -28,7 +28,7 @@ const runSearch = useDebounceFn((query: string) => {
     search: query,
     page: 1,
     limit: props.limit,
-    sortBy: 'base_price',
+    sortBy: 'price',
     sortDir: 'desc',
   })
 }, 300)

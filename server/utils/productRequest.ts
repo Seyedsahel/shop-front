@@ -9,9 +9,8 @@ function object(value: unknown): value is Record<string, unknown> {
 }
 
 function validateProductFacets(body: Record<string, unknown>) {
-  for (const field of ['discountId', 'sortBy']) {
-    if (body[field] !== undefined && (typeof body[field] !== 'string' || !(body[field] as string).trim())) invalidProductRequest()
-  }
+  if (body.discountId !== undefined && (typeof body.discountId !== 'string' || !body.discountId.trim())) invalidProductRequest()
+  if (body.sortBy !== undefined && (typeof body.sortBy !== 'string' || !['relevance', 'created_at', 'price'].includes(body.sortBy))) invalidProductRequest()
   if (body.search !== undefined && typeof body.search !== 'string') invalidProductRequest()
   for (const field of ['categoryIds', 'brandIds']) {
     if (body[field] !== undefined && (!Array.isArray(body[field]) || !(body[field] as unknown[]).every(value => typeof value === 'string' && !!value.trim()))) invalidProductRequest()

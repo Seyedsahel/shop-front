@@ -51,14 +51,14 @@ await callOnce(`product:${slug.value}`, loadProduct, { mode: 'navigation' })
         <NuxtLink to="/products" class="hover:text-primary">محصولات</NuxtLink>
         <template v-for="category in product.categories" :key="category.id">
           <UIcon name="solar:alt-arrow-left-linear" class="size-3" />
-          <NuxtLink :to="`/products?category=${category.slug}`" class="hover:text-primary">{{ category.name }}</NuxtLink>
+          <NuxtLink :to="`/products?category=${category.slug}`" class="min-w-0 max-w-full wrap-anywhere hover:text-primary">{{ category.name }}</NuxtLink>
         </template>
         <UIcon name="solar:alt-arrow-left-linear" class="size-3" />
-        <span class="truncate text-text-secondary">{{ product.name }}</span>
+        <span class="min-w-0 max-w-full flex-1 truncate text-text-secondary" aria-current="page" :title="product.name" dir="auto">{{ product.name }}</span>
       </nav>
 
       <section class="grid items-start gap-8 lg:grid-cols-2 lg:gap-12">
-        <ProductDetailGallery :product="product" />
+        <ProductDetailGallery :product="product" class="min-w-0" />
         <ProductPurchasePanel :product="product" />
       </section>
 

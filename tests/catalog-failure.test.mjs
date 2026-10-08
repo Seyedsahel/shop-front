@@ -35,7 +35,7 @@ async function request(handler, raw) {
 test('catalog proxies reject missing, primitive, array, malformed JSON and invalid facets with 400 before calling upstream', async () => {
   let upstream = 0
   globalThis.backendFetch = async () => { upstream++; return {} }
-  const invalid = [undefined, '', 'null', '[]', '"text"', '{bad', '{"categoryIds":"category"}', '{"brandIds":[null]}', '{"page":0}', '{"limit":1.5}', '{"priceMin":-1}', '{"priceMin":20,"priceMax":10}', '{"search":{}}', '{"discountId":true}', '{"sortDir":"sideways"}', '{"attributeFields":{"size":"large"}}']
+  const invalid = [undefined, '', 'null', '[]', '"text"', '{bad', '{"categoryIds":"category"}', '{"brandIds":[null]}', '{"page":0}', '{"limit":1.5}', '{"priceMin":-1}', '{"priceMin":20,"priceMax":10}', '{"search":{}}', '{"discountId":true}', '{"sortDir":"sideways"}', '{"sortBy":"base_price"}', '{"sortBy":{}}', '{"sortBy":"unsupported"}', '{"attributeFields":{"size":"large"}}']
   for (const [path, handler] of proxies) {
     for (const body of invalid) assert.equal((await request(handler, body)).status, 400, path + ': ' + body)
   }
@@ -55,6 +55,29 @@ test('valid empty catalog request is distinct from no body; scoped filters and p
   assert.equal(calls[2].body.discount_id, 'campaign')
   assert.deepEqual(calls[2].body.category_ids, ['parent'])
   assert.throws(() => mapProductListResponse({ items: [], page: 0, total: 0, limit: 30 }), error => error.statusCode === 502)
+})
+
+test('both product proxies translate accepted sort fields into the backend ProductQuery contract', async () => {
+  const calls = []
+  globalThis.backendFetch = async (path, opts) => {
+    calls.push({ path, ...opts })
+    return { items: [], total: 0, page: opts.body.page, limit: opts.body.limit }
+  }
+  for (const index of [0, 2]) {
+    for (const [sortBy, sortDir] of [['relevance', 'desc'], ['created_at', 'desc'], ['price', 'asc'], ['price', 'desc']]) {
+      const response = await request(proxies[index][1], JSON.stringify({ sortBy, sortDir, page: 2, search: 'pill', categoryIds: ['parent'] }))
+      assert.equal(response.status, 200)
+      const call = calls.at(-1)
+      assert.equal(call.path, index === 0 ? '/products/list' : '/discounts/products')
+      assert.equal(call.body.sort_by, sortBy)
+      assert.equal(call.body.sort_dir, sortDir)
+      assert.equal(call.body.page, 2)
+      assert.equal(call.body.search, 'pill')
+      assert.deepEqual(call.body.category_ids, ['parent'])
+      assert.equal(call.body.sortBy, undefined)
+      assert.equal(call.body.sortDir, undefined)
+    }
+  }
 })
 
 function transport(fetcher) {
@@ -143,7 +166,7 @@ test('failed append preserves only current-scope pages, stops automatic loading,
   const calls = []
   globalThis.useApi = () => ({ async post(path, body) { calls.push(body); if (fail) throw createTransportApiError(undefined, undefined, 'network'); return response('product-' + body.page, body.page) } })
   const store = useProductListStore()
-  await store.fetchList(params())
+  await store.fetchList({ ...params(), sort: 'cheapest', request: { ...params().request, sortBy: 'price', sortDir: 'asc' } })
   fail = true
   await store.loadMore()
   assert.deepEqual(store.items.map(item => item.id), ['product-1'])
@@ -155,6 +178,8 @@ test('failed append preserves only current-scope pages, stops automatic loading,
   fail = false
   await store.retryList()
   assert.equal(calls.at(-1).page, 2)
+  assert.equal(calls.at(-1).sortBy, 'price')
+  assert.equal(calls.at(-1).sortDir, 'asc')
   assert.deepEqual(store.items.map(item => item.id), ['product-1', 'product-2'])
 })
 

@@ -269,7 +269,7 @@ test('sort-only and page-only navigation synchronize state; unrelated URL change
     await p.router.push({ path: '/products', query: { category: 'medicine', sort: 'cheapest' } })
     await tick()
     assert.equal(useProductListStore().sort, 'cheapest')
-    assert.equal(calls.at(-1).body.sortBy, 'base_price')
+    assert.equal(calls.at(-1).body.sortBy, 'price')
     await p.router.push({ path: '/products', query: { ...p.route.query, page: '2' } })
     await tick()
     assert.equal(useProductListStore().page, 2)
@@ -280,6 +280,41 @@ test('sort-only and page-only navigation synchronize state; unrelated URL change
     assert.equal(calls.length, count)
     assert.equal(useProductListStore().page, 2)
   } finally { p.close() }
+})
+
+test('every sort option reaches both collections with facets, page reset and sorted load-more', async () => {
+  const options = [
+    ['relevant', 'relevance', 'desc'], ['newest', 'created_at', 'desc'],
+    ['cheapest', 'price', 'asc'], ['most-expensive', 'price', 'desc'],
+  ]
+  for (const kind of ['catalog', 'discounted']) {
+    reset()
+    const p = await page({ category: 'medicine', brand: 'canonical-brand', search: 'pill', discount: 'campaign', page: '2' }, kind)
+    try {
+      useProductListStore().limit = 1
+      await p.component.loadProductsFromRoute()
+      for (const [id, sortBy, sortDir] of options) {
+        await p.component.applyFilters(id)
+        await tick()
+        const expectedPath = kind === 'catalog' ? '/products/list' : '/discounts/products'
+        const request = calls.filter(call => call.path === expectedPath).at(-1).body
+        assert.equal(request.sortBy, sortBy)
+        assert.equal(request.sortDir, sortDir)
+        assert.equal(request.page, 1)
+        assert.equal(p.route.query.page, undefined)
+        assert.equal(p.route.query.sort, id === 'relevant' ? undefined : id)
+        assert.equal(p.route.query.search, 'pill')
+        assert.equal(request.discountId, 'campaign')
+        assert.deepEqual(request.categoryIds, ['parent', 'leaf'])
+        assert.deepEqual(request.brandIds, ['brand'])
+        await useProductListStore().loadMore()
+        const appended = calls.at(-1).body
+        assert.equal(appended.page, 2)
+        assert.equal(appended.sortBy, sortBy)
+        assert.equal(appended.sortDir, sortDir)
+      }
+    } finally { p.close() }
+  }
 })
 
 test('confirmed navigation invalidates products before Nuxt updates its route or unmounts', async () => {

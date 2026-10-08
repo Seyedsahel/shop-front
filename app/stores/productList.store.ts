@@ -168,7 +168,7 @@ export const useProductListStore = defineStore('productList', () => {
     search: string
     page?: number
     limit?: number
-    sortBy?: string
+    sortBy?: ProductSortBy
     sortDir?: 'asc' | 'desc'
   }) {
     const normalizedSearch = params.search.trim()

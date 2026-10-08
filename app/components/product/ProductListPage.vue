@@ -11,6 +11,7 @@ const listOwner = productListStore.claimListOwner()
 const filterOwner = filterStore.claimFilterOwner()
 const setStatus = usePageResponse()
 const isResolving = ref(true)
+const productScroll = ref<HTMLElement>()
 const browseError = useState<string>(`browse:error:${browsePath}:${getProductBrowseQueryKey(route.query)}`, () => '')
 let loadId = 0
 let isDisposed = false
@@ -31,6 +32,7 @@ function matchesConfirmedRoute() {
 
 async function loadProductsFromRoute() {
   if (isDisposed || !productListStore.ownsList(listOwner) || route.path !== browsePath || !matchesConfirmedRoute()) return
+  if (productScroll.value) productScroll.value.scrollTop = 0
   hasActiveLoad = true
   const activeLoad = ++loadId
   // Read the entire route before any await. Later requests use only this snapshot.
@@ -151,7 +153,7 @@ function retryProducts() {
 }
 useInfiniteScroll(sentinel, () => {
   if (!isResolving.value && !browseError.value) productListStore.loadMore()
-})
+}, { root: productScroll, rootMargin: '0px 0px 200px 0px' })
 usePageSeo(pageTitle, 'مشاهده محصولات فروشگاه و فیلتر دسته‌بندی‌ها و برندها.')
 await callOnce(`browse:${browsePath}:${getProductBrowseQueryKey(route.query)}`, loadProductsFromRoute, { mode: 'navigation' })
 // callOnce skips only the SSR hydration fetch; controller-local state is not serialized.
@@ -161,11 +163,12 @@ if (browseError.value || productListStore.loaded || productListStore.error || fi
 <template>
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 flex gap-6">
     <FilterSidebar @applied="applyFilters()" />
-    <div class="flex-1">
+    <div class="flex-1 min-w-0">
       <h1 class="text-lg font-semibold text-text-primary mb-4">{{ pageTitle }}</h1>
       <p v-if="productListStore.listSearch && productListStore.loaded" class="mb-4 text-sm text-text-secondary">{{ productListStore.total.toLocaleString('fa-IR') }} کالا پیدا شد.</p>
       <div class="flex gap-3 mb-4 lg:hidden"><ProductSortBar @select="applyFilters" /><FilterMobileButton class="flex-1" @applied="applyFilters()" /></div>
       <ProductSortBar class="hidden lg:flex" @select="applyFilters" />
+      <section ref="productScroll" class="product-scroll mt-4 overflow-auto rounded-xl" tabindex="0" role="region" aria-label="فهرست محصولات">
       <div v-if="browseError" role="alert" class="mt-4 rounded-xl border border-danger p-4 text-sm text-danger">
         <p>{{ browseError }}</p>
         <button type="button" class="mt-2 underline" @click="loadProductsFromRoute">تلاش دوباره</button>
@@ -182,6 +185,16 @@ if (browseError.value || productListStore.loaded || productListStore.error || fi
       <div ref="sentinel" class="h-4" />
       <div v-if="productListStore.isLoadingMore" class="flex justify-center py-6 gap-2 text-sm text-text-muted bg-accent/10 rounded-lg mt-4"><div class="size-6 rounded-full border-2 border-border-strong border-t-primary animate-spin" /><span>در حال بارگذاری...</span></div>
       <p v-if="!productListStore.error && !productListStore.hasMore && productListStore.items.length" class="text-center text-xs text-text-muted py-6">محصول بیشتری برای نمایش وجود ندارد.</p>
+      </section>
     </div>
   </div>
 </template>
+
+<style scoped>
+.product-scroll {
+  max-height: 70vh;
+  max-height: 70dvh;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+</style>

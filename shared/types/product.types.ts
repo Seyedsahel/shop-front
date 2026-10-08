@@ -36,6 +36,9 @@ export interface ProductBrowseContext {
   discountId?: string
 }
 
+/** Accepted by the backend product-query sorting contract. */
+export type ProductSortBy = 'relevance' | 'created_at' | 'price'
+
 export interface ProductListRequest {
   discountId?: string
   search?: string
@@ -46,7 +49,7 @@ export interface ProductListRequest {
   attributeFields?: Record<string, string[]>
   page?: number
   limit?: number
-  sortBy?: string   // e.g. 'base_price' — omit for backend's default relevance sort
+  sortBy?: ProductSortBy
   sortDir?: 'asc' | 'desc'
 }
 

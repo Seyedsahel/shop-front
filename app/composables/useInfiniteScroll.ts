@@ -2,7 +2,7 @@
 export function useInfiniteScroll(
   target: Ref<HTMLElement | null | undefined>,
   callback: () => void,
-  options?: { rootMargin?: string }
+  options?: { rootMargin?: string; root?: Ref<HTMLElement | null | undefined> }
 ) {
   let observer: IntersectionObserver | undefined
 
@@ -12,7 +12,7 @@ export function useInfiniteScroll(
       (entries) => {
         if (entries[0]?.isIntersecting) callback()
       },
-      { rootMargin: options?.rootMargin ?? '300px' } // fires slightly before the sentinel is actually visible
+      { root: options?.root?.value ?? null, rootMargin: options?.rootMargin ?? '300px' } // fires slightly before the sentinel is actually visible
     )
     observer.observe(target.value)
   })
