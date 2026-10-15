@@ -37,10 +37,9 @@ await callOnce(`order:${auth.sessionScope}:${id.value}`, loadOrder, { mode: 'nav
       </header>
       <section aria-labelledby="items-title" class="mt-6 rounded-2xl border border-border bg-card p-6">
         <h2 id="items-title" class="text-lg font-bold text-text-primary">کالاهای سفارش</h2>
-        <ul class="mt-4 divide-y divide-divider">
-          <li v-for="item in order.items" :key="item.id" class="flex flex-wrap items-center justify-between gap-3 py-4 text-sm">
-            <div><p class="font-semibold text-text-primary">{{ item.product_name }}</p><p class="mt-1 text-text-secondary">شناسه کالا: <bdi>{{ item.sku }}</bdi> · تعداد: {{ item.quantity }}</p></div>
-            <span class="font-semibold text-text-primary">{{ formatMoney(item.total_amount) }}</span>
+        <ul class="mt-4 grid gap-4 md:grid-cols-2">
+          <li v-for="item in order.items" :key="item.id" class="min-w-0">
+            <ProfileOrderItemCard :item="item" />
           </li>
         </ul>
       </section>

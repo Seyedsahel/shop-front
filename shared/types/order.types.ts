@@ -22,6 +22,8 @@ export interface OrderItem {
   product_id: string
   variant_id: string | null
   product_name: string
+  /** Product thumbnail supplied by the order-detail proxy, when available. */
+  image_url?: string | null
   sku: string
   unit_price: number
   quantity: number
