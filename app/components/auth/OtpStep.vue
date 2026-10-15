@@ -8,6 +8,11 @@ const timeLeft = useCountdown(computed(() => authStore.otpResendAvailableAt))
 const canResend = computed(() => timeLeft.expired)
 const code = computed(() => digits.value.join(''))
 
+onMounted(async () => {
+  await nextTick()
+  inputs.value[0]?.focus()
+})
+
 function setInput(element: unknown, index: number) {
   if (element instanceof HTMLInputElement) inputs.value[index] = element
 }
