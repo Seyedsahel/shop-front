@@ -9,6 +9,7 @@ let moduleId = 0
 async function load(path, exports = '') {
   let source = await readFile(new URL('../' + path, import.meta.url), 'utf8')
   if (path.endsWith('.vue')) source = source.match(/<script setup lang="ts">([\s\S]*?)<\/script>/)[1]
+  source = source.replace("from '@vueuse/core'", `from '${import.meta.resolve('@vueuse/core')}'`)
   const { outputText } = ts.transpileModule(source + exports + '\n// test instance ' + (++moduleId), {
     compilerOptions: { target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext },
   })
@@ -48,6 +49,26 @@ function reset() {
 }
 const tick = () => new Promise(resolve => setImmediate(resolve))
 function deferred() { let resolve; const promise = new Promise(r => { resolve = r }); return { promise, resolve } }
+
+test('search bar sends an accepted semantic sort key through the product store', async () => {
+  reset()
+  globalThis.defineProps = () => ({ query: '  vitamins  ', limit: 12 })
+  globalThis.withDefaults = (props, defaults) => ({ ...defaults, ...props })
+  globalThis.defineEmits = () => () => {}
+  globalThis.onBeforeUnmount = () => {}
+  const originalWatch = globalThis.watch
+  globalThis.watch = () => {}
+  try {
+    const component = await load('app/components/product/SearchResultsPanel.vue', '\nexport { runSearch }')
+    await component.runSearch('vitamins')
+    await tick()
+    assert.deepEqual(calls, [{ path: '/products/list', body: {
+      search: 'vitamins', page: 1, limit: 12, sortBy: 'price', sortDir: 'desc',
+    } }])
+    assert.equal(useProductListStore().searchError, '')
+    assert.equal(useProductListStore().searchItems.length, 1)
+  } finally { globalThis.watch = originalWatch }
+})
 
 async function page(query = {}, kind = 'catalog') {
   const route = reactive({ path: kind === 'catalog' ? '/products' : '/discounts/products', query, fullPath: '' })

@@ -2,11 +2,6 @@
 
 All items below are **open**. They have been recorded but have not been implemented or verified as part of these fixes.
 
-- **Correct comment author mapping.**
-  - Location: `server/api/comments.get.ts`, author mapping.
-  - Swagger returns the name in `user_data.name`; the current mapper reads `author_name` or `user_name`. Real author names can therefore be replaced with the generic fallback author label.
-  - Action: support `user_data.name`, retain the fallback for missing or empty names, and verify the real backend response.
-  - Acceptance criteria: comments and replies display the correct author name, and missing names do not cause errors.
 
 - **Verify real payments in staging.**
   - Exercise successful and cancelled payments, delayed callbacks, and repeated callbacks with the real payment provider.

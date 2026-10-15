@@ -1,6 +1,6 @@
 interface BackendComment {
   id: string
-  user_id: string
+  user_data?: { id?: string; name?: string | null } | null
   user_name?: string | null
   author_name?: string | null
   body: string
@@ -11,7 +11,8 @@ interface BackendComment {
 function mapComment(comment: BackendComment): AppComment {
   return {
     id: comment.id,
-    authorName: comment.author_name || comment.user_name || 'کاربر',
+    authorName: [comment.user_data?.name, comment.author_name, comment.user_name]
+      .find(name => typeof name === 'string' && name.trim())?.trim() || 'کاربر',
     content: comment.body,
     createdAt: new Date(comment.created_at * 1000).toLocaleString('fa-IR', { timeZone: 'Asia/Tehran' }),
     parentId: comment.parent_id,
