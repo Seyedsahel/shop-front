@@ -1,4 +1,5 @@
 # Nuxt Minimal Starter
+
 # i'll use npm so i deleted
 
 Look at the [Nuxt documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
@@ -20,6 +21,10 @@ Start the development server on `http://localhost:3000`:
 # npm
 npm run dev
 ```
+
+## Docker
+
+See [Docker deployment](docs/docker.md) for the production image, Compose setup, and runtime configuration.
 
 ## Production
 
