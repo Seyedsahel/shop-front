@@ -15,7 +15,7 @@ const scrollToTop = () => {
 
 <template>
   <footer class="bg-surface border-t border-divider mt-10">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-1 py-10 grid grid-cols-1 sm:grid-cols-2 gap-8" :class="shop.info?.enamadImageUrl ? 'lg:grid-cols-5' : 'lg:grid-cols-4'">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-1 py-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8">
 
       <!-- Brand -->
       <div class="flex flex-col gap-3">
@@ -69,9 +69,25 @@ const scrollToTop = () => {
         </a>
       </div>
 
-      <div v-if="shop.info?.enamadImageUrl" class="flex flex-col gap-3 items-start sm:items-end lg:items-start">
+      <div class="flex flex-col gap-3 items-start sm:items-end lg:items-start">
         <h3 class="text-sm font-semibold text-text-primary">نماد اعتماد</h3>
-        <img :src="shop.info.enamadImageUrl" alt="نماد اعتماد الکترونیکی" width="96" height="96" loading="lazy" class="size-24 object-contain" />
+        <a
+          referrerpolicy="origin"
+          target="_blank"
+          rel="noopener"
+          href="https://trustseal.enamad.ir/?id=428092&Code=V4W8AXpAphdhSKoPX9X35FblFQ4UQeV5"
+        >
+          <img
+            referrerpolicy="origin"
+            src="https://trustseal.enamad.ir/logo.aspx?id=428092&Code=V4W8AXpAphdhSKoPX9X35FblFQ4UQeV5"
+            alt="نماد اعتماد الکترونیکی"
+            code="V4W8AXpAphdhSKoPX9X35FblFQ4UQeV5"
+            width="96"
+            height="96"
+            loading="lazy"
+            class="size-24 cursor-pointer object-contain"
+          />
+        </a>
       </div>
 
       <div>
