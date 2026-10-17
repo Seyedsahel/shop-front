@@ -6,6 +6,7 @@ await callOnce('shop:info', () => shop.fetchShop().then(() => {}))
 useHead(() => ({
   title: shop.name,
   titleTemplate: (title?: string) => title && title !== shop.name ? `${title} | ${shop.name}` : shop.name,
+  link: [{ key: 'favicon', rel: 'icon', href: shop.info?.logoImageUrl || 'data:,' }],
 }))
 useSeoMeta({ ogSiteName: () => shop.name })
 </script>
