@@ -1,6 +1,20 @@
 
 <script setup lang="ts">
 const bannerStore = useBannerStore()
+const skincareImage = {
+  src: '/images/hero/skin.jpeg',
+  alt: 'محصولات مراقبت از پوست',
+  href: '/products',
+}
+const supplementsImage = {
+  src: '/images/hero/pills.jpeg',
+  alt: 'مکمل‌های غذایی',
+  href: '/products',
+}
+const fallbackImages = [skincareImage, supplementsImage, skincareImage, supplementsImage, skincareImage, supplementsImage]
+const heroImages = computed(() => bannerStore.homeHero.length
+  ? bannerStore.homeHero.map(banner => ({ src: banner.imageUrl, alt: banner.title, href: banner.href }))
+  : fallbackImages)
 </script>
 
 <template>
@@ -44,13 +58,13 @@ const bannerStore = useBannerStore()
 
   <!-- Main picture -->
   <a
-    v-if="bannerStore.homeHero[0]"
-    :href="bannerStore.homeHero[0].href"
+    v-if="heroImages[0]"
+    :href="heroImages[0].href"
     class="hidden lg:block relative z-10 h-150 w-70 shrink-0 overflow-hidden rounded-full"
   >
     <img
-      :src="bannerStore.homeHero[0].imageUrl"
-      :alt="bannerStore.homeHero[0].title"
+      :src="heroImages[0].src"
+      :alt="heroImages[0].alt"
       class="h-full w-full object-cover"
     />
   </a>
@@ -60,14 +74,14 @@ const bannerStore = useBannerStore()
   <div class="hidden lg:flex relative z-10 flex-col gap-8 mx-6">
 
     <a
-      v-for="banner in bannerStore.homeHero.slice(1, 3)"
-      :key="banner.id"
-      :href="banner.href"
+      v-for="(image, index) in heroImages.slice(1, 3)"
+      :key="index"
+      :href="image.href"
       class="h-70 w-62.5 overflow-hidden rounded-full"
     >
       <img
-        :src="banner.imageUrl"
-        :alt="banner.title"
+        :src="image.src"
+        :alt="image.alt"
         class="h-full w-full object-cover"
       />
     </a>
@@ -79,36 +93,36 @@ const bannerStore = useBannerStore()
    <div class="relative z-10 flex flex-col gap-4 sm:mx-6">
 
     <a
-      v-if="bannerStore.homeHero[3]"
-      :href="bannerStore.homeHero[3].href"
+      v-if="heroImages[3]"
+      :href="heroImages[3].href"
       class="h-45 w-62.5 overflow-hidden rounded-b-full"
     >
       <img
-        :src="bannerStore.homeHero[3].imageUrl"
-        :alt="bannerStore.homeHero[3].title"
+        :src="heroImages[3].src"
+        :alt="heroImages[3].alt"
         class="h-full w-full object-cover"
       />
     </a>
     <a
-      v-if="bannerStore.homeHero[4]"
-      :href="bannerStore.homeHero[4].href"
+      v-if="heroImages[4]"
+      :href="heroImages[4].href"
     class="relative z-10 h-60 w-45 sm:h-95 sm:w-62.5 overflow-hidden rounded-full"
   >
     <img
-      :src="bannerStore.homeHero[4].imageUrl"
-      :alt="bannerStore.homeHero[4].title"
+      :src="heroImages[4].src"
+      :alt="heroImages[4].alt"
       class="h-full w-full object-cover"
     />
   </a>
 
     <a
-      v-if="bannerStore.homeHero[5]"
-      :href="bannerStore.homeHero[5].href"
+      v-if="heroImages[5]"
+      :href="heroImages[5].href"
       class="h-50 w-62.5 overflow-hidden rounded-t-full"
     >
       <img
-        :src="bannerStore.homeHero[5].imageUrl"
-        :alt="bannerStore.homeHero[5].title"
+        :src="heroImages[5].src"
+        :alt="heroImages[5].alt"
         class="h-full w-full object-cover"
       />
     </a>
