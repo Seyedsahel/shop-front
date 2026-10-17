@@ -178,9 +178,11 @@ useInfiniteScroll(sentinel, () => {
   if (!isResolving.value && !browseError.value) productListStore.loadMore()
 }, { root: productScroll, rootMargin: '0px 0px 200px 0px' })
 usePageSeo(pageTitle, 'مشاهده محصولات فروشگاه و فیلتر دسته‌بندی‌ها و برندها.')
-await callOnce(`browse:${browsePath}:${getProductBrowseQueryKey(route.query)}`, loadProductsFromRoute, { mode: 'navigation' })
+const initialLoad = callOnce(`browse:${browsePath}:${getProductBrowseQueryKey(route.query)}`, loadProductsFromRoute, { mode: 'navigation' })
+// Await data for SSR, but let client navigation render the loading state immediately.
+if (import.meta.server) await initialLoad
 // callOnce skips only the SSR hydration fetch; controller-local state is not serialized.
-if (browseError.value || productListStore.loaded || productListStore.error || filterStore.error) isResolving.value = false
+if (!hasActiveLoad && (browseError.value || productListStore.loaded || productListStore.error || filterStore.error)) isResolving.value = false
 </script>
 
 <template>
@@ -192,23 +194,26 @@ if (browseError.value || productListStore.loaded || productListStore.error || fi
       <div class="flex gap-3 mb-4 lg:hidden"><ProductSortBar @select="applyFilters" /><UiOptionalSection :failed="!filtersAvailable"><FilterMobileButton class="flex-1" @applied="applyFilters()" /></UiOptionalSection></div>
       <ProductSortBar class="hidden lg:flex" @select="applyFilters" />
       <section ref="productScroll" class="product-scroll mt-4 overflow-auto rounded-xl" tabindex="0" role="region" aria-label="فهرست محصولات">
-      <div v-if="browseError" role="alert" class="mt-4 rounded-xl border border-danger p-4 text-sm text-danger">
+      <div v-if="isResolving || productListStore.isLoading" role="status" aria-live="polite" class="flex min-h-64 items-center justify-center gap-2 text-sm text-text-muted">
+        <span class="size-6 rounded-full border-2 border-border-strong border-t-primary animate-spin" aria-hidden="true" />
+        <span>در حال بارگذاری...</span>
+      </div>
+      <div v-else-if="browseError" role="alert" class="mt-4 rounded-xl border border-danger p-4 text-sm text-danger">
         <p>{{ browseError }}</p>
         <button type="button" class="mt-2 underline" @click="loadProductsFromRoute">تلاش دوباره</button>
       </div>
-      <div v-else-if="!productListStore.error || productListStore.loaded" :aria-busy="isResolving || productListStore.isLoading" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mt-4">
-        <template v-if="isResolving || productListStore.isLoading"><div v-for="n in 12" :key="n" class="aspect-square rounded-2xl bg-surface-hover animate-pulse" /></template>
-        <ProductCard v-else v-for="product in productListStore.items" :key="product.id" :product="product" />
+      <div v-else-if="productListStore.items.length" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mt-4">
+        <ProductCard v-for="product in productListStore.items" :key="product.id" :product="product" />
       </div>
+      <ProductEmptyState
+        v-else-if="!productListStore.error && productListStore.loaded"
+        :filtered="hasBrowseConstraints"
+        :reset-to="browsePath"
+      />
       <div v-if="!browseError && productListStore.error" role="alert" class="mt-4 rounded-xl border border-danger p-4 text-sm text-danger">
         <p>{{ productListStore.error }}</p>
         <button type="button" :disabled="isResolving || productListStore.isLoading || productListStore.isLoadingMore" class="mt-2 underline disabled:opacity-50" @click="retryProducts">تلاش دوباره</button>
       </div>
-      <ProductEmptyState
-        v-if="!browseError && !isResolving && !productListStore.isLoading && !productListStore.error && productListStore.loaded && !productListStore.items.length"
-        :filtered="hasBrowseConstraints"
-        :reset-to="browsePath"
-      />
       <div ref="sentinel" class="h-4" />
       <div v-if="productListStore.isLoadingMore" class="flex justify-center py-6 gap-2 text-sm text-text-muted bg-accent/10 rounded-lg mt-4"><div class="size-6 rounded-full border-2 border-border-strong border-t-primary animate-spin" /><span>در حال بارگذاری...</span></div>
       <p v-if="!productListStore.error && !productListStore.hasMore && productListStore.items.length" class="text-center text-xs text-text-muted py-6">محصول بیشتری برای نمایش وجود ندارد.</p>

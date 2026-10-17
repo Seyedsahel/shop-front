@@ -102,6 +102,33 @@ async function page(query = {}, kind = 'catalog') {
   return { component, route, router, history, navigationHooks, confirmed, close() { unmount.forEach(callback => callback()); scope.stop() } }
 }
 
+test('client setup exposes loading before an empty collection request finishes', { timeout: 2000 }, async () => {
+  const originalCallOnce = globalThis.callOnce
+  try {
+    for (const kind of ['catalog', 'discounted']) {
+      reset()
+      const normal = respond
+      const held = deferred()
+      respond = (path, body) => path === '/products/list' || path === '/discounts/products' ? held.promise : normal(path, body)
+      let pending
+      globalThis.callOnce = (_key, callback) => (pending = callback())
+      const p = await page({}, kind)
+      try {
+        await tick()
+        assert.equal(p.component.isResolving.value, true)
+        assert.equal(useProductListStore().isLoading, true)
+        assert.equal(useProductListStore().loaded, false)
+        held.resolve({ items: [], total: 0, page: 1, limit: 30 })
+        await pending
+        assert.equal(p.component.isResolving.value, false)
+        assert.equal(useProductListStore().isLoading, false)
+        assert.equal(useProductListStore().loaded, true)
+        assert.deepEqual(useProductListStore().items, [])
+      } finally { p.close() }
+    }
+  } finally { globalThis.callOnce = originalCallOnce }
+})
+
 test('query parsing preserves repeated facets and zero prices; invalid input never becomes an unfiltered query', () => {
   assert.deepEqual(getProductQueryList(['medicine,vitamins', 'medicine']), ['medicine', 'vitamins'])
   assert.equal(parseProductBrowseQuery({ priceMin: '0', priceMax: '10', page: '2' }).priceMin, 0)
