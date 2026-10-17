@@ -11,20 +11,22 @@ useHead(() => ({
 useSeoMeta({ ogSiteName: () => shop.name })
 </script>
 <template>
-  <div>
-    <NuxtRouteAnnouncer />
-    <NuxtLayout>
-      <NuxtPage />
-    </NuxtLayout>
-    <Toaster
-      rich-colors
-      position="top-center"
-      dir="rtl"
-      offset="48px"
-      close-button
-      :swipe-directions="['top', 'left', 'right']"
-      :toast-options="{ class: 'app-toast font-sans' }"
-    />
-    <UiConfirmDialog />
-  </div>
+  <UApp dir="rtl" :toaster="null">
+    <div>
+      <NuxtRouteAnnouncer />
+      <NuxtLayout>
+        <NuxtPage />
+      </NuxtLayout>
+      <Toaster
+        rich-colors
+        position="top-center"
+        dir="rtl"
+        offset="48px"
+        close-button
+        :swipe-directions="['top', 'left', 'right']"
+        :toast-options="{ class: 'app-toast font-sans' }"
+      />
+      <UiConfirmDialog />
+    </div>
+  </UApp>
 </template>
