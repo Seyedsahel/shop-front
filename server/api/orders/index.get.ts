@@ -7,6 +7,7 @@ export default defineEventHandler(async (event): Promise<OrderListResponse> => {
     throw createError({ statusCode: 400, message: 'شماره صفحه معتبر نیست.' })
   }
   const orders = await backendFetch<unknown>(`/orders?page=${page}&limit=20`, { authorization: 'user' }, event)
+  if (Array.isArray(orders) && orders.length === 0) return { items: [], total: 0, page, limit: 20 }
   if (!orders || typeof orders !== 'object' || !Array.isArray((orders as Record<string, unknown>).items)) {
     throw createError({ statusCode: 502, message: 'Invalid orders response from backend' })
   }

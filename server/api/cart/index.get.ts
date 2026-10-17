@@ -1,8 +1,10 @@
 export default defineEventHandler(async (event): Promise<CartResponse> => {
   requireCartSession(event)
   const cart = await backendFetch<unknown>('/cart', { authorization: 'session' }, event)
+  if (Array.isArray(cart) && cart.length === 0) return { id: '', guest_id: '', user_id: '', products: {}, pricing: { subtotal_original: 0, discount: 0, subtotal: 0, total: 0 } }
   if (!cart || typeof cart !== 'object') throw createError({ statusCode: 502, message: 'Invalid cart response from backend' })
   const value = cart as Record<string, unknown>
+  if (Array.isArray(value.products) && value.products.length === 0) value.products = {}
   if (!value.products || typeof value.products !== 'object' || Array.isArray(value.products)
     || !value.pricing || typeof value.pricing !== 'object' || Array.isArray(value.pricing)) {
     throw createError({ statusCode: 502, message: 'Invalid cart response from backend' })

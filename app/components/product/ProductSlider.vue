@@ -10,8 +10,9 @@ const isLoading = computed(() => productListStore.previewLoading[props.categoryI
 </script>
 
 <template>
+  <UiOptionalSection :failed="!!productListStore.previewError[categoryId]">
 
-  <UiSlider
+  <UiSlider v-bind="$attrs"
   v-if="products.length || isLoading"
   :title="title"
   :is-loading="isLoading"
@@ -23,4 +24,5 @@ const isLoading = computed(() => productListStore.previewLoading[props.categoryI
 
   </UiSlider>
   
+  </UiOptionalSection>
 </template>

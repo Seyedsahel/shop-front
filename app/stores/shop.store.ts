@@ -1,6 +1,7 @@
 export const useShopStore = defineStore('shop', () => {
   const api = useApi()
   const info = ref<ShopInfo | null>(null)
+  const loaded = ref(false)
   const isLoading = ref(false)
   const error = ref('')
   const name = computed(() => info.value?.name || 'فروشگاه')
@@ -14,7 +15,7 @@ export const useShopStore = defineStore('shop', () => {
   }
 
   function fetchShop(): Promise<boolean> {
-    if (info.value) return Promise.resolve(true)
+    if (loaded.value) return Promise.resolve(true)
     if (pending) return pending
     pending = load().finally(() => { pending = undefined })
     return pending
@@ -24,7 +25,8 @@ export const useShopStore = defineStore('shop', () => {
     isLoading.value = true
     error.value = ''
     try {
-      info.value = await api.get<ShopInfo>('/shop')
+      info.value = await api.get<ShopInfo | null>('/shop') ?? null
+      loaded.value = true
       return true
     } catch (e) {
       error.value = e instanceof ApiError ? e.message : 'خطا در دریافت اطلاعات فروشگاه.'
@@ -34,5 +36,5 @@ export const useShopStore = defineStore('shop', () => {
     }
   }
 
-  return { info, name, instagramUrl, telegramUrl, isLoading, error, fetchShop }
+  return { info, name, instagramUrl, telegramUrl, isLoading, loaded, error, fetchShop }
 })

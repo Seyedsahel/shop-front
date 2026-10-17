@@ -65,10 +65,6 @@ function goHome() {
           </NuxtLink>
         </div>
 
-        <p class="mt-10 text-sm text-text-muted">
-          به راهنمایی نیاز دارید؟
-          <NuxtLink to="/consultation" class="font-bold text-primary transition-colors hover:text-primary-hover">با ما در تماس باشید</NuxtLink>
-        </p>
       </div>
     </section>
   </NuxtLayout>

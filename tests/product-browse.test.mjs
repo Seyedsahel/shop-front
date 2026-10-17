@@ -250,6 +250,66 @@ test('failed canonical collections or unknown slugs do not issue an unfiltered l
   } finally { failed.close() }
 })
 
+test('optional brand, category and filter outages do not block unfiltered browsing or search', async () => {
+  for (const kind of ['catalog', 'discounted']) {
+    for (const unavailable of ['/brands', '/categories', '/products/filters']) {
+      reset()
+      const normal = respond
+      respond = (path, body) => path === unavailable ? Promise.reject(new Error('Unavailable')) : normal(path, body)
+      const p = await page({ search: 'vitamins', priceMin: '0', priceMax: '500', page: '2' }, kind)
+      try {
+        await p.component.loadProductsFromRoute()
+        assert.equal(p.component.browseError.value, '', unavailable)
+        assert.equal(useProductListStore().loaded, true)
+        const list = calls.find(call => call.path === (kind === 'catalog' ? '/products/list' : '/discounts/products'))
+        assert.equal(list.body.search, 'vitamins')
+        assert.equal(list.body.priceMin, 0)
+        assert.equal(list.body.priceMax, 500)
+        assert.equal(list.body.page, 2)
+        await p.component.applyFilters('cheapest')
+        await tick()
+        assert.equal(p.route.query.search, 'vitamins')
+        assert.equal(p.route.query.priceMin, '0')
+        assert.equal(p.route.query.priceMax, '500')
+        assert.equal(calls.at(-1).body.sortBy, 'price')
+      } finally { p.close() }
+    }
+  }
+})
+
+test('failed filter metadata preserves selected category, brand, attributes and price across sorting', async () => {
+  reset()
+  const normal = respond
+  respond = (path, body) => path === '/products/filters' ? Promise.reject(new Error('Unavailable')) : normal(path, body)
+  const p = await page({ category: 'medicine', brand: 'canonical-brand', priceMin: '100', filters: '{"size":"large","color":["red"]}' })
+  try {
+    await p.component.loadProductsFromRoute()
+    assert.equal(p.component.browseError.value, '')
+    assert.deepEqual(calls.at(-1).body.categoryIds, ['parent', 'leaf'])
+    assert.deepEqual(calls.at(-1).body.brandIds, ['brand'])
+    assert.deepEqual(calls.at(-1).body.attributeFields, { size: ['large'], color: ['red'] })
+    await p.component.applyFilters('newest')
+    await tick()
+    assert.equal(p.route.query.category, 'medicine')
+    assert.equal(p.route.query.brand, 'canonical-brand')
+    assert.deepEqual(calls.at(-1).body.attributeFields, { size: ['large'], color: ['red'] })
+    assert.equal(calls.at(-1).body.priceMin, 100)
+  } finally { p.close() }
+})
+
+test('an unavailable selected brand cannot silently broaden a scoped request', async () => {
+  reset()
+  const normal = respond
+  respond = (path, body) => path === '/brands' ? Promise.reject(new Error('Unavailable')) : normal(path, body)
+  const p = await page({ brand: 'canonical-brand' })
+  try {
+    await p.component.loadProductsFromRoute()
+    assert.ok(p.component.browseError.value)
+    assert.equal(calls.some(call => call.path === '/products/list'), false)
+    assert.equal(p.route.query.brand, 'canonical-brand')
+  } finally { p.close() }
+})
+
 
 test('filter proxy forwards the captured category, campaign, and verified global-discount flag', async () => {
   let body = { collection: { kind: 'catalog' }, categoryIds: ['parent'], discountId: 'campaign', limit: 20 }

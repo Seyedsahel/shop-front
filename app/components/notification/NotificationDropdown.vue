@@ -33,7 +33,7 @@ function formatDate(value: string) {
   <UPopover v-model:open="open" :content="{ align: 'end', sideOffset: 12 }" :ui="{ content: 'z-[60] w-[min(24rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-border bg-card text-text-primary shadow-xl ring-0' }">
     <button type="button" :aria-label="`اعلان‌ها، ${notifications.counts.unread_total} خوانده‌نشده`" class="relative inline-flex h-9 w-7 items-center justify-center rounded-md text-text-primary hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-primary md:h-auto md:w-auto md:px-2 md:py-1.5">
       <UIcon name="solar:bell-outline" class="size-5" />
-      <UiCounterBadge :count="notifications.counts.unread_total" />
+      <UiCounterBadge v-if="!notifications.countsError" :count="notifications.counts.unread_total" />
     </button>
     <template #content>
       <section aria-label="اعلان‌ها" dir="rtl">
@@ -46,12 +46,11 @@ function formatDate(value: string) {
         </header>
         <div class="flex items-center justify-between gap-3 px-4 py-3 text-xs">
           <p class="text-text-secondary">اعلان‌های اختصاصی حساب شما</p>
-          <button type="button" :disabled="busy || notifications.counts.unread_total === 0" class="shrink-0 rounded px-1 py-1 text-primary focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-40" @click="readAll">خواندن همه</button>
+          <button type="button" :disabled="busy || !!notifications.countsError || !!notifications.latestError || notifications.counts.unread_total === 0" class="shrink-0 rounded px-1 py-1 text-primary focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-40" @click="readAll">خواندن همه</button>
         </div>
         <div class="max-h-[min(24rem,60dvh)] overflow-y-auto">
-          <p v-if="notifications.latestError || notifications.countsError" role="alert" class="px-4 py-3 text-sm text-danger">{{ notifications.latestError || notifications.countsError }}</p>
           <p v-if="notifications.latestLoading && !notifications.latest.length" role="status" class="px-4 py-8 text-center text-sm text-text-secondary">در حال دریافت اعلان‌ها…</p>
-          <ul v-else-if="notifications.latest.length" class="divide-y divide-border">
+          <ul v-else-if="!notifications.latestError && notifications.latest.length" class="divide-y divide-border">
             <li v-for="item in notifications.latest" :key="item.id" class="px-4 py-3" :class="!item.read_at ? 'bg-primary-subtle' : ''">
               <p class="whitespace-pre-wrap break-words text-sm leading-6">{{ item.body }}</p>
               <div class="mt-2 flex items-center justify-between gap-2 text-xs text-text-muted"><time :datetime="item.created_at">{{ formatDate(item.created_at) }}</time><span v-if="!item.read_at" class="text-primary">خوانده‌نشده</span></div>

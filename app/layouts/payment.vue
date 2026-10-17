@@ -9,7 +9,6 @@ useHead({ htmlAttrs: { dir: 'rtl', lang: 'fa' } })
       <slot />
     </main>
     <NavFooter class="mt-0" />
-    <ConsultationFab />
     <NavBottomNav />
   </div>
 </template>

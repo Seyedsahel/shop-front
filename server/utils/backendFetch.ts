@@ -27,7 +27,7 @@ export const backendFetch = async <T = unknown>(
   const deadline = createRequestDeadline(resolveRequestTimeout(options.timeout, resolveRequestTimeout(config.backendRequestTimeoutMs, 20_000)), options.signal)
 
   try {
-    return await deadline.wait($fetch<T>(url, { baseURL: `${config.backendUrl.replace(/\/+$/, '')}/tbt`, ...options, headers, signal: deadline.signal, timeout: undefined, retry: 0 }) as Promise<T>)
+    return await deadline.wait($fetch<T>(url, { baseURL: `${config.backendUrl.replace(/\/+$/, '')}`, ...options, headers, signal: deadline.signal, timeout: undefined, retry: 0 }) as Promise<T>)
   } catch (error: any) {
     if (!deadline.timedOut && options.signal?.aborted) throw error
     const status = error.response?.status ?? error.statusCode ?? error.status

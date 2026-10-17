@@ -11,7 +11,6 @@
       <slot />
     </main>
     <NavFooter />
-    <ConsultationFab />
     <NavBottomNav />
   </div>
 </template>

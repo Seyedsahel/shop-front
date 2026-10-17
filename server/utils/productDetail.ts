@@ -1,4 +1,5 @@
 export function mapProductDetail(raw: any): ProductDetail {
+  if (Array.isArray(raw) && raw.length === 0) throw createError({ statusCode: 404, message: 'Product not found' })
   if (!raw || typeof raw !== 'object' || typeof raw.id !== 'string' || typeof raw.name !== 'string' || typeof raw.slug !== 'string') {
     throw createError({ statusCode: 502, message: 'Invalid product detail response from backend' })
   }

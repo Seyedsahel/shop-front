@@ -5,7 +5,8 @@ const posts = computed(() => blogStore.items.slice(0, 3))
 </script>
 
 <template>
-  <section v-if="posts.length || blogStore.isLoading" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+  <UiOptionalSection :failed="!!blogStore.error">
+  <section v-bind="$attrs" v-if="posts.length || blogStore.isLoading" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
     <div class="flex justify-center items-center mb-7">
         <h2 class="text-lg sm:text-xl font-semibold text-text-primary mb-6">از وبلاگ ما</h2>
     </div>
@@ -19,4 +20,5 @@ const posts = computed(() => blogStore.items.slice(0, 3))
       <BlogCard v-else v-for="post in posts" :key="post.id" :post="post" />
     </div>
   </section>
+  </UiOptionalSection>
 </template>

@@ -22,7 +22,6 @@ useEventListener(import.meta.client ? document : undefined, 'visibilitychange', 
 const navLinks = [
   { label: 'خانه', href: '/' },
   { label: 'محصولات', href: '/products' },
-  { label: 'مشاوره', href: '/consultation' },
   { label: 'وبلاگ', href: '/blog' },
 ]
 
@@ -131,7 +130,7 @@ watch(width, () => {
             <UIcon :name="authStore.isAuthenticated ? 'solar:user-outline' : 'solar:login-2-broken'" class="size-5" />
             <span class="hidden md:inline">{{ authStore.isAuthenticated ? 'پروفایل' : 'ورود' }}</span>
           </button>
-          <NotificationDropdown v-if="badgesReady && authStore.isAuthenticated" />
+          <UiOptionalSection><NotificationDropdown v-if="badgesReady && authStore.isAuthenticated" /></UiOptionalSection>
         </div>
 
         <div class="order-1 flex flex-row-reverse items-center gap-1 md:order-2 md:flex-row md:gap-2">
@@ -143,14 +142,14 @@ watch(width, () => {
           >
             <UIcon name="solar:cart-4-outline" class="size-5" />
             <span class="hidden md:inline">سبد خرید</span>
-            <UiCounterBadge :count="badgesReady ? cartStore.itemCount : 0" />
+            <UiCounterBadge v-if="!cartStore.error && !cartStore.stale" :count="badgesReady ? cartStore.itemCount : 0" />
           </button>
 
           <NuxtLink to="/wishlist" class="relative inline-flex h-9 w-7 items-center justify-center rounded-md text-sm text-text-primary transition-colors hover:bg-surface-hover md:h-auto md:w-auto md:px-3 md:py-1.5" aria-label="علاقه‌مندی‌ها">
             <span class="flex items-center gap-2">
               <UIcon name="solar:heart-outline" class="size-5" />
               <span class="hidden md:inline">علاقه‌مندی‌ها</span>
-              <UiCounterBadge :count="badgesReady ? wishlistStore.itemCount : 0" />
+              <UiCounterBadge v-if="!wishlistStore.error && !wishlistStore.stale" :count="badgesReady ? wishlistStore.itemCount : 0" />
             </span>
           </NuxtLink>
         </div>
@@ -180,7 +179,7 @@ watch(width, () => {
           v-if="categoriesDropdownOpen"
           class="hidden md:block absolute top-full inset-s-0 mt-1 w-72 max-h-96 overflow-y-auto bg-surface border border-divider rounded-xl shadow-lg z-50"
         >
-          <NavCategoriesDropdown @close="categoriesDropdownOpen = false" />
+          <UiOptionalSection><NavCategoriesDropdown @close="categoriesDropdownOpen = false" /></UiOptionalSection>
         </div>
       </div>
 
@@ -206,7 +205,7 @@ watch(width, () => {
 
   <!-- Mobile categories sidebar -->
   <UiSidebar v-model="categoriesSidebarOpen" title="دسته‌بندی‌ها" class="md:hidden">
-    <NavCategoriesDropdown @close="categoriesSidebarOpen = false" />
+    <UiOptionalSection><NavCategoriesDropdown @close="categoriesSidebarOpen = false" /></UiOptionalSection>
   </UiSidebar>
 
   <!-- Mobile nav links sidebar -->

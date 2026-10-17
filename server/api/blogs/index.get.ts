@@ -1,5 +1,6 @@
 export default defineEventHandler(async (event): Promise<BlogPostsResponse> => {
   const response = await backendFetch<unknown>('/blogs', { authorization: 'none' }, event)
+  if (Array.isArray(response) && response.length === 0) return { items: [], total: 0, page: 1, limit: 20 }
   if (!response || typeof response !== 'object' || !Array.isArray((response as Record<string, unknown>).items)) {
     throw createError({ statusCode: 502, message: 'Invalid blogs response from backend' })
   }

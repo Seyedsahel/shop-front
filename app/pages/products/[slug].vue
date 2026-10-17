@@ -63,11 +63,11 @@ await callOnce(`product:${slug.value}`, loadProduct, { mode: 'navigation' })
       </section>
 
       <section class="grid items-start gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]">
-        <ProductDetailTabs :product="product" />
-        <ProductSpecifications :specifications="product.specifications" />
+        <UiOptionalSection><ProductDetailTabs :product="product" /></UiOptionalSection>
+        <UiOptionalSection><ProductSpecifications :specifications="product.specifications" /></UiOptionalSection>
       </section>
 
-      <ProductRelatedProducts :category-id="product.categories[0]?.id" :current-product-id="product.id" />
+      <UiOptionalSection><ProductRelatedProducts :category-id="product.categories[0]?.id" :current-product-id="product.id" /></UiOptionalSection>
     </div>
 
     <div v-else class="mx-auto max-w-xl rounded-2xl border border-border bg-card p-8 text-center">

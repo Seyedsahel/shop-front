@@ -22,7 +22,7 @@ export const useCommentStore = defineStore('comment', () => {
   function fetchComments(targetType: CommentTargetType, targetId: string, force = false): Promise<void> {
     const key = keyFor(targetType, targetId)
     if (pending.has(key)) return pending.get(key)!
-    if (!force && Object.hasOwn(byTarget.value, key)) return Promise.resolve()
+    if (!force && !errors.value[key] && Object.hasOwn(byTarget.value, key)) return Promise.resolve()
     isLoading.value = true
     delete errors.value[key]
     const query = new URLSearchParams({ targetType, targetId })

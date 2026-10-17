@@ -204,15 +204,11 @@ async function toggleFavorite() {
       <p v-else-if="isInStock && quantityLimits.maxAdditional === 0" role="status" class="text-sm text-text-secondary">تمام موجودی این گزینه در سبد خرید شماست.</p>
     </div>
 
-    <!-- TODO: Replace with backend-backed delivery and support promises when available. -->
-    <div class="grid gap-3 sm:grid-cols-2">
+    <!-- TODO: Replace with backend-backed delivery promises when available. -->
+    <div class="grid gap-3">
       <div class="flex gap-3 rounded-xl border border-warning-border bg-warning-subtle p-3">
         <UIcon name="solar:delivery-outline" class="size-6 shrink-0 text-warning" />
         <div><h2 class="text-sm font-semibold text-text-primary">ارسال مطمئن</h2><p class="mt-1 text-xs leading-5 text-text-secondary">جزئیات زمان و هزینه ارسال هنگام ثبت سفارش نمایش داده می‌شود.</p></div>
-      </div>
-      <div class="flex gap-3 rounded-xl border border-info-border bg-info-subtle p-3">
-        <UIcon name="solar:chat-round-line-outline" class="size-6 shrink-0 text-info" />
-        <div><h2 class="text-sm font-semibold text-text-primary">نیاز به راهنمایی دارید؟</h2><p class="mt-1 text-xs leading-5 text-text-secondary">برای انتخاب محصول مناسب، از مشاوره فروشگاه کمک بگیرید.</p></div>
       </div>
     </div>
   </section>

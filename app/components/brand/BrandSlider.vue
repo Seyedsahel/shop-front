@@ -3,7 +3,8 @@ const brandStore = useBrandStore()
 </script>
 
 <template>
-  <UiSlider v-if="brandStore.items.length || brandStore.isLoading" title="محبوب‌ترین برندها" :is-loading="brandStore.isLoading" :skeleton-count="8" :item-width-px="112">
+  <UiOptionalSection :failed="!!brandStore.error">
+  <UiSlider v-bind="$attrs" v-if="brandStore.items.length || brandStore.isLoading" title="محبوب‌ترین برندها" :is-loading="brandStore.isLoading" :skeleton-count="8" :item-width-px="112">
         
     <NuxtLink
             v-for="brand in brandStore.items"
@@ -15,4 +16,5 @@ const brandStore = useBrandStore()
             <span class="text-md font-bold text-center text-primary">{{ brand.name }}</span>
         </NuxtLink>
   </UiSlider>
+  </UiOptionalSection>
 </template>

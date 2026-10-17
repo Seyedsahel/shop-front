@@ -13,6 +13,7 @@ const setStatus = usePageResponse()
 const isResolving = ref(true)
 const productScroll = ref<HTMLElement>()
 const browseError = useState<string>(`browse:error:${browsePath}:${getProductBrowseQueryKey(route.query)}`, () => '')
+const filtersAvailable = computed(() => filterStore.scopedMetadataAvailable && !filterStore.error && !categoryStore.error && !brandStore.error)
 let loadId = 0
 let isDisposed = false
 let hasActiveLoad = false
@@ -47,12 +48,18 @@ async function loadProductsFromRoute() {
   try {
     const input = parseProductBrowseQuery(query)
     inputInvalid = false
-    const ready = await Promise.all([categoryStore.fetchCategories(), brandStore.fetchBrands()])
+    const ready = await Promise.allSettled([categoryStore.fetchCategories(), brandStore.fetchBrands()])
     if (activeLoad !== loadId || !productListStore.ownsList(listOwner)) return
-    if (ready.some(result => !result)) throw new Error('دریافت دسته‌بندی‌ها و برندها انجام نشد. دوباره تلاش کنید.')
+    // Canonical metadata is essential only for facets selected in the URL.
+    if (input.categorySlugs.length && (ready[0].status === 'rejected' || !ready[0].value)) {
+      throw new ApiError('دریافت دسته‌بندی انتخاب‌شده انجام نشد. دوباره تلاش کنید.')
+    }
+    if (input.brandSlugs.length && (ready[1].status === 'rejected' || !ready[1].value)) {
+      throw new ApiError('دریافت برند انتخاب‌شده انجام نشد. دوباره تلاش کنید.')
+    }
     inputInvalid = true
     const categoryIds = resolveProductFacetIds(input.categorySlugs, categoryStore.items)
-    resolveProductFacetIds(input.brandSlugs, brandStore.items)
+    const brandIds = resolveProductFacetIds(input.brandSlugs, brandStore.items)
     inputInvalid = false
     const context: ProductBrowseContext = {
       collection,
@@ -61,9 +68,8 @@ async function loadProductsFromRoute() {
       categoryIds: categoryIds.length ? expandProductCategoryIds(categoryIds, categoryStore.items) : undefined,
       discountId: input.discountId,
     }
-    const filtersReady = await filterStore.fetchFilters(context, filterOwner)
+    const filtersReady = await filterStore.fetchFilters(context, filterOwner).catch(() => false)
     if (activeLoad !== loadId || !productListStore.ownsList(listOwner)) return
-    if (!filtersReady) throw new ApiError(filterStore.error || 'دریافت فیلترها انجام نشد. دوباره تلاش کنید.', filterStore.errorStatus)
     filterStore.resetAll()
     filterStore.initializeSelections(input)
     const sortOption = sortOptions.find(option => option.id === input.sort) ?? sortOptions[0]!
@@ -72,6 +78,16 @@ async function loadProductsFromRoute() {
       sort: sortOption.id,
       request: {
         ...filterStore.toProductListRequest(),
+        brandIds: brandIds.length ? brandIds : undefined,
+        // Metadata failure must not silently discard applied URL constraints.
+        ...(!filtersReady ? {
+          priceMin: input.priceMin,
+          priceMax: input.priceMax,
+          attributeFields: Object.fromEntries(Object.entries(input.attributeValues).flatMap(([slug, value]) => {
+            const values = Array.isArray(value) ? value : typeof value === 'string' && value ? [value] : []
+            return values.length ? [[slug, values]] : []
+          })),
+        } : {}),
         search: input.search || undefined,
         page: input.page,
         limit: productListStore.limit,
@@ -93,6 +109,11 @@ async function loadProductsFromRoute() {
 // User actions own URL changes. Resource responses never navigate.
 async function applyFilters(sort = productListStore.sort) {
   if (isResolving.value || route.path !== browsePath || !matchesConfirmedRoute()) return
+  if (!filtersAvailable.value) {
+    // Sorting is independent of optional filter controls; retain the applied URL.
+    await router.push({ path: browsePath, query: { ...route.query, sort: sort === 'relevant' ? undefined : sort, page: undefined } })
+    return
+  }
   const facets = filterStore.toProductListRequest()
   const attributeValues = Object.fromEntries(Object.entries(filterStore.values).filter(([, value]) =>
     value !== null && value !== '' && !(Array.isArray(value) && value.length === 0)
@@ -162,11 +183,11 @@ if (browseError.value || productListStore.loaded || productListStore.error || fi
 
 <template>
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 flex gap-6">
-    <FilterSidebar @applied="applyFilters()" />
+    <UiOptionalSection :failed="!filtersAvailable"><FilterSidebar @applied="applyFilters()" /></UiOptionalSection>
     <div class="flex-1 min-w-0">
       <h1 class="text-lg font-semibold text-text-primary mb-4">{{ pageTitle }}</h1>
       <p v-if="productListStore.listSearch && productListStore.loaded" class="mb-4 text-sm text-text-secondary">{{ productListStore.total.toLocaleString('fa-IR') }} کالا پیدا شد.</p>
-      <div class="flex gap-3 mb-4 lg:hidden"><ProductSortBar @select="applyFilters" /><FilterMobileButton class="flex-1" @applied="applyFilters()" /></div>
+      <div class="flex gap-3 mb-4 lg:hidden"><ProductSortBar @select="applyFilters" /><UiOptionalSection :failed="!filtersAvailable"><FilterMobileButton class="flex-1" @applied="applyFilters()" /></UiOptionalSection></div>
       <ProductSortBar class="hidden lg:flex" @select="applyFilters" />
       <section ref="productScroll" class="product-scroll mt-4 overflow-auto rounded-xl" tabindex="0" role="region" aria-label="فهرست محصولات">
       <div v-if="browseError" role="alert" class="mt-4 rounded-xl border border-danger p-4 text-sm text-danger">

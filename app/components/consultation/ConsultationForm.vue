@@ -18,7 +18,11 @@ async function onSubmit() {
   <div class="rounded-2xl border border-border-strong bg-surface p-6 mt-6">
     <h2 class="text-sm font-semibold text-text-primary mb-5">فرم درخواست مشاوره</h2>
 
-    <form class="flex flex-col gap-5" @submit.prevent="onSubmit" novalidate>
+    <div v-if="consultationStore.questionsError" role="alert" class="text-sm text-text-secondary">
+      <p>دریافت فرم مشاوره ممکن نشد.</p>
+      <button type="button" class="mt-3 text-primary underline" @click="consultationStore.fetchQuestions()">تلاش دوباره</button>
+    </div>
+    <form v-else class="flex flex-col gap-5" @submit.prevent="onSubmit" novalidate>
       <template v-if="consultationStore.isLoading">
         <div v-for="n in 3" :key="n" class="h-12 rounded-xl bg-loading animate-pulse" />
       </template>
@@ -43,7 +47,7 @@ async function onSubmit() {
 
       <button
         type="submit"
-        :disabled="consultationStore.isSubmitting"
+        :disabled="consultationStore.isSubmitting || consultationStore.isLoading || !consultationStore.questionsLoaded"
         class="w-full sm:w-auto self-start bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-foreground py-2 px-10 rounded-xl transition-colors"
       >
         {{ consultationStore.isSubmitting ? 'در حال ارسال...' : 'ارسال درخواست' }}

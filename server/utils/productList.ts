@@ -1,4 +1,8 @@
-export function mapProductListResponse(raw: any): ProductListResponse {
+export function mapProductListResponse(raw: any, pagination: Pick<ProductListRequest, 'page' | 'limit'> = {}): ProductListResponse {
+  // Some backend collections encode an empty result as [] instead of an envelope.
+  if (Array.isArray(raw) && raw.length === 0) {
+    return { items: [], total: 0, page: pagination.page ?? 1, limit: pagination.limit ?? 30 }
+  }
   if (!raw || typeof raw !== 'object' || !Array.isArray(raw.items)) {
     throw createError({ statusCode: 502, message: 'Invalid product list response from backend' })
   }

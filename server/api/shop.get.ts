@@ -1,5 +1,6 @@
-export default defineEventHandler(async (event): Promise<ShopInfo> => {
+export default defineEventHandler(async (event): Promise<ShopInfo | null> => {
   const raw = await backendFetch<unknown>('/shop', { authorization: 'none' }, event)
+  if (Array.isArray(raw) && raw.length === 0) return null
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
     throw createError({ statusCode: 502, message: 'Invalid shop response from backend' })
   }

@@ -19,7 +19,7 @@ export const useStoryStore = defineStore('story', () => {
   }
 
   async function fetchStories(force = false) {
-    if (fetched.value && !force) return true
+    if (fetched.value && !force && !error.value) return true
     if (listRequest) return listRequest
 
     isLoading.value = true

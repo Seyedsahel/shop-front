@@ -8,12 +8,12 @@ export const useOfferStore = defineStore('offer', () => {
   const endsAt = computed(() => discount.value?.endsAt ?? null)
 
   async function fetchOffer(force = false) {
-    if (isLoading.value || (hasLoaded.value && !force)) return
+    if (isLoading.value || (hasLoaded.value && !force && !error.value)) return
     isLoading.value = true
     error.value = ''
     try {
       const homepageDiscount = await api.get<HomepageDiscount | null>('/discounts/home')
-      discount.value = homepageDiscount
+      discount.value = homepageDiscount ?? null
       if (!homepageDiscount) {
         products.value = []
         hasLoaded.value = true

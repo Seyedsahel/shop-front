@@ -5,28 +5,43 @@ export const useConsultationStore = defineStore('consultation', () => {
   const description = ref('')
   const isLoading = ref(false)
   const isSubmitting = ref(false)
+  const noticeLoaded = ref(false)
+  const noticeError = ref('')
+  const questionsLoaded = ref(false)
+  const questionsError = ref('')
 
   async function fetchNotice() {
-    if (notice.value.length) return
-    const res = await useApi().get<ConsultationNoticeResponse>('/booking/consultation-notice')
-    notice.value = res.items
+    if (noticeLoaded.value) return
+    noticeError.value = ''
+    try {
+      const res = await useApi().get<ConsultationNoticeResponse>('/booking/consultation-notice')
+      notice.value = res.items
+      noticeLoaded.value = true
+    } catch (cause) {
+      noticeError.value = cause instanceof ApiError ? cause.message : 'دریافت نکات مشاوره ناموفق بود.'
+    }
   }
 
   async function fetchQuestions() {
-    if (questions.value.length) return
+    if (questionsLoaded.value || isLoading.value) return
     isLoading.value = true
+    questionsError.value = ''
     try {
       const res = await useApi().get<ConsultationQuestionsResponse>('/booking/consultation-questions')
       questions.value = res.items
       for (const q of res.items) {
         answers[q.id] = ''
       }
+      questionsLoaded.value = true
+    } catch (cause) {
+      questionsError.value = cause instanceof ApiError ? cause.message : 'دریافت سوالات مشاوره ناموفق بود.'
     } finally {
       isLoading.value = false
     }
   }
 
   function validate(): boolean {
+    if (!questionsLoaded.value || questionsError.value || isLoading.value) return false
     if (!description.value.trim()) return false
     return questions.value
       .filter(q => q.required)
@@ -62,5 +77,5 @@ export const useConsultationStore = defineStore('consultation', () => {
     }
   }
 
-  return { notice, questions, answers, description, isLoading, isSubmitting, fetchNotice, fetchQuestions, submit }
+  return { notice, noticeLoaded, noticeError, questions, questionsLoaded, questionsError, answers, description, isLoading, isSubmitting, fetchNotice, fetchQuestions, submit }
 })

@@ -49,7 +49,10 @@ test('notification endpoints reject guests and forward authenticated reads witho
   const list = (await load('server/api/notifications/index.get.ts')).default
   const counts = (await load('server/api/notifications/counts.get.ts')).default
   const calls = []
-  globalThis.backendFetch = async (path, options) => { calls.push([path, options.authorization]); return {} }
+  globalThis.backendFetch = async (path, options) => {
+    calls.push([path, options.authorization])
+    return path === '/notifications/counts' ? { unread_total: 0, by_object_type: {} } : { items: [], total: 0, page: 1, limit: 20 }
+  }
   async function request(handler, cookie) {
     const app = h3.createApp({ onError() {} }).use(handler)
     return h3.toWebHandler(app)(new Request('http://shop.test/api/notifications', { headers: { cookie } }))

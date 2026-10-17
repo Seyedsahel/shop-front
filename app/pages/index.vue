@@ -8,35 +8,63 @@ const offer = useOfferStore()
 const blog = useBlogStore()
 const shop = useShopStore()
 const featuredCategory = '0fa5f2d7-8a16-5a5c-85eb-79922cf7c399'
-const sections = [
-  { name: 'بنرها', error: () => bannerStore.error, load: () => bannerStore.fetchBanners() },
-  { name: 'استوری‌ها', error: () => stories.error?.message, load: () => stories.fetchStories() },
-  { name: 'دسته‌بندی‌ها', error: () => categories.error, load: () => categories.fetchCategories() },
-  { name: 'برندها', error: () => brands.error, load: () => brands.fetchBrands() },
-  { name: 'محصولات ویژه', error: () => products.previewError[featuredCategory], load: () => products.fetchPreview(featuredCategory, true) },
-  { name: 'مقالات', error: () => blog.error?.message, load: () => blog.fetchPosts() },
-  { name: 'تخفیف‌ها', error: () => products.availabilityError, load: () => products.fetchDiscountedAvailability() },
-]
-await callOnce('home:sections', () => Promise.allSettled([
-  bannerStore.fetchBanners(), stories.fetchStories(), categories.fetchCategories(), brands.fetchBrands(),
-  products.fetchDiscountedAvailability(), offer.fetchOffer(), callOnce(`preview:${featuredCategory}`, () => products.fetchPreview(featuredCategory), { mode: 'navigation' }), blog.fetchPosts(),
-]).then(() => {}), { mode: 'navigation' })
+const sections = {
+  banners: { title: 'بنرها', error: () => bannerStore.error, load: () => bannerStore.fetchBanners() },
+  stories: { title: 'استوری‌ها', error: () => stories.error?.message, load: () => stories.fetchStories() },
+  categories: { title: 'دسته‌بندی‌ها', error: () => categories.error, load: () => categories.fetchCategories() },
+  brands: { title: 'برندها', error: () => brands.error, load: () => brands.fetchBrands() },
+  products: { title: 'محصولات ویژه', error: () => products.previewError[featuredCategory], load: () => products.fetchPreview(featuredCategory, true) },
+  blog: { title: 'مقالات', error: () => blog.error?.message, load: () => blog.fetchPosts() },
+  discounts: { title: 'تخفیف‌ها', error: () => products.availabilityError, load: () => products.fetchDiscountedAvailability() },
+  offer: { title: 'پیشنهاد شگفت‌انگیز', error: () => offer.error, load: () => offer.fetchOffer(true) },
+}
+type SectionKey = keyof typeof sections
+const unexpectedErrors = useState<Partial<Record<SectionKey, string>>>('home:section-errors', () => ({}))
+const pending = ref<Partial<Record<SectionKey, boolean>>>({})
+function sectionError(key: SectionKey) { return unexpectedErrors.value[key] || sections[key].error() }
+async function loadSection(key: SectionKey) {
+  if (pending.value[key]) return
+  pending.value[key] = true
+  unexpectedErrors.value[key] = ''
+  try {
+    await sections[key].load()
+  } catch {
+    unexpectedErrors.value[key] = 'دریافت این بخش موقتاً امکان‌پذیر نیست.'
+  } finally {
+    pending.value[key] = false
+  }
+}
+await callOnce('home:sections', () => Promise.allSettled(
+  (Object.keys(sections) as SectionKey[]).map(loadSection),
+).then(() => {}), { mode: 'navigation' })
 usePageSeo(() => shop.name, () => shop.info?.description || 'محصولات، پیشنهادهای ویژه و تازه‌ترین مقالات فروشگاه.')
 </script>
 
 <template>
-  <div v-for="section in sections.filter(section => section.error())" :key="section.name" role="alert" class="mx-auto max-w-7xl p-4 text-danger">
-    {{ section.name }}: {{ section.error() }} <button type="button" class="underline" @click="section.load()">تلاش دوباره</button>
-  </div>
-  <StoriesBar />
+  <UiOptionalSection :failed="!!sectionError('stories')">
+    <StoriesBar />
+  </UiOptionalSection>
   <HomeHeroSection />
-  <BannerSlider />
-  <OfferSpecialOfferSlider />
-  <CategoryGrid />
-  <BannerDuoBanner />
-  <ProductSlider :category-id="featuredCategory" title="محصولات ویژه" variant="compact" />
-  <BrandSlider />
-  <HomeConsultationSection :background-image-url="bannerStore.homeHero[0]?.imageUrl" />
-  <BlogGrid />
+  <UiOptionalSection :failed="!!sectionError('banners')">
+    <BannerSlider />
+  </UiOptionalSection>
+  <UiOptionalSection :failed="!!sectionError('offer')">
+    <OfferSpecialOfferSlider />
+  </UiOptionalSection>
+  <UiOptionalSection :failed="!!sectionError('categories')">
+    <CategoryGrid />
+  </UiOptionalSection>
+  <UiOptionalSection>
+    <BannerDuoBanner />
+  </UiOptionalSection>
+  <UiOptionalSection :failed="!!sectionError('products')">
+    <ProductSlider :category-id="featuredCategory" title="محصولات ویژه" variant="compact" />
+  </UiOptionalSection>
+  <UiOptionalSection :failed="!!sectionError('brands')">
+    <BrandSlider />
+  </UiOptionalSection>
+  <UiOptionalSection :failed="!!sectionError('blog')">
+    <BlogGrid />
+  </UiOptionalSection>
   <HomeBenefitsSection />
 </template>

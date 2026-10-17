@@ -2,7 +2,6 @@
 const benefits = [
   { label: "گارانتی 3 گانه محصولات", des:"اصالت، انقضا، کالای سالم ", icon: "solar:shield-check-outline" },
   { label:" 20 روز ضمانت مرجوعی", des:" حتی سلیقه‌ای  ", icon: "solar:refresh-outline" },
-  { label: " مشاوره تخصصی رایگان", des:" هفت روز هفته تا ساعت 24  ", icon: "solar:hand-heart-line-duotone" },
   { label: " پرداخت ایمن", des:" از طریق درگاه‌های معتبر  ", icon: "solar:card-transfer-line-duotone" },
   
 ];
@@ -17,7 +16,7 @@ const benefits = [
         </h2>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
     
       <div v-for="item in benefits" class="flex items-center bg-primary-active text-primary-foreground transition-transform duration-300 hover:scale-105 rounded-2xl py-6 px-8 gap-4">
           <UIcon :name="item.icon" class="sm:size-12 size-7" />

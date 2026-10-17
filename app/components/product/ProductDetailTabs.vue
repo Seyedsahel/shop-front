@@ -15,14 +15,14 @@ watch(() => props.product.id, id => { void commentStore.fetchComments('product',
 
 const tabs = computed(() => [
   ...props.product.descriptionBlocks.map((block, index) => ({ id: `block-${index}`, label: block.title })),
-  { id: 'comments', label: 'نظرات کاربران' },
+  ...(!commentStore.errors[commentKey.value] ? [{ id: 'comments', label: 'نظرات کاربران' }] : []),
 ])
 
-watch(() => props.product.descriptionBlocks.length, () => {
+watch(tabs, () => {
   if (!tabs.value.some(tab => tab.id === activeTab.value)) {
-    activeTab.value = props.product.descriptionBlocks.length ? 'block-0' : 'comments'
+    activeTab.value = tabs.value[0]?.id ?? ''
   }
-})
+}, { immediate: true })
 
 watch(activeTab, async () => {
   await nextTick()
@@ -48,7 +48,7 @@ async function onTabKeydown(event: KeyboardEvent, index: number) {
 </script>
 
 <template>
-  <section class="overflow-hidden rounded-2xl border border-border bg-card">
+  <section v-if="tabs.length" class="overflow-hidden rounded-2xl border border-border bg-card">
     <UiScrollTrack ref="tabTrack" variant="tabs" aria-label="اطلاعات تکمیلی محصول" class="border-b border-divider bg-surface p-2">
       <button
         v-for="(tab, index) in tabs"

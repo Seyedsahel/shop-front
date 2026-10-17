@@ -86,6 +86,66 @@ test('production SSR renders content, statuses and isolated read-only sessions',
     assert.ok(!backend.calls.some(call => call.identity && [
       '/tbt/products/list', '/tbt/products/filters', '/tbt/discounts/products', '/tbt/blogs', '/tbt/stories', '/tbt/shop',
     ].includes(call.path)), 'Public backend reads must be unauthenticated')
+    for (const [endpoint, title, status] of [
+      ['brands', 'برندها', 502], ['brands', 'برندها', 503], ['brands', 'برندها', 504],
+      ['banners', 'بنرها', 502], ['stories', 'استوری‌ها', 502],
+      ['categories', 'دسته‌بندی‌ها', 502], ['blogs', 'مقالات', 502],
+      ['products/list', 'محصولات ویژه', 502], ['discounts/products', 'تخفیف‌ها', 502],
+      ['discounts/home', 'پیشنهاد شگفت‌انگیز', 502],
+    ]) {
+      await fetch(new URL('/__control', backend.url), { method: 'POST', body: JSON.stringify({ failures: { ['/tbt/' + endpoint]: status } }) })
+      const page = await read('/')
+      assert.ok(!page.html.includes(`aria-label="${title}" role="status"`), `${endpoint}: failure stays silent`)
+      assert.ok(!page.html.includes('تلاش دوباره'), `${endpoint}: no optional error banner`)
+      if (endpoint === 'brands') assert.ok(!page.html.includes('محبوب‌ترین برندها'), 'Failed brands are hidden')
+      assert.ok(page.html.includes('سلامت و زیبایی شما'), `${endpoint}: hero survives`)
+      assert.ok(page.html.includes('<header') && page.html.includes('<footer'), `${endpoint}: navigation survives`)
+      if (endpoint !== 'blogs') assert.ok(page.html.includes('SSR Article A'), `${endpoint}: blog survives`)
+      if (endpoint !== 'products/list') assert.ok(page.html.includes('All Product 1-0'), `${endpoint}: products survive`)
+      if (endpoint !== 'stories') assert.ok(page.html.includes('SSR Story A'), `${endpoint}: stories survive`)
+    }
+    await fetch(new URL('/__control', backend.url), { method: 'POST', body: JSON.stringify({ failures: {}, malformedBrands: true }) })
+    const malformedBrands = await read('/')
+    assert.ok(!malformedBrands.html.includes('محبوب‌ترین برندها'))
+    assert.ok(malformedBrands.html.includes('SSR Article A') && malformedBrands.html.includes('All Product 1-0'))
+    await fetch(new URL('/__control', backend.url), { method: 'POST', body: JSON.stringify({ malformedBrands: false }) })
+    const recoveredHome = await read('/')
+    assert.ok(recoveredHome.html.includes('محبوب‌ترین برندها'))
+    assert.ok(!recoveredHome.html.includes('aria-label="برندها" role="status"'))
+    for (const endpoint of ['brands', 'categories', 'products/filters']) {
+      await fetch(new URL('/__control', backend.url), { method: 'POST', body: JSON.stringify({ failures: { ['/tbt/' + endpoint]: 502 } }) })
+      for (const path of ['/products', '/discounts/products', '/products?search=vitamins&priceMin=100']) {
+        const page = await read(path)
+        assert.ok(page.html.includes(path.includes('search=') ? 'vitamins Product' : 'All Product'), `${endpoint}: browsing survives`)
+        assert.ok(!page.html.includes('تلاش دوباره'), `${endpoint}: optional filter failure stays silent`)
+      }
+    }
+    const scopedProducts = await read('/products?category=medicine&brand=canonical-brand&priceMin=100&filters=%7B%22size%22%3A%22large%22%7D')
+    assert.ok(scopedProducts.html.includes('All Product'))
+    const scopedCall = backend.calls.filter(call => call.path === '/tbt/products/list').at(-1)
+    assert.deepEqual(scopedCall.body.category_ids, ['parent', 'leaf'])
+    assert.deepEqual(scopedCall.body.brand_ids, ['brand'])
+    assert.equal(scopedCall.body.price_min, 100)
+    assert.deepEqual(scopedCall.body.attribute_fields, { size: ['large'] })
+    await fetch(new URL('/__control', backend.url), { method: 'POST', body: JSON.stringify({ failures: { '/tbt/comments': 502, '/tbt/products/list': 502 } }) })
+    const productWithFailedExtras = await read('/products/product-a')
+    assert.ok(productWithFailedExtras.html.includes('SSR product-a'))
+    assert.ok(!productWithFailedExtras.html.includes('نظرات کاربران') && !productWithFailedExtras.html.includes('محصولات مرتبط'))
+    const articleWithFailedComments = await read('/blog/article-a')
+    assert.ok(articleWithFailedComments.html.includes('SSR Article Body'))
+    assert.ok(!articleWithFailedComments.html.includes('نظرات کاربران'))
+    await fetch(new URL('/__control', backend.url), { method: 'POST', body: JSON.stringify({ failures: { '/tbt/shop': 502 } }) })
+    const fallbackShop = await read('/')
+    assert.ok(fallbackShop.html.includes('SSR Article A') && fallbackShop.html.includes('All Product'))
+    assert.ok(!fallbackShop.html.includes('تلاش دوباره'))
+    await fetch(new URL('/__control', backend.url), { method: 'POST', body: JSON.stringify({ failures: {}, empty: true }) })
+    for (const path of ['/', '/products', '/discounts/products', '/blog', '/stories', '/cart', '/wishlist', '/profile']) {
+      const page = await read(path, 'auth_token=fixture-a')
+      assert.ok(!page.html.includes('SSR Article A') && !page.html.includes('All Product') && !page.html.includes('Cart visitor-a'), path)
+    }
+    const emptyProducts = await read('/products')
+    assert.ok(emptyProducts.html.includes('محصولی با این فیلترها پیدا نشد.'))
+    for (const path of ['/products/product-a', '/blog/article-a', '/stories/story-a']) await read(path, '', 404)
   } finally {
     app.kill('SIGTERM')
     await new Promise(resolve => { if (app.exitCode !== null) resolve(); else app.once('exit', resolve) })

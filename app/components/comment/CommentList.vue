@@ -44,7 +44,8 @@ async function submit() {
 </script>
 
 <template>
-  <section class="flex flex-col gap-5 rounded-2xl border border-border bg-card p-5 sm:p-6">
+  <UiOptionalSection :failed="!!commentStore.errors[commentStore.keyFor(targetType, targetId)]">
+  <section v-bind="$attrs" class="flex flex-col gap-5 rounded-2xl border border-border bg-card p-5 sm:p-6">
     <div class="flex items-center justify-between gap-3">
       <div>
         <h2 class="text-lg font-semibold text-text-primary">نظرات کاربران</h2>
@@ -68,7 +69,6 @@ async function submit() {
       </button>
     </form>
 
-    <p v-if="commentStore.errors[commentStore.keyFor(targetType, targetId)]" role="alert" class="text-sm text-danger">{{ commentStore.errors[commentStore.keyFor(targetType, targetId)] }} <button type="button" class="underline" @click="fetchComments(true)">تلاش دوباره</button></p>
     <template v-if="commentStore.isLoading && !comments.length">
       <div v-for="n in 2" :key="n" class="h-24 rounded-xl bg-loading animate-pulse" />
     </template>
@@ -92,4 +92,5 @@ async function submit() {
       <p v-if="!comments.length" class="rounded-xl bg-surface p-4 text-sm text-text-muted">هنوز نظری ثبت نشده است. اولین دیدگاه را شما بنویسید.</p>
     </div>
   </section>
+  </UiOptionalSection>
 </template>

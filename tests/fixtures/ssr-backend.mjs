@@ -18,6 +18,12 @@ export async function startSsrBackend() {
         if (path === '/__calls')
             return reply(calls);
         calls.push({ path, body, method: req.method, identity: req.headers.authorization?.replace('Bearer ', '') });
+        if (controls.failures?.[path])
+            return reply({ error: 'Fixture section unavailable' }, controls.failures[path]);
+        if (controls.malformedBrands && path === '/tbt/brands')
+            return reply({ unexpected: true });
+        if (controls.empty && !path.includes('/auth/') && (req.method === 'GET' || ['/tbt/products/list', '/tbt/products/filters', '/tbt/discounts/products'].includes(path)))
+            return reply([]);
         const credential = req.headers.authorization?.replace('Bearer ', '') || 'anonymous';
         const identity = credential.replace(/^fixture-/, 'visitor-').replace(/^guest-/, 'guest-visitor-');
         if (path === '/tbt/shop')
@@ -81,5 +87,5 @@ export async function startSsrBackend() {
         reply({ error: 'fixture not implemented' }, 404);
     });
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-    return { server, url: `http://127.0.0.1:${server.address().port}`, calls };
+    return { server, url: `http://127.0.0.1:${server.address().port}/tbt`, calls };
 }

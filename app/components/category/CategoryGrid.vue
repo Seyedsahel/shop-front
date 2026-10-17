@@ -5,7 +5,8 @@ const displayedCategories = computed(() => categoryStore.items.slice(0, 15))
 </script>
 
 <template>
-  <section v-if="categoryStore.items.length || categoryStore.isLoading" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+  <UiOptionalSection :failed="!!categoryStore.error">
+  <section v-bind="$attrs" v-if="categoryStore.items.length || categoryStore.isLoading" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
     <div class="flex justify-center items-center mb-7">
         <h2 class="text-lg sm:text-xl font-semibold text-text-primary mb-6 text-end">
           دسته‌بندی‌ها
@@ -47,4 +48,5 @@ const displayedCategories = computed(() => categoryStore.items.slice(0, 15))
       </template>
     </div>
   </section>
+  </UiOptionalSection>
 </template>

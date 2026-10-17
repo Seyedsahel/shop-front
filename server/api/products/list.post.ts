@@ -19,5 +19,5 @@ export default defineEventHandler(async (event): Promise<ProductListResponse> =>
     },
   }, event)
 
-  return mapProductListResponse(raw)
+  return mapProductListResponse(raw, body)
 })

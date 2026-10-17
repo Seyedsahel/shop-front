@@ -229,7 +229,7 @@ export const useProductListStore = defineStore('productList', () => {
   const previewPending = new Map<string, Promise<void>>()
 
   function fetchPreview(categoryId: string, force = false) {
-    if (!force && Object.hasOwn(previewsByCategory.value, categoryId)) return Promise.resolve()
+    if (!force && !previewError.value[categoryId] && Object.hasOwn(previewsByCategory.value, categoryId)) return Promise.resolve()
     const pending = previewPending.get(categoryId)
     if (pending) return pending
     const request = loadPreview(categoryId).finally(() => previewPending.delete(categoryId))

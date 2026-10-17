@@ -12,7 +12,10 @@ export default defineEventHandler(async (event): Promise<FiltersResponse> => {
     },
   }, event)
 
-  if (!raw || typeof raw !== 'object') throw createError({ statusCode: 502, message: 'Invalid filters response from backend' })
+  if (Array.isArray(raw) && raw.length === 0) {
+    return { attributes: [], brands: [], categories: [], priceRange: { min: 0, max: 0 }, total: 0, page: 1, limit: body.limit ?? 20 }
+  }
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw createError({ statusCode: 502, message: 'Invalid filters response from backend' })
   const array = (value: unknown, field: string): any[] => {
     if (!Array.isArray(value)) throw createError({ statusCode: 502, message: `Invalid filters ${field} from backend` })
     return value

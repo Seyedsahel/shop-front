@@ -1,7 +1,10 @@
 export default defineEventHandler(async (event): Promise<HomepageDiscount | null> => {
   const raw = await backendFetch<any>('/discounts/home', { authorization: 'none' }, event)
 
-  if (!raw) return null
+  if (!raw || (Array.isArray(raw) && raw.length === 0)) return null
+  if (typeof raw !== 'object' || Array.isArray(raw) || typeof raw.id !== 'string') {
+    throw createError({ statusCode: 502, message: 'Invalid homepage discount response from backend' })
+  }
 
   return {
     id: raw.id,

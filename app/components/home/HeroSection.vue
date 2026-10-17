@@ -20,10 +20,6 @@ const bannerStore = useBannerStore()
         to="/products">
           مشاهده محصولات
         </NuxtLink>
-        <NuxtLink class="min-w-28 lg:w-50 px-3.5 py-2 rounded-xl  bg-secondary text-secondary-foreground hover:bg-secondary-hover" 
-        to="/consultation">
-          دریافت مشاوره
-        </NuxtLink>
       </div>
     </div>
     <!-- pictures -->

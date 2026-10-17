@@ -3,6 +3,7 @@ export default defineEventHandler(async (event): Promise<BlogPostDetail> => {
   if (!slug) throw createError({ statusCode: 400, message: 'Blog slug is required' })
 
   const response = await backendFetch<unknown>(`/blogs/${encodeURIComponent(slug)}`, { authorization: 'none' }, event)
+  if (Array.isArray(response) && response.length === 0) throw createError({ statusCode: 404, message: 'Blog not found' })
   const post = mapBlogPostDetail(response)
   if (!post) throw createError({ statusCode: 502, message: 'Invalid blog response from backend' })
   return post

@@ -13,7 +13,7 @@ export const useBlogStore = defineStore('blog', () => {
   function claimDetailOwner() { detailOwner = Symbol('detail'); detailRequest++; return detailOwner }
 
   function fetchPosts(force = false): Promise<boolean> {
-    if (loaded.value && !force) return Promise.resolve(true)
+    if (loaded.value && !force && !error.value) return Promise.resolve(true)
     if (pending) return pending
     isLoading.value = true
     error.value = null

@@ -7,7 +7,7 @@ onMounted(() => {
   productListStore.fetchDiscountedAvailability()
 })
 const emit = defineEmits<{ close: [] }>() 
-const tree = computed(()=> buildCategoryTree(categoryStore.items))
+const tree = computed(() => categoryStore.error ? [] : buildCategoryTree(categoryStore.items))
 </script>
 
 <template>

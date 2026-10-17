@@ -3,7 +3,8 @@ const bannerStore = useBannerStore()
 </script>
 
 <template>
-  <section v-if="bannerStore.homeMiddle.length || bannerStore.isLoading" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+  <UiOptionalSection :failed="!!bannerStore.error">
+  <section v-bind="$attrs" v-if="bannerStore.homeMiddle.length || bannerStore.isLoading" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
     <div class="flex flex-col sm:flex-row gap-4">
       <template v-if="bannerStore.isLoading">
         <div v-for="n in 2" :key="n" class="flex-1 bg-loading aspect-16/10 sm:aspect-4/2 rounded-2xl bg-surface-hover animate-pulse" />
@@ -24,4 +25,5 @@ const bannerStore = useBannerStore()
       </a>
     </div>
   </section>
+  </UiOptionalSection>
 </template>

@@ -21,7 +21,7 @@ docker compose down
 
 ## Runtime configuration
 
-- `NUXT_BACKEND_URL`: backend origin reachable **from the container**, without `/tbt` (Nuxt adds it). `localhost` means the container itself, not the host. For a backend in another container, join a shared Docker network and use its service name.
+- `NUXT_BACKEND_URL`: backend API base URL reachable **from the container**, for example `https://api.hamidaroo.ir`. No `/tbt` prefix is added to API requests. `localhost` means the container itself, not the host. For a backend in another container, join a shared Docker network and use its service name.
 - `NUXT_PUBLIC_IMAGE_BASE_URL`: catalog image base, including `/images`. Nuxt proxies catalog images through `/api/images/`; uploads use `NUXT_BACKEND_URL` with `/tbt/`.
 - `NUXT_PUBLIC_SITE_URL`: public HTTPS storefront origin for canonical/Open Graph URLs, not a Docker service name.
 - Compose sets `NUXT_USE_MOCK_DATA=false` so consultation endpoints use the backend rather than returning mock success. Standalone Docker runs must set this explicitly too.

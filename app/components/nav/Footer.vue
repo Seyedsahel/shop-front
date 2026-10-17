@@ -2,7 +2,6 @@
 const shop = useShopStore()
 const navLinks = [
   { label: 'خانه', to: '/' },
-  { label: 'مشاوره', to: '/consultation' },
   { label: 'محصولات', to: '/products' },
   { label: 'وبلاگ', to: '/blog' },
 ]
@@ -26,9 +25,6 @@ const scrollToTop = () => {
         </NuxtLink>
         <p v-if="shop.info?.description" class="text-xs text-text-secondary leading-relaxed">
           {{ shop.info.description }}
-        </p>
-        <p v-if="shop.error" role="alert" class="text-xs text-danger">
-          {{ shop.error }} <button type="button" class="underline" :disabled="shop.isLoading" @click="shop.fetchShop()">تلاش دوباره</button>
         </p>
       </div>
 

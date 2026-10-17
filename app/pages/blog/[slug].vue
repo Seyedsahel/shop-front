@@ -47,7 +47,7 @@ watch(slug, fetchPost)
 
     <BlogArticle :post="post" />
 
-    <CommentList class="mt-10" target-type="post" :target-id="post.id" />
+    <UiOptionalSection><CommentList class="mt-10" target-type="post" :target-id="post.id" /></UiOptionalSection>
   </div>
 
   <div v-else-if="blogStore.isDetailLoading" class="max-w-3xl mx-auto px-4 py-10">
