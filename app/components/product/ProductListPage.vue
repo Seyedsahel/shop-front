@@ -14,6 +14,8 @@ const isResolving = ref(true)
 const productScroll = ref<HTMLElement>()
 const browseError = useState<string>(`browse:error:${browsePath}:${getProductBrowseQueryKey(route.query)}`, () => '')
 const filtersAvailable = computed(() => filterStore.scopedMetadataAvailable && !filterStore.error && !categoryStore.error && !brandStore.error)
+const hasBrowseConstraints = computed(() => ['category', 'brand', 'search', 'priceMin', 'priceMax', 'filters', 'discount', 'page']
+  .some(key => route.query[key] != null && route.query[key] !== ''))
 let loadId = 0
 let isDisposed = false
 let hasActiveLoad = false
@@ -202,7 +204,11 @@ if (browseError.value || productListStore.loaded || productListStore.error || fi
         <p>{{ productListStore.error }}</p>
         <button type="button" :disabled="isResolving || productListStore.isLoading || productListStore.isLoadingMore" class="mt-2 underline disabled:opacity-50" @click="retryProducts">تلاش دوباره</button>
       </div>
-      <p v-if="!browseError && !isResolving && !productListStore.error && productListStore.loaded && !productListStore.items.length" role="status" class="py-10 text-center text-sm text-text-muted">محصولی با این فیلترها پیدا نشد.</p>
+      <ProductEmptyState
+        v-if="!browseError && !isResolving && !productListStore.isLoading && !productListStore.error && productListStore.loaded && !productListStore.items.length"
+        :filtered="hasBrowseConstraints"
+        :reset-to="browsePath"
+      />
       <div ref="sentinel" class="h-4" />
       <div v-if="productListStore.isLoadingMore" class="flex justify-center py-6 gap-2 text-sm text-text-muted bg-accent/10 rounded-lg mt-4"><div class="size-6 rounded-full border-2 border-border-strong border-t-primary animate-spin" /><span>در حال بارگذاری...</span></div>
       <p v-if="!productListStore.error && !productListStore.hasMore && productListStore.items.length" class="text-center text-xs text-text-muted py-6">محصول بیشتری برای نمایش وجود ندارد.</p>
