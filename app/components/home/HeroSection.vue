@@ -18,7 +18,7 @@ const heroImages = computed(() => bannerStore.homeHero.length
 </script>
 
 <template>
-  <section class=" bg-surface flex max-h-[75vh] items-center justify-between gap-5 overflow-hidden">
+  <section class=" bg-surface flex max-h-[75vh] items-center justify-between gap-5 overflow-hidden mb-10">
     <div class="flex w-2/5 flex-col gap-6 lg:gap-8 mx-7 lg:mx-14">
       <div class="flex flex-col gap-4">
         <span class="font-extrabold text-4xl lg:text-6xl text-danger-subtle">
