@@ -114,8 +114,12 @@ async function onTabKeydown(event: KeyboardEvent, index: number) {
           <section v-else-if="block.type === 'faq'" class="rounded-2xl border border-border bg-surface p-4 sm:p-5">
             <h2 v-if="block.title" class="mb-3 text-lg font-semibold text-text-primary">{{ block.title }}</h2>
             <div v-if="block.items.length" class="divide-y divide-border">
-              <details v-for="(item, itemIndex) in block.items" :key="`${item.title}-${itemIndex}`" class="py-3">
-                <summary class="cursor-pointer list-none font-medium text-text-primary">{{ item.title }}</summary>
+              <details v-for="(item, itemIndex) in block.items" :key="`${item.title}-${itemIndex}`" class="group/faq py-3">
+                <summary class="flex cursor-pointer list-none items-center justify-between gap-3 font-medium text-text-primary">
+                  <span class="min-w-0 wrap-anywhere">{{ item.title }}</span>
+                  <UIcon name="solar:alt-arrow-down-outline" class="size-5 shrink-0 text-text-muted group-open/faq:hidden" aria-hidden="true" />
+                  <UIcon name="solar:alt-arrow-up-outline" class="hidden size-5 shrink-0 text-text-muted group-open/faq:block" aria-hidden="true" />
+                </summary>
                 <p class="mt-3 whitespace-pre-line text-sm leading-7 text-text-secondary">{{ item.body }}</p>
               </details>
             </div>

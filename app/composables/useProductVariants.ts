@@ -31,7 +31,6 @@ export function useProductVariants(getVariants: () => ProductVariant[]) {
       )
       const compatible = getVariants().filter(variant => matches(variant, otherSelections))
       const options = [...group.values]
-        .filter(value => compatible.some(variant => variant.options.some(option => option.slug === slug && option.value === value)))
         .map(value => ({
           value,
           available: compatible.some(variant => variant.stock > 0

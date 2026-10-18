@@ -143,17 +143,27 @@ test('selectors deduplicate values and constrain combinations in either order', 
   assert.deepEqual(selection.attributes.value.map(attribute => attribute.options.map(option => option.value)), [['100', '200'], ['red', 'blue']])
 
   selection.select('color', 'blue')
-  assert.deepEqual(selection.attributes.value.find(attribute => attribute.slug === 'size').options.map(option => option.value), ['100'])
+  assert.deepEqual(selection.attributes.value.find(attribute => attribute.slug === 'size').options, [
+    { value: '100', available: true },
+    { value: '200', available: false },
+  ])
   assert.equal(selection.selectedVariant.value, null)
   selection.select('size', '100')
   assert.equal(selection.selectedVariant.value?.variantId, 'b')
 
   selection.select('size', '200')
   assert.deepEqual(selection.selectedOptions.value, { size: '200' })
-  assert.deepEqual(selection.attributes.value.find(attribute => attribute.slug === 'color').options.map(option => option.value), ['red'])
+  assert.deepEqual(selection.attributes.value.find(attribute => attribute.slug === 'color').options, [
+    { value: 'red', available: true },
+    { value: 'blue', available: false },
+  ])
   assert.equal(selection.selectedVariant.value, null)
   selection.select('color', 'red')
   assert.equal(selection.selectedVariant.value?.variantId, 'c')
+  assert.deepEqual(selection.attributes.value.find(attribute => attribute.slug === 'size').options, [
+    { value: '100', available: true },
+    { value: '200', available: true },
+  ])
 })
 
 test('missing dimension disables its selector and resolves the shorter combination', () => {
