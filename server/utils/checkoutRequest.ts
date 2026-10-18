@@ -12,7 +12,7 @@ export async function readCheckoutInput(event: H3Event): Promise<CheckoutInput> 
   if (!body || typeof body.cart_id !== 'string' || !body.cart_id.trim()
     || typeof body.shipping_method_id !== 'string' || !body.shipping_method_id.trim()
     || (body.coupon_code !== undefined && typeof body.coupon_code !== 'string')
-    || (body.torob_clid !== undefined && typeof body.torob_clid !== 'string')) {
+    || (body.torob_clid !== undefined && (typeof body.torob_clid !== 'string' || body.torob_clid.length > 200))) {
     throw createError({ statusCode: 400, message: 'اطلاعات سفارش کامل نیست.' })
   }
   if ((body.address_id !== undefined) === (body.address !== undefined)

@@ -29,7 +29,7 @@ test('product attributes render on SSR and every document reload requests fresh 
     }
     assert.ok(root, log)
     for (let reload = 0; reload < 2; reload++) {
-      const response = await fetch(root + '/products/testtest')
+      const response = await fetch(root + '/products/testtest/?torob_clid=test-123')
       assert.equal(response.status, 200)
       const html = (await response.text()).split('<script type="application/json"')[0]
       for (const text of ['hfggf', 'رنگ', 'قرمز', 'سایز', 'بیگ']) assert.ok(html.includes(text), text)

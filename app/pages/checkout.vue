@@ -110,7 +110,6 @@ const currentInput = computed<CheckoutInput | null>(() => {
     cart_id: cart.cart.id,
     shipping_method_id: selectedMethodId.value,
     ...(checkout.couponCode ? { coupon_code: checkout.couponCode } : {}),
-    ...(checkout.attempt?.input.torob_clid !== undefined ? { torob_clid: checkout.attempt.input.torob_clid } : {}),
   }
 })
 

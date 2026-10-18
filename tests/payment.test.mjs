@@ -17,6 +17,7 @@ async function load(path) {
 Object.assign(globalThis, h3, { ref, watch, defineStore })
 Object.assign(globalThis, await load('app/utils/api-error.ts'))
 Object.assign(globalThis, await load('app/utils/checkoutAttempt.ts'))
+Object.assign(globalThis, await load('app/utils/torobAttribution.ts'))
 globalThis.useSessionSync = () => () => {}
 const { useCheckoutStore } = await load('app/stores/checkout.store.ts')
 const input = { cart_id: 'cart-1', address_id: 'address-1', shipping_method_id: 'shipping-1' }
@@ -54,6 +55,62 @@ function setup() {
   globalThis.useApi = () => api
   return { store: useCheckoutStore(), auth, api, calls, saved }
 }
+
+test('new orders snapshot the saved Torob click; uncertain retries ignore newer or expired cookies', async () => {
+  try {
+    const { store, api, calls } = setup()
+    globalThis.document = { cookie: 'torob_clid=original-click' }
+    const post = api.post
+    api.post = async (...args) => { await post(...args); throw new ApiError('Network failure') }
+    await assert.rejects(store.createOrder(input))
+    assert.equal(calls[0].body.torob_clid, 'original-click')
+    const originalKey = store.attempt.key
+    for (const cookie of ['torob_clid=new-click', '']) {
+      document.cookie = cookie
+      setActivePinia(createPinia())
+      const reloaded = useCheckoutStore()
+      await assert.rejects(reloaded.createOrder(input))
+      assert.deepEqual(calls.at(-1).body, calls[0].body)
+      assert.equal(calls.at(-1).options.headers['Idempotency-Key'], originalKey)
+    }
+    api.post = post
+    setActivePinia(createPinia())
+    await useCheckoutStore().createOrder(input)
+    assert.deepEqual(calls.at(-1).body, calls[0].body)
+    assert.equal(document.cookie, '')
+  } finally { delete globalThis.document }
+})
+
+test('an unattributed uncertain attempt stays unattributed when a click arrives later', async () => {
+  try {
+    const { store, calls } = setup()
+    store.saveAttempt({ key, input })
+    globalThis.document = { cookie: 'torob_clid=later-click' }
+    await store.createOrder(input)
+    assert.deepEqual(calls[0].body, input)
+    assert.equal(calls[0].options.headers['Idempotency-Key'], key)
+    assert.equal(document.cookie, 'torob_clid=later-click')
+  } finally { delete globalThis.document }
+})
+
+test('corrected rejected orders use current attribution with a new key', async () => {
+  try {
+    const { store, calls } = setup()
+    store.saveAttempt({ key, input: { ...input, torob_clid: 'old-click' }, rejected: true })
+    globalThis.document = { cookie: 'torob_clid=new-click' }
+    await store.createOrder({ ...input, address_id: 'corrected' })
+    assert.equal(calls[0].body.torob_clid, 'new-click')
+    assert.notEqual(calls[0].options.headers['Idempotency-Key'], key)
+  } finally { delete globalThis.document }
+})
+
+test('retry preserves an explicitly empty saved click field', async () => {
+  const { store, calls } = setup()
+  store.saveAttempt({ key, input: { ...input, torob_clid: '' } })
+  await store.createOrder(input)
+  assert.deepEqual(calls[0].body, { ...input, torob_clid: '' })
+  assert.equal(calls[0].options.headers['Idempotency-Key'], key)
+})
 
 test('confirmed completed orders remove matching recovery details, including after reload', () => {
   for (const status of ['paid', 'processing', 'shipped', 'delivered', 'cancelled']) {

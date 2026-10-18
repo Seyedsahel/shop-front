@@ -137,6 +137,15 @@ export const useCheckoutStore = defineStore('checkout', () => {
     let sent = false
     try {
       if (!attempt.value) restoreAttempt()
+      if (input.torob_clid === undefined) {
+        const saved = attempt.value
+        const retryInput = saved ? { ...input, torob_clid: saved.input.torob_clid } : input
+        // Recover the original body even after another click arrives or the cookie expires.
+        // A corrected, definitely rejected request is a new attempt with current attribution.
+        const click = saved && (!saved.rejected || sameCheckoutInput(saved.input, retryInput))
+          ? saved.input.torob_clid : getTorobClick() || undefined
+        if (click !== undefined) input = { ...input, torob_clid: click }
+      }
       if (attempt.value?.rejected && !sameCheckoutInput(attempt.value.input, input)) {
         saveAttempt({ key: createCheckoutKey(), input: input.address ? { ...input, address: { ...input.address } } : { ...input } })
       }

@@ -61,6 +61,18 @@ test('checkout rejects empty required IDs', async () => {
   assert.equal(response.status, 400)
 })
 
+test('checkout validates the Torob click length without changing its value', async () => {
+  const input = { cart_id: 'cart', address_id: 'address', shipping_method_id: 'shipping' }
+  for (const torob_clid of ['', 'x'.repeat(200)]) {
+    const response = await request({ ...input, torob_clid })
+    assert.equal(response.status, 200)
+    assert.equal(response.body.torob_clid, torob_clid)
+  }
+  for (const torob_clid of [123, null, 'x'.repeat(201)]) {
+    assert.equal((await request({ ...input, torob_clid })).status, 400)
+  }
+})
+
 test('backend validation text is preserved instead of exposing the fetch URL', async () => {
   const backendSource = (await readFile(new URL('../server/utils/backendFetch.ts', import.meta.url), 'utf8'))
     .replace(/^import .* from ['"]\.\/session['"]\n/m, '')
