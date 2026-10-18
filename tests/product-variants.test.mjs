@@ -3,7 +3,7 @@ import { test } from 'node:test'
 import { readFile } from 'node:fs/promises'
 import ts from 'typescript'
 import { createError } from 'h3'
-import { computed, nextTick, reactive, ref, watch } from 'vue'
+import { computed, effectScope, nextTick, reactive, ref, watch } from 'vue'
 import { createPinia, defineStore, setActivePinia } from 'pinia'
 
 async function load(path) {
@@ -14,7 +14,7 @@ async function load(path) {
   return import('data:text/javascript;base64,' + Buffer.from(outputText).toString('base64'))
 }
 
-Object.assign(globalThis, { createError, computed, ref, watch, toBackendImageUrl: value => value })
+Object.assign(globalThis, { createError, computed, nextTick, ref, watch, toBackendImageUrl: value => value })
 globalThis.ApiError = (await load('app/utils/api-error.ts')).ApiError
 Object.assign(globalThis, await load('app/utils/productQuantity.ts'))
 globalThis.onMounted = () => {}
@@ -25,6 +25,53 @@ const { useProductVariants } = await load('app/composables/useProductVariants.ts
 globalThis.useProductVariants = useProductVariants
 const { mapProductDetail } = await load('server/utils/productDetail.ts')
 const backendDetail = JSON.parse(await readFile(new URL('./fixtures/product-detail.json', import.meta.url), 'utf8'))
+
+test('leaving product detail preserves visible content until the next page is ready', async () => {
+  setActivePinia(createPinia())
+  Object.assign(globalThis, { defineStore, withApiErrorContext: error => error })
+  globalThis.useApi = () => ({ async get() { return mapProductDetail(backendDetail) } })
+  const { useProductDetailStore } = await load('app/stores/productDetail.store.ts')
+  const store = useProductDetailStore()
+  const route = reactive({ path: '/products/testtest', params: { slug: 'testtest' } })
+  const currentRoute = ref(route)
+  const navigationHooks = new Set()
+  const cleanup = []
+  const scope = effectScope()
+  Object.assign(globalThis, {
+    watch: (...args) => scope.run(() => watch(...args)),
+    useRoute: () => route,
+    useRouter: () => ({ currentRoute, afterEach(callback) {
+      navigationHooks.add(callback)
+      return () => navigationHooks.delete(callback)
+    } }),
+    useProductDetailStore: () => store,
+    onBeforeUnmount: callback => cleanup.push(callback),
+    usePageResponse: () => () => {}, usePageSeo() {},
+    callOnce: async (_key, run) => run(),
+  })
+  const source = (await readFile(new URL('../app/pages/products/[slug].vue', import.meta.url), 'utf8'))
+    .match(/<script setup lang="ts">([\s\S]*?)<\/script>/)[1]
+  const { outputText } = ts.transpileModule(source + '\nexport { product }', {
+    compilerOptions: { target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext },
+  })
+  try {
+    const page = await import('data:text/javascript;base64,' + Buffer.from(outputText).toString('base64'))
+    assert.equal(page.product.value?.slug, 'testtest')
+    // The URL commits before Nuxt replaces the outgoing page with async Home.
+    const home = { path: '/', params: {} }
+    currentRoute.value = home
+    navigationHooks.forEach(callback => callback(home, route))
+    await nextTick()
+    assert.equal(page.product.value?.slug, 'testtest', 'The outgoing page must retain its product')
+    assert.equal(store.isLoading, false, 'Leaving must not show the detail skeleton')
+    cleanup.forEach(callback => callback())
+    assert.equal(store.current, null, 'Release detail state once the page is removed')
+  } finally {
+    scope.stop()
+    globalThis.watch = watch
+    globalThis.onBeforeUnmount = () => {}
+  }
+})
 
 test('live backend contract survives mapping and the detail store and exposes both selectors', async () => {
   Object.assign(globalThis, { defineStore, withApiErrorContext: error => error })

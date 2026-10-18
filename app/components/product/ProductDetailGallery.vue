@@ -22,7 +22,7 @@ function markImageFailed(url: string) {
 </script>
 
 <template>
-  <section class="rounded-2xl border border-border bg-surface p-3 sm:p-5">
+  <section class="mx-auto w-4/5 max-w-md rounded-2xl border border-border bg-surface p-3 sm:p-5">
     <div class="flex flex-col-reverse gap-3 sm:flex-row">
       <div v-if="images.length > 1" class="flex gap-2 overflow-x-auto sm:w-20 sm:flex-col sm:overflow-y-auto">
         <button

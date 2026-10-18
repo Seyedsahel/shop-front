@@ -3,11 +3,8 @@ const route = useRoute()
 const router = useRouter()
 const productDetailStore = useProductDetailStore()
 const detailOwner = productDetailStore.claimDetailOwner()
-const detailPath = route.path
-const removeNavigationHook = router.afterEach((to, _from, failure) => {
-  if (!failure && to.path !== detailPath) productDetailStore.invalidateDetail(detailOwner)
-})
-onBeforeUnmount(() => { removeNavigationHook(); productDetailStore.invalidateDetail(detailOwner) })
+// Nuxt keeps this page visible while the next page's async setup resolves.
+onBeforeUnmount(() => productDetailStore.invalidateDetail(detailOwner))
 const slug = computed(() => typeof route.params.slug === 'string' ? route.params.slug : '')
 
 const setStatus = usePageResponse()
@@ -38,9 +35,9 @@ await callOnce(`product:${slug.value}`, loadProduct, { mode: 'navigation' })
 
 <template>
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
-    <template v-if="productDetailStore.isLoading">
-      <div class="grid gap-8 lg:grid-cols-2 lg:gap-12">
-        <div class="aspect-square animate-pulse rounded-2xl bg-loading" />
+    <template v-if="productDetailStore.isLoading || (!product && !productDetailStore.error)">
+      <div class="grid items-start gap-2 lg:grid-cols-2 lg:gap-12">
+        <div class="mx-auto aspect-square w-4/5 max-w-md animate-pulse rounded-2xl bg-loading lg:mt-8" />
         <div class="space-y-5"><div class="h-5 w-24 animate-pulse rounded bg-loading" /><div class="h-12 w-3/4 animate-pulse rounded bg-loading" /><div class="h-20 animate-pulse rounded-2xl bg-loading" /><div class="h-28 animate-pulse rounded-2xl bg-loading" /></div>
       </div>
       <div class="mt-10 h-60 animate-pulse rounded-2xl bg-loading" />
@@ -52,9 +49,8 @@ await callOnce(`product:${slug.value}`, loadProduct, { mode: 'navigation' })
       <p class="mt-2 text-sm text-text-secondary">{{ productDetailStore.error }}</p>
       <button type="button" class="mt-5 rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary-hover" @click="loadProduct">تلاش دوباره</button>
     </div>
-
     <div v-else-if="product" class="space-y-10">
-      <nav class="flex flex-wrap items-center gap-2 text-xs text-text-muted" aria-label="مسیر صفحه">
+      <nav class="flex flex-wrap items-center gap-4 text-xs text-text-muted" aria-label="مسیر صفحه">
         <NuxtLink to="/" class="hover:text-primary">خانه</NuxtLink>
         <UIcon name="solar:alt-arrow-left-linear" class="size-3" />
         <NuxtLink to="/products" class="hover:text-primary">محصولات</NuxtLink>
@@ -66,8 +62,8 @@ await callOnce(`product:${slug.value}`, loadProduct, { mode: 'navigation' })
         <span class="min-w-0 max-w-full flex-1 truncate text-text-secondary" aria-current="page" :title="product.name" dir="auto">{{ product.name }}</span>
       </nav>
 
-      <section class="grid items-start gap-8 lg:grid-cols-2 lg:gap-12">
-        <ProductDetailGallery :product="product" class="min-w-0" />
+      <section class="grid items-start lg:grid-cols-2 lg:gap-12">
+        <ProductDetailGallery :product="product" class="min-w-0 lg:mt-8" />
         <ProductPurchasePanel :product="product" @variant-change="selectedVariantId = $event?.variantId ?? null" />
       </section>
 
@@ -83,9 +79,5 @@ await callOnce(`product:${slug.value}`, loadProduct, { mode: 'navigation' })
       <UiOptionalSection><ProductRelatedProducts :category-id="product.categories[0]?.id" :current-product-id="product.id" /></UiOptionalSection>
     </div>
 
-    <div v-else class="mx-auto max-w-xl rounded-2xl border border-border bg-card p-8 text-center">
-      <h1 class="text-lg font-semibold text-text-primary">محصول پیدا نشد</h1>
-      <NuxtLink to="/products" class="mt-5 inline-flex rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary-hover">بازگشت به محصولات</NuxtLink>
-    </div>
   </div>
 </template>

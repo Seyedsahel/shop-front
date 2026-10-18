@@ -12,9 +12,9 @@ const titleElement = ref<HTMLElement>()
 const descriptionElement = ref<HTMLElement>()
 const titleSize = computed(() => {
   const length = props.product.name.length
-  if (length > 160) return 'text-lg sm:text-xl'
-  if (length > 80) return 'text-xl sm:text-2xl'
-  return 'text-2xl sm:text-3xl'
+  if (length > 160) return 'text-base sm:text-lg'
+  if (length > 80) return 'text-lg sm:text-xl'
+  return 'text-xl sm:text-2xl'
 })
 
 function measureSummary() {
@@ -128,12 +128,12 @@ async function toggleFavorite() {
 </script>
 
 <template>
-  <section class="min-w-0 flex flex-col gap-5">
+  <section class="min-w-0 flex flex-col gap-5 sm:mx-auto sm:w-9/10 sm:max-w-lg sm:gap-4">
     <div :id="summaryId" class="min-w-0 space-y-2">
       <NuxtLink
         v-if="product.brand"
         :to="`/products?brand=${product.brand.slug}`"
-        class="inline-block max-w-full wrap-anywhere text-sm font-semibold text-primary hover:text-primary-hover"
+        class="inline-block max-w-full wrap-anywhere text-xs font-semibold text-primary hover:text-primary-hover sm:text-sm"
       >
         {{ product.brand.name }}
       </NuxtLink>
@@ -146,7 +146,7 @@ async function toggleFavorite() {
       <p
         v-if="product.description"
         ref="descriptionElement"
-        class="wrap-anywhere whitespace-pre-line text-sm leading-7 text-text-secondary sm:text-base"
+        class="wrap-anywhere whitespace-pre-line text-xs leading-7 text-text-secondary sm:text-sm"
         :class="{ 'line-clamp-3': !summaryExpanded }"
         dir="auto"
       >{{ product.description }}</p>
@@ -155,16 +155,16 @@ async function toggleFavorite() {
         type="button"
         :aria-expanded="summaryExpanded"
         :aria-controls="summaryId"
-        class="rounded-md py-1 text-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        class="rounded-md py-1 text-xs font-medium text-primary underline-offset-4 hover:underline sm:text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         @click="summaryExpanded = !summaryExpanded"
       >{{ summaryExpanded ? 'نمایش کمتر' : 'نمایش متن کامل' }}</button>
     </div>
 
-    <div class="rounded-2xl bg-primary-subtle p-4 sm:p-5">
+    <div class="rounded-2xl bg-primary-subtle p-4">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-baseline gap-2">
-          <span class="text-2xl font-bold text-text-primary sm:text-3xl">{{ formatMoney(unitPrice) }}</span>
-          <span v-if="canShowDiscount" class="text-sm text-text-muted line-through">{{ formatMoney(product.price.original) }}</span>
+          <span class="text-xl font-bold text-text-primary sm:text-2xl">{{ formatMoney(unitPrice) }}</span>
+          <span v-if="canShowDiscount" class="text-xs text-text-muted line-through sm:text-sm">{{ formatMoney(product.price.original) }}</span>
           <UiBadge v-if="canShowDiscount" variant="discount">{{ product.price.discountPercent.toLocaleString('fa-IR') }}٪ تخفیف</UiBadge>
         </div>
         <UiBadge v-if="availableStock !== null" :variant="isInStock ? 'stock' : 'discount'">
@@ -190,7 +190,7 @@ async function toggleFavorite() {
        disabled:opacity-40" :disabled="quantity <= 1" aria-label="کاهش تعداد" @click="quantity--">
           <UIcon name="solar:minus-circle-outline" class="size-5" />
         </button>
-        <span class="text-sm font-semibold text-text-primary">{{ quantity.toLocaleString('fa-IR') }}</span>
+        <span class="text-xs font-semibold text-text-primary sm:text-sm">{{ quantity.toLocaleString('fa-IR') }}</span>
         <button type="button" class="grid size-11 place-items-center text-text-secondary hover:text-primary disabled:opacity-40" :disabled="!cartStore.loaded || cartStore.busy || cartStore.stale || quantity >= quantityLimits.maxAdditional" aria-label="افزایش تعداد" @click="increaseQuantity">
           <UIcon name="solar:add-circle-outline" class="size-5" />
         </button>
@@ -213,7 +213,7 @@ async function toggleFavorite() {
     <div class="grid gap-3">
       <div class="flex gap-3 rounded-xl border border-warning-border bg-warning-subtle p-3">
         <UIcon name="solar:delivery-outline" class="size-6 shrink-0 text-warning" />
-        <div><h2 class="text-sm font-semibold text-text-primary">ارسال مطمئن</h2><p class="mt-1 text-xs leading-5 text-text-secondary">جزئیات زمان و هزینه ارسال هنگام ثبت سفارش نمایش داده می‌شود.</p></div>
+        <div><h2 class="text-xs font-semibold text-text-primary sm:text-sm">ارسال مطمئن</h2><p class="mt-1 text-xs leading-5 text-text-secondary">جزئیات زمان و هزینه ارسال هنگام ثبت سفارش نمایش داده می‌شود.</p></div>
       </div>
     </div>
   </section>
