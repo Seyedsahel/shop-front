@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises'
 import ts from 'typescript'
 import { createError } from 'h3'
 import { computed, nextTick, reactive, ref, watch } from 'vue'
+import { createPinia, defineStore, setActivePinia } from 'pinia'
 
 async function load(path) {
   const source = await readFile(new URL('../' + path, import.meta.url), 'utf8')
@@ -17,9 +18,51 @@ Object.assign(globalThis, { createError, computed, ref, watch, toBackendImageUrl
 globalThis.ApiError = (await load('app/utils/api-error.ts')).ApiError
 Object.assign(globalThis, await load('app/utils/productQuantity.ts'))
 globalThis.onMounted = () => {}
+globalThis.onBeforeUnmount = () => {}
+globalThis.useId = () => 'test-summary'
 const { useProductVariants } = await load('app/composables/useProductVariants.ts')
 globalThis.useProductVariants = useProductVariants
 const { mapProductDetail } = await load('server/utils/productDetail.ts')
+const backendDetail = JSON.parse(await readFile(new URL('./fixtures/product-detail.json', import.meta.url), 'utf8'))
+
+test('live backend contract survives mapping and the detail store and exposes both selectors', async () => {
+  Object.assign(globalThis, { defineStore, withApiErrorContext: error => error })
+  setActivePinia(createPinia())
+  const paths = []
+  globalThis.useApi = () => ({ async get(path) {
+    paths.push(path)
+    return mapProductDetail(backendDetail)
+  } })
+  const { useProductDetailStore } = await load('app/stores/productDetail.store.ts')
+  const store = useProductDetailStore()
+  await store.fetchBySlug('testtest', store.claimDetailOwner())
+  assert.deepEqual(paths, ['/products/testtest/detail'])
+  assert.equal(store.current.basePrice, 7787878787)
+  assert.equal(store.current.baseStock, 97)
+  assert.deepEqual(store.bySlug.testtest, store.current)
+  const selection = useProductVariants(() => store.current.purchaseVariants)
+  selection.reset()
+  assert.deepEqual(selection.attributes.value.map(({ slug, options }) => [slug, options]), [
+    ['رنگ', [{ value: 'قرمز', available: true }]],
+    ['سایز', [{ value: 'بیگ', available: true }]],
+  ])
+  assert.equal(selection.selectedVariant.value.variantId, backendDetail.purchase_variants[0].variant_id)
+  assert.equal(selection.selectedVariant.value.finalPrice, 7787878787)
+  assert.equal(selection.selectedVariant.value.stock, 97)
+
+  // A new page visit must fetch fresh details even when quick-add cached this slug.
+  store.invalidateDetail()
+  await store.fetchBySlug('testtest', store.claimDetailOwner())
+  assert.equal(paths.length, 2)
+})
+
+test('current stock/price fields also work for products without variants and preserve zero stock', () => {
+  const detail = mapProductDetail({ ...backendDetail, price: undefined, stock: 0, base_stock: 99, purchase_variants: [] })
+  assert.equal(detail.baseStock, 0)
+  assert.equal(detail.basePrice, 7787878787)
+  assert.equal(detail.price.final, 7787878787)
+  assert.equal(detail.price.original, 7787878787)
+})
 
 function variant(variantId, stock, options) {
   return {
@@ -268,4 +311,23 @@ test('quick add uses remaining capacity for additions and total capacity for exi
 
 test('detail mapper rejects incomplete backend products with a controlled error', () => {
   assert.throws(() => mapProductDetail({ purchase_variants: [] }), error => error.statusCode === 502)
+})
+
+test('purchase panel and quick add block a product the backend marks non-purchasable despite stock', async () => {
+  const product = { ...mapProductDetail(backendDetail), isPurchasable: false }
+  const calls = []
+  globalThis.useCartStore = () => ({ loaded: true, busy: false, stale: false, itemsForProduct: () => [], async addItem(...args) { calls.push(args) } })
+  globalThis.useWishlistStore = () => ({ findItem: () => undefined })
+  globalThis.useAppToast = () => ({ success() {}, error() {} })
+  globalThis.defineProps = () => ({ product })
+  const panel = await componentScript('ProductPurchasePanel.vue', 'addToCart, canAdd', 'non-purchasable')
+  assert.equal(panel.canAdd.value, false)
+  await panel.addToCart()
+  globalThis.useProductDetailStore = () => ({ bySlug: { testtest: product }, async loadBySlug() { return product } })
+  globalThis.defineModel = () => ref(true)
+  const quick = await componentScript('ProductQuickAdd.vue', 'add, ready', 'non-purchasable')
+  await new Promise(resolve => setImmediate(resolve))
+  assert.equal(quick.ready.value, false)
+  await quick.add()
+  assert.deepEqual(calls, [])
 })

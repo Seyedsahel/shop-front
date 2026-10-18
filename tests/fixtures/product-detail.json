@@ -1,0 +1,27 @@
+{
+  "id": "8eee034c-f83c-43cd-a035-a87a277ce315",
+  "name": "hfggf",
+  "slug": "testtest",
+  "description": "",
+  "description_blocks": [],
+  "price_from": 7787878787,
+  "price": { "original": 7787878787, "final": 7787878787, "discount": 0, "discount_percent": 0 },
+  "stock": 97,
+  "is_purchasable": true,
+  "max_per_order": 2,
+  "brand": { "id": "", "name": "", "slug": "", "file_id": null, "description": "" },
+  "images": [],
+  "categories": [],
+  "purchase_variants": [{
+    "variant_id": "ffbb2856-2fe8-4969-95ae-2387dd348d66",
+    "sku": "jhjhjhj",
+    "price": 7787878787,
+    "final_price": 7787878787,
+    "stock": 97,
+    "max_per_order": 0,
+    "attribute_values": [
+      { "attribute_id": "e819032c-de2c-49c7-ba5c-bd37b55f26dc", "slug": "رنگ", "name": "رنگ", "data_type": "select", "unit": "", "value": "قرمز" },
+      { "attribute_id": "c56614cb-37f5-4076-afac-0bf6a831b2e8", "slug": "سایز", "name": "سایز", "data_type": "select", "unit": "", "value": "بیگ" }
+    ]
+  }]
+}

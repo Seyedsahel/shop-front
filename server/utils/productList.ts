@@ -17,8 +17,8 @@ export function mapProductListResponse(raw: any, pagination: Pick<ProductListReq
       if (!product || typeof product !== 'object' || typeof product.id !== 'string' || typeof product.name !== 'string' || typeof product.slug !== 'string') {
         throw createError({ statusCode: 502, message: 'Invalid product in backend response' })
       }
-      const originalPrice = Number(product.price?.original ?? product.base_price ?? 0)
-      const finalPrice = Number(product.price?.final ?? product.base_price ?? originalPrice)
+      const originalPrice = Number(product.price?.original ?? product.price_from ?? product.base_price ?? 0)
+      const finalPrice = Number(product.price?.final ?? product.price_from ?? product.base_price ?? originalPrice)
 
       return {
         id: product.id,
@@ -29,7 +29,7 @@ export function mapProductListResponse(raw: any, pagination: Pick<ProductListReq
         thumbnailUrl: product.thumbnail_url,
         imageUrl: toBackendImageUrl(product.thumbnail_url),
         description: typeof product.description === 'string' ? product.description : '',
-        basePrice: Number(product.base_price ?? originalPrice),
+        basePrice: Number(product.price_from ?? product.base_price ?? originalPrice),
         price: {
           original: originalPrice,
           final: finalPrice,
@@ -37,6 +37,7 @@ export function mapProductListResponse(raw: any, pagination: Pick<ProductListReq
           discountPercent: Number(product.price?.discount_percent ?? 0),
         },
         stock: Number(product.stock ?? 0),
+        isPurchasable: product.is_purchasable !== false,
         maxPerOrder: Number(product.max_per_order ?? 0),
         createdAt: product.created_at,
         updatedAt: product.updated_at,

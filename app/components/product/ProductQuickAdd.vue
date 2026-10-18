@@ -26,6 +26,7 @@ const quantityLimits = computed(() => productQuantityLimits({
     .reduce((total, item) => total + item.quantity, 0),
 }))
 const ready = computed(() => !loading.value && !loadError.value && !!detail.value && cart.loaded
+  && detail.value.isPurchasable !== false
   && stock.value !== null && stock.value > 0 && quantity.value <= quantityLimits.value.maxAdditional)
 const orderLimitReached = computed(() => stock.value !== null && quantity.value >= quantityLimits.value.orderRemaining)
 const lineLimits = (item: CartItem) => cartLineQuantityLimits(item, cartLines.value, detail.value?.maxPerOrder ?? props.product.maxPerOrder)
@@ -59,6 +60,7 @@ watch(() => quantityLimits.value.maxAdditional, maximum => {
 })
 
 function increaseQuantity() {
+  if (detail.value?.isPurchasable === false) return
   if (!cart.loaded || loading.value || submitting.value || cart.busy || cart.stale || quantity.value >= quantityLimits.value.maxAdditional) return
   const nextQuantity = quantity.value + 1
   quantity.value = nextQuantity
@@ -84,6 +86,7 @@ async function add() {
 }
 async function changeCartLineQuantity(item: CartItem, amount: number) {
   if (cart.busy || cart.stale) return
+  if (amount > 0 && detail.value?.isPurchasable === false) return
   try {
     if (amount < 0 && item.quantity === 1) {
       if (!(await useConfirm('این کالا از سبد حذف شود؟'))) return
@@ -126,6 +129,7 @@ async function retry() {
       <button type="button" class="mt-2 block underline" :disabled="loading || cart.busy" @click="retry">دریافت دوباره</button>
     </div>
     <template v-if="!loading && detail">
+      <p v-if="detail.isPurchasable === false" role="status" class="mb-4 text-sm text-text-secondary">این محصول در حال حاضر قابل خرید نیست.</p>
       <section v-if="cartLines.length" class="mb-5 space-y-2 border-b border-divider pb-5">
         <h4 class="text-sm font-semibold">گزینه‌های موجود در سبد</h4>
         <div v-for="item in cartLines" :key="item.id" class="flex items-center justify-between gap-3 rounded-xl bg-surface p-3">
@@ -136,7 +140,7 @@ async function retry() {
           <div class="flex shrink-0 items-center gap-3 rounded-lg bg-card p-1">
             <button type="button" aria-label="کاهش تعداد" class="size-9 rounded-md disabled:opacity-40" :disabled="cart.busy || cart.stale" @click="changeCartLineQuantity(item, -1)">−</button>
             <output class="min-w-5 text-center text-sm font-semibold">{{ item.quantity.toLocaleString('fa-IR') }}</output>
-            <button type="button" aria-label="افزایش تعداد" class="size-9 rounded-md disabled:opacity-40" :disabled="cart.busy || cart.stale || item.quantity >= lineLimits(item).maxQuantity" @click="changeCartLineQuantity(item, 1)">+</button>
+            <button type="button" aria-label="افزایش تعداد" class="size-9 rounded-md disabled:opacity-40" :disabled="detail.isPurchasable === false || cart.busy || cart.stale || item.quantity >= lineLimits(item).maxQuantity" @click="changeCartLineQuantity(item, 1)">+</button>
           </div>
         </div>
         <p v-if="cartLines.some(item => item.quantity >= lineLimits(item).orderMaximum)" role="status" class="text-xs text-danger-subtle">شما به محدودیت تعداد انتخابی برای سفارش این محصول رسیدید.</p>
@@ -149,7 +153,7 @@ async function retry() {
         :disabled="submitting"
         @select="select"
       />
-      <div class="space-y-5">
+      <div v-if="detail.isPurchasable !== false" class="space-y-5">
         <div class="flex items-center justify-between gap-3">
           <span class="text-sm">تعداد <span v-if="stock !== null" class="text-xs text-text-muted">({{ stock.toLocaleString('fa-IR') }} عدد موجود)</span></span>
           <div class="flex items-center gap-4 rounded-xl bg-surface p-1">
@@ -159,11 +163,11 @@ async function retry() {
           </div>
         </div>
         <button type="button" class="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50" :disabled="!ready || submitting || cart.busy || cart.stale" @click="add">
-          {{ submitting ? 'در حال افزودن…' : stock === null ? 'گزینه محصول را انتخاب کنید' : stock <= 0 ? 'ناموجود' : `افزودن به سبد · ${formatMoney(unitPrice * quantity)}` }}
+          {{ submitting ? 'در حال افزودن…'  : stock === null ? 'گزینه محصول را انتخاب کنید' : stock <= 0 ? 'ناموجود' : `افزودن به سبد · ${formatMoney(unitPrice * quantity)}` }}
         </button>
       </div>
-      <p v-if="orderLimitReached" role="status" class="mt-3 text-sm text-warning">شما به محدودیت تعداد انتخابی برای سفارش این محصول رسیدید.</p>
-      <p v-else-if="stock !== null && stock > 0 && quantityLimits.maxAdditional === 0" role="status" class="mt-3 text-sm text-text-secondary">تمام موجودی این گزینه در سبد خرید شماست.</p>
+      <p v-if="detail.isPurchasable !== false && orderLimitReached" role="status" class="mt-3 text-sm text-warning">شما به محدودیت تعداد انتخابی برای سفارش این محصول رسیدید.</p>
+      <p v-else-if="detail.isPurchasable !== false && stock !== null && stock > 0 && quantityLimits.maxAdditional === 0" role="status" class="mt-3 text-sm text-text-secondary">تمام موجودی این گزینه در سبد خرید شماست.</p>
     </template>
   </UiModal>
 </template>

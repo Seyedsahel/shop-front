@@ -1,5 +1,7 @@
 import http from 'node:http';
+import { readFile } from 'node:fs/promises';
 export async function startSsrBackend() {
+    const productDetail = JSON.parse(await readFile(new URL('./product-detail.json', import.meta.url), 'utf8'));
     let controls = { fail: false, append: false }, calls = [];
     const categories = [{ id: 'parent', parent_id: '', slug: 'medicine', name: 'Medicine' }, { id: 'leaf', parent_id: 'parent', slug: 'vitamins', name: 'Vitamins' }];
     const server = http.createServer(async (req, res) => {
@@ -56,6 +58,7 @@ export async function startSsrBackend() {
             return path.endsWith('article-a') ? reply(article) : reply({ error: 'Missing' }, 404);
         if (path.startsWith('/tbt/products/') && path.endsWith('/detail')) {
             const slug = path.split('/')[3];
+            if (slug === 'testtest') return reply(productDetail);
             if (slug === 'missing')
                 return reply({ error: 'Missing' }, 404);
             if (slug === 'service')

@@ -22,11 +22,13 @@ export const useNotificationStore = defineStore('notifications', () => {
   let requestedPage = 1
   let listRevision = 0
   let countsRevision = 0
+  let latestRevision = 0
 
   watch(() => auth.sessionScope ?? auth.identity, () => {
     generation++
     listRevision++
     countsRevision++
+    latestRevision++
     requestedPage = 1
     page.value = 1
     items.value = []
@@ -100,15 +102,15 @@ export const useNotificationStore = defineStore('notifications', () => {
   const latestRefresh = useResourceRefresh(async () => {
     if (!auth.isAuthenticated) return
     const identity = generation
-    const revision = listRevision
+    const revision = latestRevision
     latestLoading.value = true
     latestError.value = ''
     try {
       const result = await api.get<NotificationListResponse>('/notifications?page=1&limit=3')
-      if (identity !== generation || revision !== listRevision) return
+      if (identity !== generation || revision !== latestRevision) return
       latest.value = [...result.items].sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at)).slice(0, 3)
     } catch (cause) {
-      if (identity === generation && revision === listRevision) latestError.value = cause instanceof ApiError ? cause.message : 'دریافت اعلان‌ها ناموفق بود.'
+      if (identity === generation && revision === latestRevision) latestError.value = cause instanceof ApiError ? cause.message : 'دریافت اعلان‌ها ناموفق بود.'
       throw cause
     } finally {
       if (identity === generation) latestLoading.value = false
@@ -129,6 +131,7 @@ export const useNotificationStore = defineStore('notifications', () => {
       if (identity !== generation) throw new ApiError('نشست کاربری تغییر کرده است؛ اعلان‌ها را دوباره دریافت کنید.')
       listRevision++
       countsRevision++
+      latestRevision++
       const readAt = new Date().toISOString()
       const target = id ? [...items.value, ...latest.value].find(item => item.id === id) : undefined
       if (target && !target.read_at) {

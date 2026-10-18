@@ -31,11 +31,14 @@ export const backendFetch = async <T = unknown>(
   } catch (error: any) {
     if (!deadline.timedOut && options.signal?.aborted) throw error
     const status = error.response?.status ?? error.statusCode ?? error.status
-    // Allowlisted metadata only: paths, error bodies and messages can contain customer data.
+    // Keep upstream diagnostics in server logs before normalizing the client response.
     console.error('backend_request_failed', {
       method: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'].includes(options.method ?? 'GET') ? options.method ?? 'GET' : 'OTHER',
       status: typeof status === 'number' && Number.isInteger(status) && status >= 400 && status < 600 ? status : null,
       kind: deadline.timedOut ? 'timeout' : typeof status === 'number' && status >= 400 && status < 600 ? 'http' : 'network',
+      message: error.message,
+      data: error.data ?? error.response?._data,
+      stack: error.stack,
     })
     if (deadline.timedOut) throw createError({ statusCode: 504, message: 'Upstream request timed out', data: { code: 'UPSTREAM_TIMEOUT' } })
     if (status === 401 && event && credential) {

@@ -40,12 +40,13 @@ export function mapProductDetail(raw: any): ProductDetail {
         return mapped ? [mapped] : []
       })
       .sort((first: ProductDescriptionBlock, second: ProductDescriptionBlock) => first.sortOrder - second.sortOrder),
-    basePrice: Number(raw.base_price ?? 0),
-    baseStock: Number(raw.base_stock ?? 0),
+    basePrice: Number(raw.price_from ?? raw.base_price ?? 0),
+    baseStock: Number(raw.stock ?? raw.base_stock ?? 0),
+    isPurchasable: raw.is_purchasable !== false,
     maxPerOrder: Number(raw.max_per_order ?? 0),
     price: {
-      original: Number(raw.price?.original ?? raw.base_price ?? 0),
-      final: Number(raw.price?.final ?? raw.base_price ?? 0),
+      original: Number(raw.price?.original ?? raw.price_from ?? raw.base_price ?? 0),
+      final: Number(raw.price?.final ?? raw.price_from ?? raw.base_price ?? 0),
       discount: Number(raw.price?.discount ?? 0),
       discountPercent: Number(raw.price?.discount_percent ?? 0),
     },
@@ -67,8 +68,8 @@ export function mapProductDetail(raw: any): ProductDetail {
     })),
     purchaseVariants: array(raw.purchase_variants ?? [], 'purchase variants').map((v: any) => ({
       variantId: v.variant_id, sku: v.sku, maxPerOrder: Number(v.max_per_order ?? 0),
-      priceAdjustment: v.price_adjustment, finalPrice: v.final_price, stock: v.stock,
-      options: array(v.options ?? [], 'variant options').map((option: any) => ({
+      priceAdjustment: Number(v.price_adjustment ?? 0), finalPrice: Number(v.final_price ?? v.price ?? 0), stock: Number(v.stock ?? 0),
+      options: array(v.attribute_values ?? v.options ?? [], 'variant options').map((option: any) => ({
         variantOptionId: option.variant_option_id,
         attributeId: option.attribute_id,
         slug: option.slug,

@@ -27,12 +27,14 @@ watch(() => props.product.imageUrl, () => {
 })
 
 function addToCart() {
+  if (props.product.isPurchasable === false && !cartItems.value.length) return
   quickAddOpen.value = true
 }
 
 async function changeQuantity(amount: number) {
   const item = inlineCartItem.value
   if (!item || cartActionDisabled.value) return
+  if (amount > 0 && props.product.isPurchasable === false) return
 
   try {
     if (amount < 0 && item.quantity === 1) {
@@ -85,12 +87,12 @@ async function changeQuantity(amount: number) {
           <span class="text-sm font-semibold text-text-primary">{{ formatMoney(finalPrice) }}</span>
         </div>
 
-        <div v-if="variant !== 'compact'" class="pointer-events-auto mt-auto">
+        <div v-if="variant !== 'compact' && (product.isPurchasable !== false || cartItems.length)" class="pointer-events-auto mt-auto">
           <template v-if="inlineCartItem">
             <div class="flex min-h-11 items-center justify-between rounded-lg bg-primary px-1 text-primary-foreground">
               <button type="button" class="grid size-9 place-items-center rounded-md transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-40" aria-label="کاهش تعداد" :disabled="cartActionDisabled" @click="changeQuantity(-1)"><UIcon name="solar:minus-circle-outline" class="size-5" /></button>
               <output class="min-w-8 text-center text-sm font-bold">{{ inlineCartItem.quantity.toLocaleString('fa-IR') }}</output>
-              <button type="button" class="grid size-9 place-items-center rounded-md transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-40" aria-label="افزایش تعداد" :disabled="cartActionDisabled || inlineCartItem.quantity >= (quantityLimits?.maxQuantity ?? 0)" @click="changeQuantity(1)"><UIcon name="solar:add-circle-outline" class="size-5" /></button>
+              <button type="button" class="grid size-9 place-items-center rounded-md transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-40" aria-label="افزایش تعداد" :disabled="product.isPurchasable === false || cartActionDisabled || inlineCartItem.quantity >= (quantityLimits?.maxQuantity ?? 0)" @click="changeQuantity(1)"><UIcon name="solar:add-circle-outline" class="size-5" /></button>
             </div>
             <p v-if="orderLimitReached" role="status" class="mt-2 text-xs text-danger-subtle">شما به محدودیت تعداد انتخابی برای سفارش این محصول رسیدید.</p>
           </template>

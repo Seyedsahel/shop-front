@@ -1,7 +1,7 @@
 <script setup lang="ts">
 const blogStore = useBlogStore()
 const setStatus = usePageResponse()
-await callOnce('blog:list', async () => { if (!(await blogStore.fetchPosts())) setStatus(blogStore.error?.status ?? 503) }, { mode: 'navigation' })
+await callOnce('blog:list', async () => { if (!(await blogStore.fetchPosts(true))) setStatus(blogStore.error?.status ?? 503) }, { mode: 'navigation' })
 usePageSeo('وبلاگ', 'تازه‌ترین مقالات فروشگاه.')
 const isEmpty = computed(() => blogStore.loaded && !blogStore.isLoading && !blogStore.error && !blogStore.items.length)
 </script>

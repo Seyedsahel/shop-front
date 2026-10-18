@@ -4,9 +4,16 @@ export const useShippingLocationsStore = defineStore('shippingLocations', () => 
   const loading = ref(false)
   const loaded = ref(false)
   const error = ref('')
+  let pending: Promise<void> | null = null
 
-  async function fetchAll() {
-    if (loaded.value || loading.value) return
+  function fetchAll(): Promise<void> {
+    if (pending) return pending
+    if (loaded.value) return Promise.resolve()
+    pending = load().finally(() => { pending = null })
+    return pending
+  }
+
+  async function load() {
     loading.value = true
     error.value = ''
     try {

@@ -7,13 +7,15 @@ export const useCommentStore = defineStore('comment', () => {
   const pending = new Map<string, Promise<void>>()
   const isSubmitting = ref(false)
   const authStore = useAuthStore()
+  let sessionGeneration = 0
 
-  watch(() => authStore.user?.id, (userId, previousUserId) => {
-    if (previousUserId && userId !== previousUserId) pendingByTarget.value = {}
-  })
+  watch(() => authStore.sessionScope ?? authStore.identity ?? authStore.user?.id, () => {
+    sessionGeneration++
+    pendingByTarget.value = {}
+  }, { flush: 'sync' })
   watch(() => authStore.isAuthenticated, isAuthenticated => {
-    if (!isAuthenticated) pendingByTarget.value = {}
-  })
+    if (!isAuthenticated) { sessionGeneration++; pendingByTarget.value = {} }
+  }, { flush: 'sync' })
 
   function keyFor(targetType: CommentTargetType, targetId: string) {
     return `${targetType}:${targetId}`
@@ -39,6 +41,7 @@ export const useCommentStore = defineStore('comment', () => {
   }
 
   async function submitComment(targetType: CommentTargetType, targetId: string, content: string, parentId?: string) {
+    if (isSubmitting.value) return false
     if (!authStore.isAuthenticated) {
       authStore.requireAuth(useRoute().fullPath)
       return false
@@ -49,14 +52,17 @@ export const useCommentStore = defineStore('comment', () => {
     }
 
     isSubmitting.value = true
+    const generation = sessionGeneration
+    const authorName = authStore.user?.name || 'شما'
     try {
       const created = await api.post<CreatedCommentResponse>('/comments', {
         targetType, targetId, content: content.trim(), parentId,
       } satisfies SubmitCommentPayload)
+      if (generation !== sessionGeneration) return false
       const key = keyFor(targetType, targetId)
       const comment: AppComment = {
         id: created.id,
-        authorName: authStore.user?.name || 'شما',
+        authorName,
         content: created.body,
         createdAt: new Date(created.created_at * 1000).toLocaleString('fa-IR', { timeZone: 'Asia/Tehran' }),
         parentId: created.parent_id,
@@ -67,7 +73,7 @@ export const useCommentStore = defineStore('comment', () => {
       useAppToast().success('نظر شما ثبت شد.')
       return true
     } catch (e) {
-      useAppToast().error(e instanceof ApiError ? e.message : 'ثبت نظر ناموفق بود.')
+      if (generation === sessionGeneration) useAppToast().error(e instanceof ApiError ? e.message : 'ثبت نظر ناموفق بود.')
       return false
     } finally {
       isSubmitting.value = false

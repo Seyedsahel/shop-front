@@ -17,7 +17,7 @@ Object.assign(globalThis, await load('server/utils/session.ts'), await load('sha
 globalThis.useRuntimeConfig = () => ({ backendUrl: 'https://backend.test' })
 const { backendFetch } = await load('server/utils/backendFetch.ts')
 
-test('backend logs only structured metadata while preserving validation responses', async () => {
+test('backend logs upstream diagnostics while preserving normalized client responses', async () => {
   const privateValue = 'CUSTOMER_PRIVATE_PHONE_ADDRESS_TOKEN'
   const logs = []
   const original = console.error
@@ -29,17 +29,36 @@ test('backend logs only structured metadata while preserving validation response
     await assert.rejects(backendFetch('/orders/' + privateValue + '?phone=' + privateValue,
       { authorization: 'none', method: 'POST', body: { phone: privateValue } }),
     error => error.statusCode === 422 && error.data.validationMessage === privateValue)
-    assert.deepEqual(logs, [['backend_request_failed', { method: 'POST', status: 422, kind: 'http' }]])
-    assert.equal(JSON.stringify(logs).includes(privateValue), false)
+    assert.deepEqual(logs, [['backend_request_failed', {
+      method: 'POST', status: 422, kind: 'http',
+      message: privateValue, data: { error: privateValue }, stack: undefined,
+    }]])
 
-    globalThis.$fetch = async () => { throw new Error(privateValue) }
+    globalThis.$fetch = async () => {
+      throw { response: { status: 500, _data: { message: 'Database connection failed' } }, message: 'Internal Server Error' }
+    }
+    await assert.rejects(backendFetch('/orders', { authorization: 'none', method: 'POST' }),
+      error => error.statusCode === 500 && error.message === 'درخواست به سرویس انجام نشد.' && !error.data?.message)
+    assert.deepEqual(logs.at(-1), ['backend_request_failed', {
+      method: 'POST', status: 500, kind: 'http',
+      message: 'Internal Server Error', data: { message: 'Database connection failed' }, stack: undefined,
+    }])
+
+    const networkError = new Error(privateValue)
+    globalThis.$fetch = async () => { throw networkError }
     await assert.rejects(backendFetch('/private', { authorization: 'none' }), error => error.statusCode === 502)
-    assert.deepEqual(logs.at(-1), ['backend_request_failed', { method: 'GET', status: null, kind: 'network' }])
+    assert.deepEqual(logs.at(-1), ['backend_request_failed', {
+      method: 'GET', status: null, kind: 'network',
+      message: privateValue, data: undefined, stack: networkError.stack,
+    }])
 
     globalThis.$fetch = () => new Promise(() => {})
     await assert.rejects(backendFetch('/private', { authorization: 'none', timeout: 10 }), error => error.statusCode === 504)
-    assert.deepEqual(logs.at(-1), ['backend_request_failed', { method: 'GET', status: null, kind: 'timeout' }])
-    assert.equal(JSON.stringify(logs).includes(privateValue), false)
+    const timeoutLog = logs.at(-1)
+    assert.equal(timeoutLog[0], 'backend_request_failed')
+    assert.equal(timeoutLog[1].method, 'GET')
+    assert.equal(timeoutLog[1].status, null)
+    assert.equal(timeoutLog[1].kind, 'timeout')
   } finally {
     console.error = original
   }

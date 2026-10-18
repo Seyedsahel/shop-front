@@ -63,7 +63,7 @@ const quantityLimits = computed(() => {
   })
 })
 const orderLimitReached = computed(() => availableStock.value !== null && quantity.value >= quantityLimits.value.orderRemaining)
-const canAdd = computed(() => cartStore.loaded && isInStock.value && quantity.value <= quantityLimits.value.maxAdditional)
+const canAdd = computed(() => props.product.isPurchasable !== false && cartStore.loaded && isInStock.value && quantity.value <= quantityLimits.value.maxAdditional)
 const totalPrice = computed(() => unitPrice.value * quantity.value)
 const favoriteItem = computed(() => wishlistStore.findItem(props.product.id, selectedVariant.value?.variantId))
 
@@ -87,6 +87,7 @@ watch(() => quantityLimits.value.maxAdditional, maximum => {
 })
 
 function increaseQuantity() {
+  if (props.product.isPurchasable === false) return
   if (!cartStore.loaded || cartStore.busy || cartStore.stale || quantity.value >= quantityLimits.value.maxAdditional) return
   const nextQuantity = quantity.value + 1
   quantity.value = nextQuantity
@@ -175,12 +176,13 @@ async function toggleFavorite() {
       :selected-options="selectedOptions"
       @select="select"
     />
+    <p v-if="product.isPurchasable === false" role="status" class="text-sm text-text-secondary">این محصول در حال حاضر قابل خرید نیست.</p>
 
     <div v-if="cartStore.stale" role="alert" class="text-sm text-danger">{{ cartStore.error }} <NuxtLink to="/cart" class="underline">بررسی و دریافت دوباره سبد</NuxtLink></div>
     <div v-if="wishlistStore.stale" role="alert" class="text-sm text-danger">{{ wishlistStore.error }} <button type="button" class="underline" :disabled="wishlistStore.busy" @click="wishlistStore.fetchWishlist().catch(() => {})">دریافت دوباره علاقه‌مندی‌ها</button></div>
     <div class="flex flex-col gap-3">
       <div class="flex flex-col gap-3 sm:flex-row">
-      <div class="flex h-12 w-full items-center justify-between rounded-xl border border-border-strong bg-card sm:w-36">
+      <div v-if="product.isPurchasable !== false" class="flex h-12 w-full items-center justify-between rounded-xl border border-border-strong bg-card sm:w-36">
         <button type="button" class="grid size-11 place-items-center text-text-secondary hover:text-primary 
        disabled:opacity-40" :disabled="quantity <= 1" aria-label="کاهش تعداد" @click="quantity--">
           <UIcon name="solar:minus-circle-outline" class="size-5" />
@@ -191,17 +193,17 @@ async function toggleFavorite() {
         </button>
       </div>
       <div class="flex w-full gap-3 sm:flex-1">
-        <button type="button" class="inline-flex min-h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:bg-disabled-bg disabled:text-disabled-text sm:h-12 sm:py-0" :disabled="!canAdd || cartStore.busy || cartStore.stale" @click="addToCart">
+        <button v-if="product.isPurchasable !== false" type="button" class="inline-flex min-h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:bg-disabled-bg disabled:text-disabled-text sm:h-12 sm:py-0" :disabled="!canAdd || cartStore.busy || cartStore.stale" @click="addToCart">
           <UIcon name="solar:cart-large-2-outline" class="size-5 shrink-0" />
-          <span class="truncate">{{ cartStore.isMutating ? 'در حال افزودن به سبد…' : availableStock === null ? 'گزینه محصول را انتخاب کنید' : isInStock ? `افزودن به سبد · ${formatMoney(totalPrice)}` : 'این محصول ناموجود است' }}</span>
+          <span class="truncate">{{ cartStore.isMutating ? 'در حال افزودن به سبد…'  : availableStock === null ? 'گزینه محصول را انتخاب کنید' : isInStock ? `افزودن به سبد · ${formatMoney(totalPrice)}` : 'این محصول ناموجود است' }}</span>
         </button>
         <button type="button" class="inline-flex size-12 shrink-0 items-center justify-center rounded-xl border border-secondary bg-primary-subtle text-danger transition-colors hover:bg-secondary-subtle hover:text-primary disabled:cursor-not-allowed disabled:opacity-50" :disabled="wishlistStore.busy || wishlistStore.stale || (product.purchaseVariants.length > 0 && !selectedVariant)" :aria-label="favoriteItem ? 'حذف از علاقه‌مندی‌ها' : 'افزودن به علاقه‌مندی‌ها'" :aria-pressed="!!favoriteItem" @click="toggleFavorite">
           <UIcon :name="favoriteItem ? 'solar:heart-bold' : 'solar:heart-outline'" class="size-5" />
         </button>
       </div>
       </div>
-      <p v-if="orderLimitReached" role="status" class="text-sm text-danger-subtle">شما به محدودیت تعداد انتخابی برای سفارش این محصول رسیدید.</p>
-      <p v-else-if="isInStock && quantityLimits.maxAdditional === 0" role="status" class="text-sm text-text-secondary">تمام موجودی این گزینه در سبد خرید شماست.</p>
+      <p v-if="product.isPurchasable !== false && orderLimitReached" role="status" class="text-sm text-danger-subtle">شما به محدودیت تعداد انتخابی برای سفارش این محصول رسیدید.</p>
+      <p v-else-if="product.isPurchasable !== false && isInStock && quantityLimits.maxAdditional === 0" role="status" class="text-sm text-text-secondary">تمام موجودی این گزینه در سبد خرید شماست.</p>
     </div>
 
     <!-- TODO: Replace with backend-backed delivery promises when available. -->

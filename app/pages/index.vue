@@ -10,11 +10,11 @@ const shop = useShopStore()
 const featuredCategory = '0fa5f2d7-8a16-5a5c-85eb-79922cf7c399'
 const sections = {
   banners: { title: 'بنرها', error: () => bannerStore.error, load: () => bannerStore.fetchBanners() },
-  stories: { title: 'استوری‌ها', error: () => stories.error?.message, load: () => stories.fetchStories() },
+  stories: { title: 'استوری‌ها', error: () => stories.error?.message, load: () => stories.fetchStories(true) },
   categories: { title: 'دسته‌بندی‌ها', error: () => categories.error, load: () => categories.fetchCategories() },
   brands: { title: 'برندها', error: () => brands.error, load: () => brands.fetchBrands() },
   products: { title: 'محصولات ویژه', error: () => products.previewError[featuredCategory], load: () => products.fetchPreview(featuredCategory, true) },
-  blog: { title: 'مقالات', error: () => blog.error?.message, load: () => blog.fetchPosts() },
+  blog: { title: 'مقالات', error: () => blog.error?.message, load: () => blog.fetchPosts(true) },
   discounts: { title: 'تخفیف‌ها', error: () => products.availabilityError, load: () => products.fetchDiscountedAvailability() },
   offer: { title: 'پیشنهاد شگفت‌انگیز', error: () => offer.error, load: () => offer.fetchOffer(true) },
 }

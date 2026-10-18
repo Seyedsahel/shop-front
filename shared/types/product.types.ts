@@ -20,6 +20,7 @@ export interface Product {
   basePrice: number
   price: ProductPrice
   stock: number
+  isPurchasable: boolean
   /** Zero means this product has no per-order quantity limit. */
   maxPerOrder: number
   createdAt?: number
@@ -83,7 +84,8 @@ export interface ProductSpecification {
 }
 
 export interface ProductVariantOption {
-  variantOptionId: string
+  /** Only supplied by the legacy options contract; attribute_values has no option ID. */
+  variantOptionId?: string
   attributeId: string
   slug: string
   name: string
@@ -167,6 +169,7 @@ export interface ProductDetail {
   descriptionBlocks: ProductDescriptionBlock[]
   basePrice: number
   baseStock: number
+  isPurchasable: boolean
   /** Zero means this product has no per-order quantity limit. */
   maxPerOrder: number
   price: ProductDetailPrice

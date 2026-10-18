@@ -1,7 +1,7 @@
 <script setup lang="ts">
 const stories = useStoryStore()
 const setStatus = usePageResponse()
-await callOnce('stories:list', async () => { if (!(await stories.fetchStories())) setStatus(stories.error?.status ?? 503) }, { mode: 'navigation' })
+await callOnce('stories:list', async () => { if (!(await stories.fetchStories(true))) setStatus(stories.error?.status ?? 503) }, { mode: 'navigation' })
 onMounted(() => stories.loadSeenFromStorage())
 usePageSeo('استوری‌ها', 'استوری‌های فروشگاه.')
 </script>
