@@ -63,9 +63,6 @@ export function mapProductDetail(raw: any): ProductDetail {
       isThumbnail: img.is_thumbnail,
     })),
     categories: array(raw.categories ?? [], 'categories').map((c: any) => ({ id: c.id, name: c.name, slug: c.slug })),
-    specifications: array(raw.specifications ?? [], 'specifications').map((s: any) => ({
-      attributeId: s.attribute_id, slug: s.slug, name: s.name, dataType: s.data_type, unit: s.unit, value: s.value,
-    })),
     purchaseVariants: array(raw.purchase_variants ?? [], 'purchase variants').map((v: any) => ({
       variantId: v.variant_id, sku: v.sku, maxPerOrder: Number(v.max_per_order ?? 0),
       priceAdjustment: Number(v.price_adjustment ?? 0), finalPrice: Number(v.final_price ?? v.price ?? 0), stock: Number(v.stock ?? 0),
@@ -74,6 +71,8 @@ export function mapProductDetail(raw: any): ProductDetail {
         attributeId: option.attribute_id,
         slug: option.slug,
         name: option.name,
+        dataType: string(option.data_type),
+        unit: string(option.unit),
         value: option.value,
       })),
     })),

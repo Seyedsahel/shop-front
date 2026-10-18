@@ -12,6 +12,15 @@ const slug = computed(() => typeof route.params.slug === 'string' ? route.params
 
 const setStatus = usePageResponse()
 const product = computed(() => productDetailStore.current?.slug === slug.value ? productDetailStore.current : null)
+const selectedVariantId = ref<string | null>()
+watch(product, () => { selectedVariantId.value = undefined }, { flush: 'sync' })
+const specifications = computed(() => {
+  const variants = product.value?.purchaseVariants ?? []
+  const variant = selectedVariantId.value === undefined
+    ? variants[0]
+    : variants.find(item => item.variantId === selectedVariantId.value)
+  return variant?.options ?? []
+})
 async function loadProduct() {
   const requestedSlug = slug.value
   await productDetailStore.fetchBySlug(requestedSlug, detailOwner)
@@ -59,12 +68,16 @@ await callOnce(`product:${slug.value}`, loadProduct, { mode: 'navigation' })
 
       <section class="grid items-start gap-8 lg:grid-cols-2 lg:gap-12">
         <ProductDetailGallery :product="product" class="min-w-0" />
-        <ProductPurchasePanel :product="product" />
+        <ProductPurchasePanel :product="product" @variant-change="selectedVariantId = $event?.variantId ?? null" />
       </section>
 
       <section class="grid items-start gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]">
-        <UiOptionalSection><ProductDetailTabs :product="product" /></UiOptionalSection>
-        <UiOptionalSection><ProductSpecifications :specifications="product.specifications" /></UiOptionalSection>
+        <div class="min-w-0 lg:order-2">
+          <UiOptionalSection><ProductSpecifications :specifications="specifications" :awaiting-selection="selectedVariantId === null && product.purchaseVariants.length > 1" /></UiOptionalSection>
+        </div>
+        <div class="min-w-0 lg:order-1">
+          <UiOptionalSection><ProductDetailTabs :product="product" /></UiOptionalSection>
+        </div>
       </section>
 
       <UiOptionalSection><ProductRelatedProducts :category-id="product.categories[0]?.id" :current-product-id="product.id" /></UiOptionalSection>

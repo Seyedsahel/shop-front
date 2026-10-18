@@ -20,6 +20,7 @@ Object.assign(globalThis, await load('app/utils/productQuantity.ts'))
 globalThis.onMounted = () => {}
 globalThis.onBeforeUnmount = () => {}
 globalThis.useId = () => 'test-summary'
+globalThis.defineEmits = () => () => {}
 const { useProductVariants } = await load('app/composables/useProductVariants.ts')
 globalThis.useProductVariants = useProductVariants
 const { mapProductDetail } = await load('server/utils/productDetail.ts')
@@ -68,7 +69,7 @@ function variant(variantId, stock, options) {
   return {
     variantId, sku: variantId, maxPerOrder: 0, finalPrice: 12, priceAdjustment: 0, stock,
     options: Object.entries(options).map(([slug, value]) => ({
-      variantOptionId: variantId, attributeId: slug, slug, name: slug.toUpperCase(), value,
+      variantOptionId: variantId, attributeId: slug, slug, name: slug.toUpperCase(), dataType: 'select', unit: '', value,
     })),
   }
 }
@@ -80,7 +81,7 @@ test('detail mapper keeps purchase combination IDs, max order limit, and nested 
   }] })
   assert.deepEqual(detail.purchaseVariants[0], {
     variantId: 'purchase-id', sku: 'sku-1', maxPerOrder: 2, finalPrice: 15, priceAdjustment: 3, stock: 2,
-    options: [{ variantOptionId: 'option-id', attributeId: 'attribute-id', slug: 'pack-size', name: 'Pack Size', value: '100 ml' }],
+    options: [{ variantOptionId: 'option-id', attributeId: 'attribute-id', slug: 'pack-size', name: 'Pack Size', dataType: '', unit: '', value: '100 ml' }],
   })
   assert.equal(detail.maxPerOrder, 3)
 })
@@ -330,4 +331,73 @@ test('purchase panel and quick add block a product the backend marks non-purchas
   assert.equal(quick.ready.value, false)
   await quick.add()
   assert.deepEqual(calls, [])
+})
+
+test('detail specifications follow the first variant, subsequent selections, and a single-variant replacement', async () => {
+  const base = backendDetail.purchase_variants[0]
+  const rawVariant = (id, color, size, price, stock) => ({
+    ...base, variant_id: id, price, final_price: price, stock,
+    attribute_values: [
+      { ...base.attribute_values[0], value: color },
+      { ...base.attribute_values[1], value: size, unit: 'cm' },
+    ],
+  })
+  const product = mapProductDetail({ ...backendDetail, purchase_variants: [
+    rawVariant('first', 'red', 'small', 300000, 0),
+    rawVariant('second', 'white', 'small', 100000, 2),
+    rawVariant('third', 'white', 'big', 200000, 2),
+  ] })
+  const details = reactive({ current: product, claimDetailOwner() { return Symbol() }, async fetchBySlug() {}, invalidateDetail() {} })
+  Object.assign(globalThis, {
+    useRoute: () => ({ path: '/products/testtest', params: { slug: 'testtest' } }),
+    useRouter: () => ({ afterEach: () => () => {}, currentRoute: ref({ params: { slug: 'testtest' } }) }),
+    useProductDetailStore: () => details, usePageResponse: () => () => {}, usePageSeo() {},
+    callOnce: async (_key, run) => run(),
+  })
+  const source = (await readFile(new URL('../app/pages/products/[slug].vue', import.meta.url), 'utf8'))
+    .match(/<script setup lang="ts">([\s\S]*?)<\/script>/)[1]
+  const { outputText } = ts.transpileModule(source + '\nexport { specifications, selectedVariantId }', {
+    compilerOptions: { target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext },
+  })
+  const page = await import('data:text/javascript;base64,' + Buffer.from(outputText).toString('base64'))
+  assert.deepEqual(page.specifications.value.map(item => item.value), ['red', 'small'])
+  assert.equal(page.specifications.value[1].dataType, 'select')
+  assert.equal(page.specifications.value[1].unit, 'cm')
+
+  const calls = []
+  const props = reactive({ product: details.current })
+  globalThis.defineProps = () => props
+  globalThis.defineEmits = () => (event, selected) => {
+    assert.equal(event, 'variantChange')
+    page.selectedVariantId.value = selected?.variantId ?? null
+  }
+  globalThis.useCartStore = () => ({ loaded: true, busy: false, stale: false, itemsForProduct: () => [], async addItem(...args) { calls.push(args) } })
+  globalThis.useWishlistStore = () => ({ findItem: () => undefined })
+  globalThis.useAppToast = () => ({ success() {}, error() {} })
+  try {
+    const panel = await componentScript('ProductPurchasePanel.vue', 'select, selectedVariant, unitPrice, availableStock, addToCart', 'specifications')
+    assert.equal(panel.selectedVariant.value.variantId, 'first', 'Detail starts at the first variant even when out of stock')
+    assert.equal(panel.unitPrice.value, 300000)
+    assert.equal(panel.availableStock.value, 0)
+    panel.select('رنگ', 'white')
+    assert.deepEqual(page.specifications.value.map(item => item.value), ['white', 'small'])
+    panel.select('سایز', 'big')
+    assert.deepEqual(page.specifications.value.map(item => item.value), ['white', 'big'])
+    assert.equal(panel.unitPrice.value, 200000)
+    panel.select('رنگ', '')
+    assert.deepEqual(page.specifications.value, [], 'Incomplete selections do not show the previous variant')
+
+    const single = mapProductDetail({ ...backendDetail, purchase_variants: [rawVariant('only', 'green', 'large', 450000, 7)] })
+    details.current = single
+    props.product = details.current
+    await nextTick()
+    assert.deepEqual(page.specifications.value.map(item => item.value), ['green', 'large'])
+    assert.equal(panel.selectedVariant.value.variantId, 'only')
+    assert.equal(panel.unitPrice.value, 450000)
+    assert.equal(panel.availableStock.value, 7)
+    await panel.addToCart()
+    assert.deepEqual(calls, [[backendDetail.id, 1, 'only']], 'A hidden selector must still send the single variant ID')
+  } finally {
+    globalThis.defineEmits = () => () => {}
+  }
 })

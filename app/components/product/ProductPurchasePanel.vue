@@ -3,6 +3,7 @@ const cartStore = useCartStore()
 const wishlistStore = useWishlistStore()
 const toast = useAppToast()
 const props = defineProps<{ product: ProductDetail }>()
+const emit = defineEmits<{ variantChange: [variant: ProductVariant | null] }>()
 
 const summaryId = useId()
 const summaryExpanded = ref(false)
@@ -73,13 +74,15 @@ onMounted(() => {
 })
 
 watch(
-  () => props.product.id,
+  () => props.product.purchaseVariants,
   () => {
-    reset()
+    reset(props.product.purchaseVariants[0])
     quantity.value = 1
   },
   { immediate: true },
 )
+
+watch(selectedVariant, variant => emit('variantChange', variant), { immediate: true, flush: 'sync' })
 
 watch(() => selectedVariant.value?.variantId, () => { quantity.value = 1 })
 watch(() => quantityLimits.value.maxAdditional, maximum => {
@@ -171,7 +174,7 @@ async function toggleFavorite() {
     </div>
 
     <ProductVariantSelectors
-      v-if="product.purchaseVariants.length"
+      v-if="product.purchaseVariants.length > 1"
       :attributes="attributes"
       :selected-options="selectedOptions"
       @select="select"

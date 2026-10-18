@@ -61,8 +61,7 @@ export function useProductVariants(getVariants: () => ProductVariant[]) {
     selectedOptions.value = next
   }
 
-  function reset() {
-    const variant = getVariants().find(item => item.stock > 0) ?? getVariants()[0]
+  function reset(variant = getVariants().find(item => item.stock > 0) ?? getVariants()[0]) {
     selectedOptions.value = variant
       ? Object.fromEntries(variant.options.map(option => [option.slug, option.value]))
       : {}

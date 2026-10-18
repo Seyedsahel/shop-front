@@ -146,7 +146,7 @@ async function retry() {
         <p v-if="cartLines.some(item => item.quantity >= lineLimits(item).orderMaximum)" role="status" class="text-xs text-danger-subtle">شما به محدودیت تعداد انتخابی برای سفارش این محصول رسیدید.</p>
       </section>
       <ProductVariantSelectors
-        v-if="detail.purchaseVariants.length"
+        v-if="detail.purchaseVariants.length > 1"
         class="mb-5"
         :attributes="attributes"
         :selected-options="selectedOptions"

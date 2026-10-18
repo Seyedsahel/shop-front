@@ -83,13 +83,9 @@ export interface ProductSpecification {
   value: string
 }
 
-export interface ProductVariantOption {
+export interface ProductVariantOption extends ProductSpecification {
   /** Only supplied by the legacy options contract; attribute_values has no option ID. */
   variantOptionId?: string
-  attributeId: string
-  slug: string
-  name: string
-  value: string
 }
 
 export interface ProductVariant {
@@ -176,7 +172,6 @@ export interface ProductDetail {
   brand: ProductDetailBrand | null
   images: ProductDetailImage[]
   categories: ProductDetailCategory[]
-  specifications: ProductSpecification[]
   purchaseVariants: ProductVariant[]
 }
 

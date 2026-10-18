@@ -33,6 +33,8 @@ test('product attributes render on SSR and every document reload requests fresh 
       assert.equal(response.status, 200)
       const html = (await response.text()).split('<script type="application/json"')[0]
       for (const text of ['hfggf', 'رنگ', 'قرمز', 'سایز', 'بیگ']) assert.ok(html.includes(text), text)
+      assert.ok(!html.includes('پاک کردن انتخاب'), 'A single variant has specifications without dropdown selectors')
+      assert.ok(html.indexOf('مشخصات محصول') < html.indexOf('نظرات کاربران'), 'Specifications precede tabs in mobile document order')
       const calls = backend.calls.filter(call => call.path === '/tbt/products/testtest/detail')
       assert.equal(calls.length, reload + 1, 'Each reload fetches detail on the server')
       assert.ok(calls.every(call => call.method === 'GET' && !call.identity))

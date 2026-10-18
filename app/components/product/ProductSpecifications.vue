@@ -1,5 +1,5 @@
 <script setup lang="ts">
-defineProps<{ specifications: ProductSpecification[] }>()
+defineProps<{ specifications: ProductSpecification[]; awaitingSelection?: boolean }>()
 
 function displayValue(specification: ProductSpecification) {
   if (specification.dataType === 'boolean') return specification.value === 'true' ? 'بله' : 'خیر'
@@ -16,6 +16,6 @@ function displayValue(specification: ProductSpecification) {
         <dd class="text-sm font-medium text-text-primary">{{ displayValue(specification) || '—' }}</dd>
       </div>
     </dl>
-    <p v-else class="rounded-xl bg-surface p-4 text-sm text-text-muted">مشخصاتی برای این محصول ثبت نشده است.</p>
+    <p v-else class="rounded-xl bg-surface p-4 text-sm text-text-muted">{{ awaitingSelection ? 'برای نمایش مشخصات، گزینه‌های محصول را انتخاب کنید.' : 'مشخصاتی برای این محصول ثبت نشده است.' }}</p>
   </section>
 </template>
