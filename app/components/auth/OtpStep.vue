@@ -1,5 +1,4 @@
 <script setup lang="ts">
-const OTP_LENGTH = 4
 const authStore = useAuthStore()
 const digits = ref<string[]>(Array.from({ length: OTP_LENGTH }, () => ''))
 const codeError = ref('')
@@ -72,14 +71,14 @@ async function handleResend() {
     <div class="mb-8 text-center">
       <div class="mx-auto mb-3 flex size-12 items-center justify-center rounded-2xl border border-divider bg-surface text-primary"><UIcon name="solar:smartphone-linear" class="size-6" /></div>
       <h1 class="text-2xl font-bold tracking-tight text-text-primary">کد تایید را وارد کنید</h1>
-      <p class="mt-3 text-sm leading-relaxed text-text-secondary">کد ۴ رقمی به شماره <span class="inline-block rounded-lg border border-divider bg-surface px-2 py-0.5 font-bold tracking-wider text-text-primary" dir="ltr"> +98 {{ authStore.phone }}</span> ارسال شد.</p>
+      <p class="mt-3 text-sm leading-relaxed text-text-secondary">کد ۶ رقمی به شماره <span class="inline-block rounded-lg border border-divider bg-surface px-2 py-0.5 font-bold tracking-wider text-text-primary" dir="ltr"> +98 {{ authStore.phone }}</span> ارسال شد.</p>
     </div>
 
     <form class="space-y-6" novalidate @submit.prevent="submit">
       <div>
         <label class="mb-3 block text-center text-xs font-semibold text-text-muted">کد اعتبارسنجی پیامک شده</label>
-        <div class="flex justify-center gap-2.5" dir="ltr" @paste="onPaste">
-          <input v-for="(_, index) in digits" :key="index" :ref="element => setInput(element, index)" :value="digits[index]" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="1" :aria-label="`رقم ${index + 1} کد تایید`" class="size-14 rounded-xl border-2 bg-card text-center text-2xl font-bold text-text-primary outline-none transition focus:border-primary focus:ring-2 focus:ring-focus-ring/40" :class="codeError ? 'border-danger-border' : 'border-divider'" @input="onDigitInput($event, index)" @keydown="onKeydown($event, index)" />
+        <div class="mx-auto grid max-w-sm grid-cols-6 gap-2 sm:gap-2.5" dir="ltr" @paste="onPaste">
+          <input v-for="(_, index) in digits" :key="index" :ref="element => setInput(element, index)" :value="digits[index]" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="1" :aria-label="`رقم ${index + 1} کد تایید`" class="h-12 min-w-0 w-full rounded-xl border-2 bg-card text-center text-2xl font-bold text-text-primary outline-none transition focus:border-primary focus:ring-2 focus:ring-focus-ring/40 sm:h-14" :class="codeError ? 'border-danger-border' : 'border-divider'" @input="onDigitInput($event, index)" @keydown="onKeydown($event, index)" />
         </div>
         <p v-if="codeError" class="mt-2 text-center text-xs text-danger">{{ codeError }}</p>
       </div>

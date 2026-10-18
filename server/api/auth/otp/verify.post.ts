@@ -1,7 +1,7 @@
 export default defineEventHandler(async (event) => {
   const body = parseOtpVerifyInput(await readBody<unknown>(event))
   if (!body) {
-    const message = 'شماره موبایل و کد تایید ۴ رقمی معتبر وارد کنید.'
+    const message = 'شماره موبایل و کد تایید ۶ رقمی معتبر وارد کنید.'
     throw createError({ statusCode: 400, statusMessage: 'Bad Request', message, data: { validationMessage: message } })
   }
 

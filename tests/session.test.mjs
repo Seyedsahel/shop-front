@@ -99,7 +99,7 @@ test('login forwards the guest bearer token, replaces guest identity, refresh re
     assert.equal(options.headers.get('authorization'), 'Bearer guest')
     return { token: 'new-user' }
   }
-  const response = await request(login, 'guest_token=guest', { phone: '9123456789', code: '1234' })
+  const response = await request(login, 'guest_token=guest', { phone: '9123456789', code: '123456' })
   assert.deepEqual(await response.json(), { success: true })
   assert.match(response.headers.get('set-cookie'), /auth_token=new-user/)
   assert.match(response.headers.get('set-cookie'), /guest_token=; Max-Age=0/)
@@ -220,7 +220,7 @@ test('concurrent guest requests are deduplicated and login waits for cookie crea
   const store = useAuthStore()
   const first = store.ensureShoppingSession()
   const second = store.ensureShoppingSession()
-  const login = store.verifyOtp('1234')
+  const login = store.verifyOtp('123456')
   await new Promise(resolve => setImmediate(resolve))
   assert.deepEqual(calls, ['/auth/guest'])
   completeGuest({ identity: 'guest', isAuthenticated: false, hasGuestSession: true })
@@ -274,7 +274,7 @@ test('login waits until the shopping operation and refresh release the shared se
     await new Promise(resolve => { release = resolve })
     calls.push('cart-refresh')
   })
-  const login = store.verifyOtp('1234')
+  const login = store.verifyOtp('123456')
   await new Promise(resolve => setImmediate(resolve))
   assert.deepEqual(calls, ['cart-write'])
   release()

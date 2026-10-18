@@ -1,3 +1,5 @@
+export const OTP_LENGTH = 6
+
 export function normalizeAuthDigits(value: string): string {
   return value.replace(/[۰-۹]/g, digit => String(digit.charCodeAt(0) - 0x06f0))
     .replace(/[٠-٩]/g, digit => String(digit.charCodeAt(0) - 0x0660))
@@ -15,7 +17,7 @@ export function authPhoneError(value: string): string {
 }
 
 export function otpCodeError(value: string): string {
-  return /^\d{4}$/.test(value) ? '' : 'کد تایید ۴ رقمی معتبر وارد کنید.'
+  return value.length === OTP_LENGTH && /^\d+$/.test(value) ? '' : 'کد تایید ۶ رقمی معتبر وارد کنید.'
 }
 
 export function parseOtpRequestInput(value: unknown): RequestOtpPayload | null {

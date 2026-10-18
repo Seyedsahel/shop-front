@@ -32,7 +32,7 @@ test('OTP normalizes supported phone formats and localized digits without changi
   for (const phone of ['9123456789', '09123456789', '+989123456789', '00989123456789', '۰۹۱۲۳۴۵۶۷۸۹', '٩١٢٣٤٥٦٧٨٩', '+98 (912) 345-6789']) {
     assert.deepEqual(parseOtpRequestInput({ phone }), { phone: '9123456789' })
   }
-  assert.deepEqual(parseOtpVerifyInput({ phone: '09123456789', code: ' ۰١۲٣ ' }), { phone: '9123456789', code: '0123' })
+  assert.deepEqual(parseOtpVerifyInput({ phone: '09123456789', code: ' ۰١۲٣۴٥ ' }), { phone: '9123456789', code: '012345' })
   for (const phone of [123, null, {}, [], '', 'abc9123456789', '91234567890', '+449123456789']) {
     assert.equal(parseOtpRequestInput({ phone }), null)
   }
@@ -49,7 +49,7 @@ test('OTP routes reject malformed bodies before making any backend request or ch
       assert.equal(typeof (await response.json()).data.validationMessage, 'string')
     }
   }
-  for (const code of [undefined, null, 1234, {}, [], '', '123', '12345', '12ab']) {
+  for (const code of [undefined, null, 123456, {}, [], '', '123', '1234', '12345', '1234567', '12ab45']) {
     assert.equal((await request(verifyOtp, { phone: '9123456789', code })).status, 400)
   }
   assert.equal((await request(requestOtp, '{broken', true)).status, 400)
@@ -64,7 +64,7 @@ test('valid OTP requests preserve text/plain JSON, credential modes and login co
   globalThis.sessionCookieOptions = { httpOnly: true, sameSite: 'lax', path: '/' }
   globalThis.clearCredential = (event, kind) => h3.deleteCookie(event, kind + '_token', { path: '/' })
   assert.equal((await request(requestOtp, { phone: '+989123456789' })).status, 200)
-  const response = await request(verifyOtp, { phone: '۰۹۱۲۳۴۵۶۷۸۹', code: '٠١٢٣' })
+  const response = await request(verifyOtp, { phone: '۰۹۱۲۳۴۵۶۷۸۹', code: '٠١٢٣٤٥' })
   assert.equal(response.status, 200)
   assert.match(response.headers.get('set-cookie'), /auth_token=user-token/)
   assert.match(response.headers.get('set-cookie'), /guest_token=; Max-Age=0/)
@@ -75,7 +75,7 @@ test('valid OTP requests preserve text/plain JSON, credential modes and login co
   assert.equal(calls[0][1].authorization, 'none')
   assert.equal(calls[0][1].body, JSON.stringify({ phone: '9123456789' }))
   assert.equal(calls[1][1].authorization, 'session')
-  assert.equal(calls[1][1].body, JSON.stringify({ phone: '9123456789', code: '0123' }))
+  assert.equal(calls[1][1].body, JSON.stringify({ phone: '9123456789', code: '012345' }))
 })
 
 test('comment submission rejects incorrect types, empty text/IDs and invalid parent IDs before upstream writes', async () => {
@@ -134,22 +134,31 @@ test('OTP form supports localized paste and rejects incomplete codes', async () 
   const countdown = reactive({ expired: false })
   globalThis.useCountdown = deadline => { assert.equal(deadline.value, 'resend-deadline'); return countdown }
   globalThis.navigateTo = async () => {}
-  const form = await load('app/components/auth/OtpStep.vue', '\nexport { submit, onPaste, onDigitInput, codeError, handleResend }')
+  globalThis.onMounted = () => {}
+  const form = await load('app/components/auth/OtpStep.vue', '\nexport { submit, onPaste, onDigitInput, codeError, handleResend, digits }')
+  assert.equal(form.digits.value.length, 6)
   await form.submit()
   assert.equal(calls.length, 0)
   assert.ok(form.codeError.value)
   form.onPaste({ clipboardData: { getData: () => '۰١۲٣' }, preventDefault() {} })
   await form.submit()
-  assert.deepEqual(calls, ['0123'])
+  assert.equal(calls.length, 0)
+  assert.ok(form.codeError.value)
+  form.onPaste({ clipboardData: { getData: () => '۰١۲٣۴٥' }, preventDefault() {} })
+  await form.submit()
+  assert.deepEqual(calls, ['012345'])
   form.onDigitInput({ target: { value: '۴' } }, 0)
   await form.submit()
-  assert.deepEqual(calls, ['0123', '4123'])
+  assert.deepEqual(calls, ['012345', '412345'])
   await form.handleResend()
-  assert.deepEqual(calls, ['0123', '4123'])
+  assert.deepEqual(calls, ['012345', '412345'])
   countdown.expired = true
   await form.submit() // Resend eligibility does not mean that the OTP has expired.
-  assert.deepEqual(calls, ['0123', '4123', '4123'])
+  assert.deepEqual(calls, ['012345', '412345', '412345'])
   await form.handleResend()
+  assert.equal(calls.at(-1), 'resend')
+  assert.deepEqual(form.digits.value, ['', '', '', '', '', ''])
+  await form.submit()
   assert.equal(calls.at(-1), 'resend')
 })
 
