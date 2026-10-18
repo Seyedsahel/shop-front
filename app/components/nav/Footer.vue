@@ -20,7 +20,7 @@ const scrollToTop = () => {
       <!-- Brand -->
       <div class="flex flex-col gap-3">
         <NuxtLink to="/" class="flex items-center gap-2">
-          <img v-if="shop.info?.logoImageUrl" :src="shop.info.logoImageUrl" :alt="`لوگوی ${shop.name}`" width="40" height="40" loading="lazy" class="size-10 object-contain" />
+          <img v-if="shop.info?.logoImageUrl" :src="shop.info.logoImageUrl" :alt="`لوگوی ${shop.name}`" width="64" height="64" loading="lazy" class="size-20 shrink-0 object-contain" />
           <span class="text-text-primary font-semibold">{{ shop.name }}</span>
         </NuxtLink>
         <p v-if="shop.info?.description" class="text-xs text-text-secondary leading-relaxed">

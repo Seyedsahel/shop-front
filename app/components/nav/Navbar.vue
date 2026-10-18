@@ -87,7 +87,7 @@ watch(width, () => {
     <!-- Top row -->
     <div class="max-w-full md:max-w-4/5 mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2 md:gap-4">
       <NuxtLink to="/" class="flex min-w-0 items-center gap-2 text-text-primary font-semibold tracking-wide md:shrink-0">
-        <img v-if="shop.info?.logoImageUrl" :src="shop.info.logoImageUrl" :alt="`لوگوی ${shop.name}`" width="40" height="40" class="size-8 shrink-0 object-contain md:size-10" />
+        <img v-if="shop.info?.logoImageUrl" :src="shop.info.logoImageUrl" :alt="`لوگوی ${shop.name}`" width="48" height="48" class="size-12 shrink-0 object-contain md:size-14" />
         <span class="truncate text-sm md:text-base">{{ shop.name }}</span>
       </NuxtLink>
 
