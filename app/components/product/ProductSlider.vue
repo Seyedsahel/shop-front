@@ -2,7 +2,11 @@
 const props = defineProps<{ categoryId: string; title?: string; variant?: 'default' | 'compact' }>()
 const productListStore = useProductListStore()
 
-await callOnce(`preview:${props.categoryId}`, () => productListStore.fetchPreview(props.categoryId), { mode: 'navigation' })
+function loadPreview() {
+  return callOnce(`preview:${props.categoryId}`, () => productListStore.fetchPreview(props.categoryId), { mode: 'navigation' })
+}
+if (import.meta.server) await loadPreview()
+else onMounted(() => { void loadPreview() })
 watch(() => props.categoryId, id => { void productListStore.fetchPreview(id) })
 
 const products = computed(() => productListStore.previewsByCategory[props.categoryId] ?? [])

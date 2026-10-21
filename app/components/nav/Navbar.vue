@@ -41,16 +41,30 @@ watch(isDesktop, desktop => {
     mobileSearchOpen.value = false
   } else {
     desktopSearchOpen.value = false
+    categoriesDropdownOpen.value = false
   }
 })
 
 // Desktop dropdown — closes on any click outside this wrapper (button + panel together)
 const categoriesWrapper = ref<HTMLElement>()
+const categoryTrigger = ref<HTMLButtonElement>()
+const categoriesMenuId = useId()
 useClickOutside(categoriesWrapper, () => { categoriesDropdownOpen.value = false })
 
-function toggleCategories() {
+function closeCategories() {
+  categoriesDropdownOpen.value = false
+  categoryTrigger.value?.focus({ preventScroll: true })
+}
+function leaveCategories(event: FocusEvent) {
+  if (event.relatedTarget instanceof Node && !categoriesWrapper.value?.contains(event.relatedTarget)) categoriesDropdownOpen.value = false
+}
+async function toggleCategories() {
   if (isDesktop.value) {
     categoriesDropdownOpen.value = !categoriesDropdownOpen.value
+    if (categoriesDropdownOpen.value) {
+      await nextTick()
+      categoriesWrapper.value?.querySelector<HTMLInputElement>('input')?.focus({ preventScroll: true })
+    }
   } else{
     categoriesSidebarOpen.value = true
   }
@@ -130,20 +144,27 @@ function submitDesktopSearch(query: string) {
     <div class="max-w-3/4 mx-auto px-4 sm:px-6 lg:px-8 h-12 flex items-center gap-4 relative">
 
       <!-- Categories: trigger + desktop dropdown share one click-outside boundary -->
-      <div ref="categoriesWrapper" class="relative">
+      <div ref="categoriesWrapper" class="relative" @keydown.esc.stop.prevent="closeCategories" @focusout="leaveCategories">
         <button
-          class="flex cursor-pointer items-center gap-2 text-sm text-text-secondary transition-colors hover:text-text-primary"
+          ref="categoryTrigger"
+          type="button"
+          :aria-expanded="isDesktop ? categoriesDropdownOpen : categoriesSidebarOpen"
+          :aria-controls="isDesktop && categoriesDropdownOpen ? categoriesMenuId : undefined"
+          class="flex min-h-10 cursor-pointer items-center gap-2 rounded-lg px-2 text-sm transition-colors"
+          :class="categoriesDropdownOpen ? 'bg-primary/10 font-semibold text-primary' : 'text-text-secondary hover:bg-primary/5 hover:text-primary'"
           @click="toggleCategories"
         >
           <UIcon name="solar:hamburger-menu-outline" class="size-4" />
           دسته‌بندی‌ها
+          <UIcon name="solar:alt-arrow-down-linear" class="size-3 transition-transform" :class="{ 'rotate-180': categoriesDropdownOpen }" />
         </button>
 
         <div
           v-if="categoriesDropdownOpen"
-          class="hidden md:block absolute top-full inset-s-0 mt-1 w-72 max-h-96 overflow-y-auto bg-surface border border-divider rounded-xl shadow-lg z-50"
+          :id="categoriesMenuId"
+          class="fixed inset-x-4 top-[7.5rem] z-50 mx-auto hidden max-h-[calc(100dvh-8.5rem)] max-w-5xl overflow-y-auto rounded-2xl border border-border bg-card shadow-xl md:block"
         >
-          <UiOptionalSection><NavCategoriesDropdown @close="categoriesDropdownOpen = false" /></UiOptionalSection>
+          <UiOptionalSection><NavCategoriesDropdown @close="closeCategories" /></UiOptionalSection>
         </div>
       </div>
 
@@ -169,7 +190,7 @@ function submitDesktopSearch(query: string) {
 
   <!-- Mobile categories sidebar -->
   <UiSidebar v-model="categoriesSidebarOpen" title="دسته‌بندی‌ها" class="md:hidden">
-    <UiOptionalSection><NavCategoriesDropdown @close="categoriesSidebarOpen = false" /></UiOptionalSection>
+    <UiOptionalSection><NavCategoriesDropdown v-if="categoriesSidebarOpen" @close="categoriesSidebarOpen = false" /></UiOptionalSection>
   </UiSidebar>
 
   <!-- Mobile nav links sidebar -->

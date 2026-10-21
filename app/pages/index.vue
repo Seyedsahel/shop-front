@@ -34,9 +34,21 @@ async function loadSection(key: SectionKey) {
     pending.value[key] = false
   }
 }
-await callOnce('home:sections', () => Promise.allSettled(
-  (Object.keys(sections) as SectionKey[]).map(loadSection),
-).then(() => {}), { mode: 'navigation' })
+function loadSections(keys: SectionKey[]) {
+  return Promise.allSettled(keys.map(loadSection)).then(() => {})
+}
+const sectionKeys = Object.keys(sections) as SectionKey[]
+if (import.meta.server) {
+  // Preserve section content in the initial HTML and hydration payload.
+  await callOnce('home:sections', () => loadSections(sectionKeys), { mode: 'navigation' })
+} else {
+  // Hero, top, and middle banners share one backend request.
+  await callOnce('home:hero', () => loadSection('banners'), { mode: 'navigation' })
+  // Start shared-store refreshes only once Home replaces the outgoing page.
+  onMounted(() => {
+    void callOnce('home:sections', () => loadSections(sectionKeys.filter(key => key !== 'banners')), { mode: 'navigation' })
+  })
+}
 usePageSeo(() => shop.name, () => shop.info?.description || 'محصولات، پیشنهادهای ویژه و تازه‌ترین مقالات فروشگاه.')
 </script>
 

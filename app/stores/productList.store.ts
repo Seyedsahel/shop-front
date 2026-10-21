@@ -95,7 +95,7 @@ export const useProductListStore = defineStore('productList', () => {
     }
   }
 
-  function invalidateListRequests(token?: symbol) {
+  function cancelListRequests(token?: symbol) {
     if (token && !ownsList(token)) return
     listRequestId++
     listController?.abort()
@@ -103,6 +103,11 @@ export const useProductListStore = defineStore('productList', () => {
     isLoading.value = false
     isLoadingMore.value = false
     browseRequest.value = null
+  }
+
+  function invalidateListRequests(token?: symbol) {
+    if (token && !ownsList(token)) return
+    cancelListRequests(token)
     items.value = []
     total.value = 0
     lastPageSize.value = 0
@@ -257,7 +262,7 @@ export const useProductListStore = defineStore('productList', () => {
   return {
     items, total, page, limit, isLoading, isLoadingMore, loaded, error, errorStatus, sort, listSearch, browseRequest, lastPageSize, hasMore,
     hasDiscountedProducts, isDiscountedAvailabilityLoading, fetchDiscountedAvailability,
-    fetchList, loadMore, retryList, invalidateListRequests, claimListOwner, ownsList,
+    fetchList, loadMore, retryList, cancelListRequests, invalidateListRequests, claimListOwner, ownsList,
     searchItems, searchTotal, searchPage, searchLimit, searchQuery, isSearchLoading, searchError,
     searchProducts, clearSearch,
     previewsByCategory, previewLoading, previewError, fetchPreview, availabilityError,

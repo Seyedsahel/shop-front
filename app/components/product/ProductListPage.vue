@@ -137,11 +137,19 @@ async function applyFilters(sort = productListStore.sort) {
   else await router.push(target)
 }
 
-// Nuxt's route can update after navigation has been confirmed. Invalidate old
-// work immediately, then let the route watcher load the committed page snapshot.
+// Nuxt keeps this page visible while the destination's async setup resolves.
+// Cancel outgoing work without replacing the visible list with its loader.
 const removeNavigationHook = router.afterEach((to, from, failure) => {
   if (failure) return
   if (to.path !== from.path || getProductBrowseQueryKey(to.query) !== getProductBrowseQueryKey(from.query)) {
+    if (to.path !== browsePath) {
+      loadId++
+      hasActiveLoad = false
+      productListStore.cancelListRequests(listOwner)
+      filterStore.cancelRequests(filterOwner)
+      isResolving.value = false
+      return
+    }
     invalidateBrowseRequests()
     isResolving.value = true
     // Returning before Nuxt commits another page may leave its route key
@@ -181,7 +189,7 @@ function retryProducts() {
   if (!isDisposed && !isResolving.value && matchesConfirmedRoute()) void productListStore.retryList()
 }
 useInfiniteScroll(sentinel, () => {
-  if (!isResolving.value && !browseError.value) productListStore.loadMore()
+  if (!isDisposed && matchesConfirmedRoute() && !isResolving.value && !browseError.value) productListStore.loadMore()
 }, { root: productScroll, rootMargin: '0px 0px 200px 0px' })
 usePageSeo(pageTitle, 'مشاهده محصولات فروشگاه و فیلتر دسته‌بندی‌ها و برندها.')
 const initialLoad = callOnce(`browse:${browsePath}:${getProductBrowseQueryKey(route.query)}`, loadProductsFromRoute, { mode: 'navigation' })

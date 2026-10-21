@@ -449,6 +449,42 @@ test('confirmed navigation invalidates products before Nuxt updates its route or
   assert.equal(p.navigationHooks.size, 0)
 })
 
+test('leaving either product collection preserves content while Home or detail is pending and ignores late appends', async () => {
+  for (const destination of ['/', '/products/product-1']) {
+  for (const kind of ['catalog', 'discounted']) {
+    reset()
+    const p = await page({ category: 'medicine', search: 'pill' }, kind)
+    try {
+      const store = useProductListStore()
+      store.limit = 1
+      await p.component.loadProductsFromRoute()
+      const items = [...store.items]
+      const definitions = [...useFilterStore().definitions]
+      const held = deferred()
+      respond = () => held.promise
+      const append = store.loadMore()
+      assert.equal(store.isLoadingMore, true)
+      const target = { path: destination, query: {}, fullPath: destination }
+      p.confirmed.value = target
+      p.navigationHooks.forEach(callback => callback(target, p.route))
+      await nextTick()
+      assert.equal(p.component.isResolving.value, false, 'Leaving must not activate the list loader')
+      assert.equal(store.isLoading, false)
+      assert.equal(store.isLoadingMore, false)
+      assert.deepEqual(store.items, items)
+      assert.equal(store.listSearch, 'pill')
+      assert.equal(store.loaded, true)
+      assert.equal(useFilterStore().scopedMetadataAvailable, true)
+      assert.deepEqual(useFilterStore().definitions, definitions)
+      held.resolve({ items: [{ id: 'obsolete' }], total: 3, page: 2, limit: 1 })
+      await append
+      assert.deepEqual(store.items, items, 'Late responses cannot change the outgoing list')
+    } finally { p.close() }
+    assert.deepEqual(useProductListStore().items, [], 'Clear list state only once unmounted')
+  }
+  }
+})
+
 test('returning before Nuxt commits another page resumes the unchanged browsing route', async () => {
   reset()
   const p = await page({ category: 'medicine' })

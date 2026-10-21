@@ -22,14 +22,19 @@ export const useFilterStore = defineStore('filter', () => {
   function claimFilterOwner() { owner = Symbol('product-filters'); requestId++; controller?.abort(); return owner }
   function ownsFilters(token: symbol) { return token === owner }
 
-  function invalidateRequests(token?: symbol) {
+  function cancelRequests(token?: symbol) {
     if (token && !ownsFilters(token)) return
     requestId++
     controller?.abort()
     controller = undefined
+    isLoading.value = false
+  }
+
+  function invalidateRequests(token?: symbol) {
+    if (token && !ownsFilters(token)) return
+    cancelRequests(token)
     error.value = ''
     errorStatus.value = undefined
-    isLoading.value = false
     scopedMetadataAvailable.value = false
     definitions.value = []
   }
@@ -183,6 +188,7 @@ export const useFilterStore = defineStore('filter', () => {
     hasCustomPrice,
     fetchFilters,
     invalidateRequests,
+    cancelRequests,
     claimFilterOwner, ownsFilters,
     setValue,
     toggleBrand,

@@ -5,11 +5,7 @@ const setStatus = usePageResponse()
 const router = useRouter()
 
 const detailOwner = blogStore.claimDetailOwner()
-const detailPath = route.path
-const removeNavigationHook = router.afterEach((to, _from, failure) => {
-  if (!failure && to.path !== detailPath) blogStore.invalidateDetail(detailOwner)
-})
-onBeforeUnmount(() => { removeNavigationHook(); blogStore.invalidateDetail(detailOwner) })
+onBeforeUnmount(() => blogStore.invalidateDetail(detailOwner))
 const slug = computed(() => typeof route.params.slug === 'string' ? route.params.slug : '')
 const post = computed(() => blogStore.current?.slug === slug.value ? blogStore.current : null)
 

@@ -2,6 +2,7 @@
 import { Toaster } from 'vue-sonner'
 
 const shop = useShopStore()
+const { isLoading: isPageLoading } = useLoadingIndicator({ throttle: 0, hideDelay: 0, resetDelay: 0 })
 await callOnce('shop:info', () => shop.fetchShop().then(() => {}))
 useHead(() => ({
   title: shop.name,
@@ -15,7 +16,16 @@ useSeoMeta({ ogSiteName: () => shop.name })
     <div>
       <NuxtRouteAnnouncer />
       <NuxtLayout>
-        <NuxtPage />
+        <div :aria-busy="isPageLoading">
+          <div v-if="isPageLoading" role="status" aria-live="polite" class="flex min-h-[60vh] items-center justify-center gap-3 text-sm text-text-muted">
+            <span class="size-6 animate-spin rounded-full border-2 border-border-strong border-t-primary" aria-hidden="true" />
+            <span>در حال بارگذاری صفحه...</span>
+          </div>
+          <!-- Keep NuxtPage mounted so the destination can resolve its async setup. -->
+          <div v-show="!isPageLoading">
+            <NuxtPage />
+          </div>
+        </div>
       </NuxtLayout>
       <Toaster
         rich-colors

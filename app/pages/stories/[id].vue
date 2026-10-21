@@ -6,11 +6,7 @@ const storyStore = useStoryStore()
 const setStatus = usePageResponse()
 const router = useRouter()
 const detailOwner = storyStore.claimDetailOwner()
-const detailPath = route.path
-const removeNavigationHook = router.afterEach((to, _from, failure) => {
-  if (!failure && to.path !== detailPath) storyStore.invalidateDetail(detailOwner)
-})
-onBeforeUnmount(() => { removeNavigationHook(); storyStore.invalidateDetail(detailOwner) })
+onBeforeUnmount(() => storyStore.invalidateDetail(detailOwner))
 const isClosing = ref(false)
 const isNavigating = ref(false)
 const storyId = computed(() => typeof route.params.id === 'string' ? route.params.id : '')
