@@ -7,7 +7,7 @@ const products = useProductListStore()
 const offer = useOfferStore()
 const blog = useBlogStore()
 const shop = useShopStore()
-const featuredCategory = '0fa5f2d7-8a16-5a5c-85eb-79922cf7c399'
+const featuredCategory = '8cf0153c-cc1a-541f-89d1-cfa702422eee'
 const sections = {
   banners: { title: 'بنرها', error: () => bannerStore.error, load: () => bannerStore.fetchBanners() },
   stories: { title: 'استوری‌ها', error: () => stories.error?.message, load: () => stories.fetchStories(true) },

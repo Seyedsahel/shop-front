@@ -1,12 +1,12 @@
 <script setup lang="ts">
 const categoryStore = useCategoryStore()
 const productListStore = useProductListStore()
-const displayedCategories = computed(() => categoryStore.items.slice(0, 15))
+const displayedCategories = computed(() => categoryStore.items.filter(category => category.imageUrl?.trim()).slice(0, 15))
 </script>
 
 <template>
   <UiOptionalSection :failed="!!categoryStore.error">
-  <section v-bind="$attrs" v-if="categoryStore.items.length || categoryStore.isLoading" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+  <section v-bind="$attrs" v-if="displayedCategories.length || productListStore.hasDiscountedProducts || categoryStore.isLoading" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
     <div class="flex justify-center items-center mb-7">
         <h2 class="text-lg sm:text-xl font-semibold text-text-primary mb-6 text-end">
           دسته‌بندی‌ها
