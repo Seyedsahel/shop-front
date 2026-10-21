@@ -26,7 +26,7 @@ watch(open, value => {
           class="flex-1"
           @submit="navigateTo(`/products?search=${encodeURIComponent($event)}`); close()"
         />
-        <button type="button" aria-label="بستن جستجو" class="text-text-secondary shrink-0 focus-visible:outline-2 focus-visible:outline-primary" @click="close">
+        <button type="button" aria-label="بستن جستجو" class="flex size-6 shrink-0 items-center justify-center text-text-secondary focus-visible:outline-2 focus-visible:outline-primary" @click="close">
           <UIcon name="solar:close-circle-broken" class="size-6" />
         </button>
       </div>

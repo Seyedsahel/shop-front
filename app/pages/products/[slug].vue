@@ -76,6 +76,8 @@ await callOnce(`product:${slug.value}`, loadProduct, { mode: 'navigation' })
         </div>
       </section>
 
+      <UiOptionalSection><CommentList target-type="product" :target-id="product.id" /></UiOptionalSection>
+
       <UiOptionalSection><ProductRelatedProducts :category-id="product.categories[0]?.id" :current-product-id="product.id" /></UiOptionalSection>
     </div>
 

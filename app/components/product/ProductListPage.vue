@@ -170,6 +170,12 @@ const pageTitle = computed(() => {
   return props.collection.kind === 'discounted' ? 'محصولات تخفیف‌دار' : 'همه محصولات'
 })
 
+const paginationSummary = computed(() => {
+  if (!productListStore.loaded || isResolving.value || browseError.value || productListStore.limit <= 0) return ''
+  const pageCount = Math.max(1, Math.ceil(productListStore.total / productListStore.limit))
+  return `صفحه ${productListStore.page.toLocaleString('fa-IR')} از ${pageCount.toLocaleString('fa-IR')} (${productListStore.total.toLocaleString('fa-IR')} محصول)`
+})
+
 const sentinel = ref<HTMLElement>()
 function retryProducts() {
   if (!isDisposed && !isResolving.value && matchesConfirmedRoute()) void productListStore.retryList()
@@ -186,14 +192,18 @@ if (!hasActiveLoad && (browseError.value || productListStore.loaded || productLi
 </script>
 
 <template>
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 flex gap-6">
-    <UiOptionalSection :failed="!filtersAvailable"><FilterSidebar @applied="applyFilters()" /></UiOptionalSection>
-    <div class="flex-1 min-w-0">
-      <h1 class="text-lg font-semibold text-text-primary mb-4">{{ pageTitle }}</h1>
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 grid grid-cols-1 gap-x-6 lg:gap-y-8" :class="{ 'lg:grid-cols-[18rem_minmax(0,1fr)]': filtersAvailable }">
+    <div class="min-w-0" :class="{ 'lg:col-start-2': filtersAvailable }">
+      <div class="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <h1 class="text-lg font-semibold text-text-primary">{{ pageTitle }}</h1>
+        <p v-if="paginationSummary" class="text-sm text-text-secondary" dir="rtl">{{ paginationSummary }}</p>
+      </div>
       <p v-if="productListStore.listSearch && productListStore.loaded" class="mb-4 text-sm text-text-secondary">{{ productListStore.total.toLocaleString('fa-IR') }} کالا پیدا شد.</p>
       <div class="flex gap-3 mb-4 lg:hidden"><ProductSortBar @select="applyFilters" /><UiOptionalSection :failed="!filtersAvailable"><FilterMobileButton class="flex-1" @applied="applyFilters()" /></UiOptionalSection></div>
       <ProductSortBar class="hidden lg:flex" @select="applyFilters" />
-      <section ref="productScroll" class="product-scroll mt-4 overflow-auto rounded-xl" tabindex="0" role="region" aria-label="فهرست محصولات">
+    </div>
+    <UiOptionalSection :failed="!filtersAvailable"><FilterSidebar class="lg:row-start-2" @applied="applyFilters()" /></UiOptionalSection>
+    <section ref="productScroll" class="product-scroll min-w-0 mt-4 lg:mt-0 overflow-auto rounded-xl" :class="{ 'lg:col-start-2': filtersAvailable }" tabindex="0" role="region" aria-label="فهرست محصولات">
       <div v-if="isResolving || productListStore.isLoading" role="status" aria-live="polite" class="flex min-h-64 items-center justify-center gap-2 text-sm text-text-muted">
         <span class="size-6 rounded-full border-2 border-border-strong border-t-primary animate-spin" aria-hidden="true" />
         <span>در حال بارگذاری...</span>
@@ -202,7 +212,7 @@ if (!hasActiveLoad && (browseError.value || productListStore.loaded || productLi
         <p>{{ browseError }}</p>
         <button type="button" class="mt-2 underline" @click="loadProductsFromRoute">تلاش دوباره</button>
       </div>
-      <div v-else-if="productListStore.items.length" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mt-4">
+      <div v-else-if="productListStore.items.length" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mt-4 lg:mt-0">
         <ProductCard v-for="product in productListStore.items" :key="product.id" :product="product" />
       </div>
       <ProductEmptyState
@@ -217,8 +227,7 @@ if (!hasActiveLoad && (browseError.value || productListStore.loaded || productLi
       <div ref="sentinel" class="h-4" />
       <div v-if="productListStore.isLoadingMore" class="flex justify-center py-6 gap-2 text-sm text-text-muted bg-accent/10 rounded-lg mt-4"><div class="size-6 rounded-full border-2 border-border-strong border-t-primary animate-spin" /><span>در حال بارگذاری...</span></div>
       <p v-if="!productListStore.error && !productListStore.hasMore && productListStore.items.length" class="text-center text-xs text-text-muted py-6">محصول بیشتری برای نمایش وجود ندارد.</p>
-      </section>
-    </div>
+    </section>
   </div>
 </template>
 

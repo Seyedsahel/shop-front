@@ -55,9 +55,7 @@ function applyFilters() {
       <div class="flex items-center gap-2">
         <UIcon name="solar:tuning-2-broken" class="size-5 text-text-primary" />
         <h2 class="text-lg font-bold text-text-primary">فیلترها</h2>
-        <span v-if="filterStore.activeCount > 0" class="bg-primary text-white text-xs rounded-full size-5 flex items-center justify-center">
-          {{ filterStore.activeCount }}
-        </span>
+        <UiCounterBadge v-if="filterStore.activeCount > 0" :count="filterStore.activeCount" placement="inline" variant="primary" />
       </div>
       <button v-if="filterStore.activeCount > 0" class="text-xs font-semibold text-danger" @click="filterStore.resetAll">
         حذف همه
@@ -111,8 +109,12 @@ function applyFilters() {
       </div>
 
       <template v-if="filterStore.scopedMetadataAvailable">
-        <FilterPriceRangeFilter :panel-id="`${props.idPrefix}-price`" />
-        <FilterGroup :panel-id="`${props.idPrefix}-attribute-${encodeURIComponent(filter.slug)}`" v-for="filter in filterStore.definitions" :key="filter.slug" :filter="filter" />
+        <div class="rounded-2xl border border-accent-subtle bg-accent-subtle/20 px-4">
+          <FilterPriceRangeFilter :panel-id="`${props.idPrefix}-price`" />
+        </div>
+        <div v-for="filter in filterStore.definitions" :key="filter.slug" class="rounded-2xl border border-accent-subtle bg-accent-subtle/20 px-4">
+          <FilterGroup :panel-id="`${props.idPrefix}-attribute-${encodeURIComponent(filter.slug)}`" :filter="filter" />
+        </div>
       </template>
     </template>
 

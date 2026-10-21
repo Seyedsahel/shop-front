@@ -3,7 +3,7 @@
   @media (forced-colors: none) {
     * {
       scrollbar-width: thin;
-      scrollbar-color: var(--color-accent-subtle) var(--color-surface);
+      scrollbar-color: var(--color-accent-subtle) transparent;
     }
 
     /* Prefer native pseudo-elements where available for rounded thumbs and hover. */
@@ -14,19 +14,30 @@
       }
 
       *::-webkit-scrollbar {
-        width: 10px;
-        height: 10px;
+        width: 6px;
+        height: 6px;
       }
 
       *::-webkit-scrollbar-track,
       *::-webkit-scrollbar-corner {
-        background: var(--color-surface);
+        background: transparent;
+        border-radius: 999px;
+      }
+
+      *::-webkit-scrollbar-track {
+        margin: 4px;
+      }
+
+      *::-webkit-scrollbar-button {
+        display: none;
+        width: 0;
+        height: 0;
       }
 
       *::-webkit-scrollbar-thumb {
         background-color: var(--color-accent);
         background-clip: padding-box;
-        border: 2px solid var(--color-surface);
+        border: 1px solid transparent;
         border-radius: 999px;
       }
 

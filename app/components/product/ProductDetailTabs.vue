@@ -1,22 +1,9 @@
 <script setup lang="ts">
 const props = defineProps<{ product: ProductDetail }>()
-const activeTab = ref(props.product.descriptionBlocks.length ? 'block-0' : 'comments')
+const activeTab = ref(props.product.descriptionBlocks.length ? 'block-0' : '')
 const tabTrack = ref<{ revealItem: (index: number) => void }>()
-const commentStore = useCommentStore()
-const commentKey = computed(() => commentStore.keyFor('product', props.product.id))
-const commentCount = computed(() => {
-  if (!Object.hasOwn(commentStore.byTarget, commentKey.value)) return undefined
-  return (commentStore.byTarget[commentKey.value]?.length ?? 0)
-    + (commentStore.pendingByTarget[commentKey.value]?.length ?? 0)
-})
 
-await callOnce(`comments:product:${props.product.id}`, () => commentStore.fetchComments('product', props.product.id), { mode: 'navigation' })
-watch(() => props.product.id, id => { void commentStore.fetchComments('product', id) })
-
-const tabs = computed(() => [
-  ...props.product.descriptionBlocks.map((block, index) => ({ id: `block-${index}`, label: block.title })),
-  ...(!commentStore.errors[commentKey.value] ? [{ id: 'comments', label: 'نظرات کاربران' }] : []),
-])
+const tabs = computed(() => props.product.descriptionBlocks.map((block, index) => ({ id: `block-${index}`, label: block.title })))
 
 watch(tabs, () => {
   if (!tabs.value.some(tab => tab.id === activeTab.value)) {
@@ -66,86 +53,83 @@ async function onTabKeydown(event: KeyboardEvent, index: number) {
         @keydown="onTabKeydown($event, index)"
       >
         {{ tab.label }}
-        <UiCounterBadge v-if="tab.id === 'comments' && commentCount !== undefined" :count="commentCount" placement="inline" />
       </button>
     </UiScrollTrack>
 
     <div class="p-5 sm:p-6">
       <template v-for="(block, index) in product.descriptionBlocks" :key="index">
         <div v-if="activeTab === `block-${index}`" :id="`product-block-${index}-panel`" role="tabpanel" :aria-labelledby="`product-block-${index}-tab`">
-          <template v-if="block.type === 'text'">
-            <h2 v-if="block.title" class="text-xl font-semibold text-text-primary">{{ block.title }}</h2>
-            <p class="mt-3 whitespace-pre-line text-sm leading-8 text-text-secondary sm:text-base">{{ block.body }}</p>
-          </template>
+          <UiExpandableContent :key="`${product.id}:${index}`">
+            <template v-if="block.type === 'text'">
+              <h2 v-if="block.title" class="text-xl font-semibold text-text-primary">{{ block.title }}</h2>
+              <p class="mt-3 whitespace-pre-line text-sm leading-8 text-text-secondary sm:text-base">{{ block.body }}</p>
+            </template>
 
-          <figure v-else-if="block.type === 'image'" class="overflow-hidden rounded-2xl border border-border bg-surface">
-            <div class="aspect-video w-full bg-surface-hover">
-              <img v-if="block.imageUrl" :src="block.imageUrl" :alt="block.title || product.name" class="size-full object-cover" loading="lazy">
-              <div v-else class="flex size-full flex-col items-center justify-center gap-2 text-text-muted">
-                <UIcon name="solar:gallery-remove-outline" class="size-10" />
-                <span class="text-sm">تصویری برای این بخش ثبت نشده است.</span>
+            <figure v-else-if="block.type === 'image'" class="overflow-hidden rounded-2xl border border-border bg-surface">
+              <div class="aspect-video w-full bg-surface-hover">
+                <img v-if="block.imageUrl" :src="block.imageUrl" :alt="block.title || product.name" class="size-full object-cover" loading="lazy">
+                <div v-else class="flex size-full flex-col items-center justify-center gap-2 text-text-muted">
+                  <UIcon name="solar:gallery-remove-outline" class="size-10" />
+                  <span class="text-sm">تصویری برای این بخش ثبت نشده است.</span>
+                </div>
               </div>
-            </div>
-            <figcaption v-if="block.title" class="px-4 py-3 text-sm text-text-secondary">{{ block.title }}</figcaption>
-          </figure>
+              <figcaption v-if="block.title" class="px-4 py-3 text-sm text-text-secondary">{{ block.title }}</figcaption>
+            </figure>
 
-          <blockquote v-else-if="block.type === 'quote'" class="rounded-2xl border-s-4 border-primary bg-surface px-5 py-4">
-            <h2 v-if="block.title" class="mb-2 text-base font-semibold text-text-primary">{{ block.title }}</h2>
-            <p class="whitespace-pre-line text-base leading-8 text-text-secondary">{{ block.body }}</p>
-          </blockquote>
+            <blockquote v-else-if="block.type === 'quote'" class="rounded-2xl border-s-4 border-primary bg-surface px-5 py-4">
+              <h2 v-if="block.title" class="mb-2 text-base font-semibold text-text-primary">{{ block.title }}</h2>
+              <p class="whitespace-pre-line text-base leading-8 text-text-secondary">{{ block.body }}</p>
+            </blockquote>
 
-          <section v-else-if="block.type === 'video'" class="overflow-hidden rounded-2xl border border-border bg-surface">
-            <div class="aspect-video w-full bg-black">
-              <video v-if="block.videoUrl" controls preload="metadata" class="product-video size-full object-cover" :aria-label="block.title || product.name">
-                <source :src="block.videoUrl">
-                مرورگر شما از پخش ویدیو پشتیبانی نمی‌کند.
-              </video>
-              <div v-else class="flex size-full flex-col items-center justify-center gap-2 text-white">
-                <UIcon name="solar:video-frame-play-horizontal-outline" class="size-10" />
-                <span class="text-sm">ویدیویی برای این بخش ثبت نشده است.</span>
+            <section v-else-if="block.type === 'video'" class="overflow-hidden rounded-2xl border border-border bg-surface">
+              <div class="aspect-video w-full bg-black">
+                <video v-if="block.videoUrl" controls preload="metadata" class="product-video size-full object-cover" :aria-label="block.title || product.name">
+                  <source :src="block.videoUrl">
+                  مرورگر شما از پخش ویدیو پشتیبانی نمی‌کند.
+                </video>
+                <div v-else class="flex size-full flex-col items-center justify-center gap-2 text-white">
+                  <UIcon name="solar:video-frame-play-horizontal-outline" class="size-10" />
+                  <span class="text-sm">ویدیویی برای این بخش ثبت نشده است.</span>
+                </div>
               </div>
-            </div>
-            <div v-if="block.title || block.body" class="p-4">
-              <h2 v-if="block.title" class="text-base font-semibold text-text-primary">{{ block.title }}</h2>
-              <p v-if="block.body" class="mt-2 whitespace-pre-line text-sm leading-7 text-text-secondary">{{ block.body }}</p>
-            </div>
-          </section>
+              <div v-if="block.title || block.body" class="p-4">
+                <h2 v-if="block.title" class="text-base font-semibold text-text-primary">{{ block.title }}</h2>
+                <p v-if="block.body" class="mt-2 whitespace-pre-line text-sm leading-7 text-text-secondary">{{ block.body }}</p>
+              </div>
+            </section>
 
-          <section v-else-if="block.type === 'faq'" class="rounded-2xl border border-border bg-surface p-4 sm:p-5">
-            <h2 v-if="block.title" class="mb-3 text-lg font-semibold text-text-primary">{{ block.title }}</h2>
-            <div v-if="block.items.length" class="divide-y divide-border">
-              <details v-for="(item, itemIndex) in block.items" :key="`${item.title}-${itemIndex}`" class="group/faq py-3">
-                <summary class="flex cursor-pointer list-none items-center justify-between gap-3 font-medium text-text-primary">
-                  <span class="min-w-0 wrap-anywhere">{{ item.title }}</span>
-                  <UIcon name="solar:alt-arrow-down-outline" class="size-5 shrink-0 text-text-muted group-open/faq:hidden" aria-hidden="true" />
-                  <UIcon name="solar:alt-arrow-up-outline" class="hidden size-5 shrink-0 text-text-muted group-open/faq:block" aria-hidden="true" />
-                </summary>
-                <p class="mt-3 whitespace-pre-line text-sm leading-7 text-text-secondary">{{ item.body }}</p>
-              </details>
-            </div>
-            <p v-else class="text-sm text-text-muted">پرسش و پاسخی برای این بخش ثبت نشده است.</p>
-          </section>
+            <section v-else-if="block.type === 'faq'" class="rounded-2xl border border-border bg-surface p-4 sm:p-5">
+              <h2 v-if="block.title" class="mb-3 text-lg font-semibold text-text-primary">{{ block.title }}</h2>
+              <div v-if="block.items.length" class="divide-y divide-border">
+                <details v-for="(item, itemIndex) in block.items" :key="`${item.title}-${itemIndex}`" class="group/faq py-3">
+                  <summary class="flex cursor-pointer list-none items-center justify-between gap-3 font-medium text-text-primary">
+                    <span class="min-w-0 wrap-anywhere">{{ item.title }}</span>
+                    <UIcon name="solar:alt-arrow-down-outline" class="size-5 shrink-0 text-text-muted group-open/faq:hidden" aria-hidden="true" />
+                    <UIcon name="solar:alt-arrow-up-outline" class="hidden size-5 shrink-0 text-text-muted group-open/faq:block" aria-hidden="true" />
+                  </summary>
+                  <p class="mt-3 whitespace-pre-line text-sm leading-7 text-text-secondary">{{ item.body }}</p>
+                </details>
+              </div>
+              <p v-else class="text-sm text-text-muted">پرسش و پاسخی برای این بخش ثبت نشده است.</p>
+            </section>
 
-          <section v-else-if="block.type === 'table'" class="overflow-hidden rounded-2xl border border-border bg-surface">
-            <h2 v-if="block.title" class="border-b border-border px-4 py-3 text-lg font-semibold text-text-primary">{{ block.title }}</h2>
-            <div v-if="block.items.length" class="overflow-x-auto">
-              <table class="w-full min-w-96 text-right text-sm">
-                <tbody class="divide-y divide-border">
-                  <tr v-for="(item, itemIndex) in block.items" :key="`${item.title}-${itemIndex}`">
-                    <th scope="row" class="w-1/3 bg-surface-hover px-4 py-3 font-medium text-text-primary">{{ item.title }}</th>
-                    <td class="whitespace-pre-line px-4 py-3 leading-7 text-text-secondary">{{ item.body }}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            <p v-else class="px-4 py-3 text-sm text-text-muted">جدولی برای این بخش ثبت نشده است.</p>
-          </section>
+            <section v-else-if="block.type === 'table'" class="overflow-hidden rounded-2xl border border-border bg-surface">
+              <h2 v-if="block.title" class="border-b border-border px-4 py-3 text-lg font-semibold text-text-primary">{{ block.title }}</h2>
+              <div v-if="block.items.length" class="overflow-x-auto">
+                <table class="w-full min-w-96 text-right text-sm">
+                  <tbody class="divide-y divide-border">
+                    <tr v-for="(item, itemIndex) in block.items" :key="`${item.title}-${itemIndex}`">
+                      <th scope="row" class="w-1/3 bg-surface-hover px-4 py-3 font-medium text-text-primary">{{ item.title }}</th>
+                      <td class="whitespace-pre-line px-4 py-3 leading-7 text-text-secondary">{{ item.body }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <p v-else class="px-4 py-3 text-sm text-text-muted">جدولی برای این بخش ثبت نشده است.</p>
+            </section>
+          </UiExpandableContent>
         </div>
       </template>
-
-      <div v-if="activeTab === 'comments'" id="product-comments-panel" role="tabpanel" aria-labelledby="product-comments-tab">
-        <CommentList target-type="product" :target-id="product.id" />
-      </div>
     </div>
   </section>
 </template>

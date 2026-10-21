@@ -17,10 +17,6 @@ const emit = defineEmits<{
 const query = defineModel<string>({ default: '' })
 const input = ref<HTMLInputElement>()
 
-onMounted(() => {
-  if (props.autofocus) input.value?.focus()
-})
-
 function submit() {
   if (!query.value.trim()) return
   emit('submit', query.value.trim())
@@ -41,19 +37,27 @@ function clear() {
       ref="input"
       v-model="query"
       type="search"
+      :autofocus="autofocus"
       :aria-label="placeholder"
       :placeholder="placeholder"
-      class="w-full bg-transparent outline-none text-sm text-text-primary placeholder:text-text-muted"
+      class="min-w-0 w-full bg-transparent outline-none text-sm text-text-primary placeholder:text-text-muted"
       @focus="emit('focus')"
     />
     <button
       v-if="query"
       type="button"
       aria-label="پاک کردن جستجو"
-      class="shrink-0 text-text-muted hover:text-text-primary transition-colors"
+      class="flex size-5 shrink-0 items-center justify-center text-text-muted hover:text-text-primary transition-colors"
       @click="clear"
     >
       <UIcon name="solar:close-circle-broken" class="size-5" />
     </button>
   </form>
 </template>
+
+<style scoped>
+input::-webkit-search-cancel-button,
+input::-webkit-search-decoration {
+  -webkit-appearance: none;
+}
+</style>

@@ -20,9 +20,7 @@ function apply() {
   >
     <UIcon name="solar:tuning-2-broken" class="size-4" />
     فیلترها
-    <span v-if="filterStore.activeCount > 0" class="bg-secondary text-white text-xs rounded-full size-5 flex items-center justify-center">
-      {{ filterStore.activeCount }}
-    </span>
+    <UiCounterBadge v-if="filterStore.activeCount > 0" :count="filterStore.activeCount" placement="inline" variant="secondary" />
   </button>
 
   <UiModal v-model="open" title="فیلترها" placement="fullscreen">

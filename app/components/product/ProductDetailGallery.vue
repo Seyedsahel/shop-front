@@ -23,8 +23,8 @@ function markImageFailed(url: string) {
 
 <template>
   <section class="mx-auto w-4/5 max-w-md rounded-2xl border border-border bg-surface p-3 sm:p-5">
-    <div class="flex flex-col-reverse gap-3 sm:flex-row">
-      <div v-if="images.length > 1" class="flex gap-2 overflow-x-auto sm:w-20 sm:flex-col sm:overflow-y-auto">
+    <div class="flex flex-col-reverse gap-3 sm:h-96 sm:flex-row">
+      <div v-if="images.length > 1" class="flex min-h-0 min-w-0 shrink-0 gap-2 overflow-x-auto overflow-y-hidden p-1 pb-3 sm:w-24 sm:flex-col sm:overflow-x-hidden sm:overflow-y-auto sm:pr-3 sm:pb-1 sm:[direction:ltr]">
         <button
           v-for="image in images"
           :key="image.imageUrl"
@@ -38,7 +38,7 @@ function markImageFailed(url: string) {
         </button>
       </div>
 
-      <div class="relative flex aspect-square flex-1 items-center justify-center overflow-hidden rounded-xl bg-card">
+      <div class="relative flex aspect-square min-h-0 min-w-0 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-card sm:aspect-auto sm:flex-1">
         <img
           v-if="selectedImage"
           :src="selectedImage.imageUrl"

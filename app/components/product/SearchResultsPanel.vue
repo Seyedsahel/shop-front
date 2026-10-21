@@ -69,31 +69,6 @@ function selectProduct() {
       ? 'rounded-2xl'
       : 'flex min-h-0 flex-1 flex-col border-0 shadow-none'"
   >
-    <div
-      class="border-b border-divider bg-card px-4 py-3"
-      :class="mode === 'desktop' ? 'hidden md:flex items-center gap-3' : 'hidden'"
-    >
-      <button
-        type="button"
-        aria-label="جستجوی محصولات"
-        class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-text-primary text-card transition-colors hover:bg-text-secondary"
-        @click="runSearch(normalizedQuery)"
-      >
-        <UIcon name="solar:magnifer-linear" class="size-5" />
-      </button>
-      <span class="min-w-0 flex-1 truncate text-sm font-semibold text-text-primary">
-        {{ normalizedQuery || 'جستجوی محصولات' }}
-      </span>
-      <button
-        type="button"
-        aria-label="بستن نتایج جستجو"
-        class="flex size-9 shrink-0 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-surface hover:text-text-primary"
-        @click="close"
-      >
-        <UIcon name="solar:close-circle-broken" class="size-5" />
-      </button>
-    </div>
-
     <div class="flex items-center justify-between gap-2 border-b border-divider bg-surface/55 px-5 py-2.5 text-xs text-text-secondary">
       <span v-if="hasQuery">
         یافت‌شده:

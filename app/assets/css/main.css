@@ -28,6 +28,43 @@
     font-family: var(--font-body);
   }
 
+  /* Consistent click affordance for native and component-library controls. */
+  :where(
+    a[href],
+    button,
+    select,
+    summary,
+    input[type='button'],
+    input[type='submit'],
+    input[type='reset'],
+    input[type='checkbox'],
+    input[type='radio'],
+    input[type='range'],
+    input[type='file'],
+    [role='button'],
+    [role='link'],
+    [role='checkbox'],
+    [role='radio'],
+    [role='switch'],
+    [role='tab'],
+    [role='menuitem'],
+    [role='menuitemcheckbox'],
+    [role='menuitemradio'],
+    [role='option'],
+    [role='combobox'],
+    [role='slider']
+  ):not(:disabled):not([aria-disabled='true']),
+  label[for],
+  label:has(input:not(:disabled)) {
+    cursor: pointer;
+  }
+
+  :where(button, input, select):disabled,
+  [aria-disabled='true'],
+  label:has(input:disabled) {
+    cursor: not-allowed;
+  }
+
   /* Focus ring — global keyboard navigation standard */
   :focus-visible {
     outline: 2px solid var(--color-focus-ring);

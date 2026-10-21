@@ -102,7 +102,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="fixed inset-0 z-100 flex items-center justify-center overflow-hidden bg-charcoal" role="dialog" aria-modal="true" :aria-label="`استوری ${story.title}`" @pointerdown="onPointerDown" @pointerup="onPointerUp" @pointercancel="resume">
+  <div class="fixed inset-0 z-100 flex cursor-pointer items-center justify-center overflow-hidden bg-charcoal" role="dialog" aria-modal="true" :aria-label="`استوری ${story.title}`" @pointerdown="onPointerDown" @pointerup="onPointerUp" @pointercancel="resume">
     <img v-if="story.mediaType === 'image'" :key="`background-${mediaKey}`" :src="story.mediaUrl" alt="" class="absolute inset-0 size-full scale-110 object-cover opacity-60 blur-2xl" />
     <img v-if="story.mediaType === 'image'" :key="`image-${mediaKey}`" :src="story.mediaUrl" :alt="story.title" class="relative z-10 max-h-full max-w-full object-contain" @load="onImageReady" @error="onMediaError">
     <video v-else :key="mediaKey" ref="video" class="relative z-10 max-h-full max-w-full object-contain" :poster="story.thumbnailUrl" :aria-label="story.title" autoplay playsinline preload="metadata" @loadedmetadata="onVideoReady" @ended="emit('next')" @error="onMediaError">
@@ -121,8 +121,8 @@ onBeforeUnmount(() => {
     </div>
 
     <template v-if="!mediaError">
-      <button v-if="index > 0" type="button" aria-label="استوری قبلی" class="absolute inset-y-0 inset-s-0 z-20 w-1/3 cursor-w-resize" @pointerdown.stop @pointerup.stop @click.stop="emit('prev')" />
-      <button v-if="index < total - 1" type="button" aria-label="استوری بعدی" class="absolute inset-y-0 inset-e-0 z-20 w-1/3 cursor-e-resize" @pointerdown.stop @pointerup.stop @click.stop="emit('next')" />
+      <button v-if="index > 0" type="button" aria-label="استوری قبلی" class="absolute inset-y-0 inset-s-0 z-20 w-1/3 cursor-pointer" @pointerdown.stop @pointerup.stop @click.stop="emit('prev')" />
+      <button v-if="index < total - 1" type="button" aria-label="استوری بعدی" class="absolute inset-y-0 inset-e-0 z-20 w-1/3 cursor-pointer" @pointerdown.stop @pointerup.stop @click.stop="emit('next')" />
     </template>
     <div v-else class="absolute z-30 flex flex-col items-center gap-3 rounded-xl bg-charcoal/80 p-5 text-center text-pearl-white"><p>بارگذاری استوری ناموفق بود.</p><button type="button" class="rounded-lg bg-pearl-white px-4 py-2 text-charcoal" @click.stop="retryMedia">تلاش دوباره</button></div>
   </div>

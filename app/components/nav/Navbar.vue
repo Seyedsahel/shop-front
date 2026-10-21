@@ -32,22 +32,21 @@ const categoriesSidebarOpen = ref(false)
 const categoriesDropdownOpen = ref(false)
 const linksOpen = ref(false)
 const mobileSearchOpen = ref(false)
+const desktopSearchOpen = ref(false)
+const desktopSearchQuery = ref('')
 watch(isDesktop, desktop => {
   if (desktop) {
     categoriesSidebarOpen.value = false
     linksOpen.value = false
     mobileSearchOpen.value = false
+  } else {
+    desktopSearchOpen.value = false
   }
 })
-const desktopSearchOpen = ref(false)
-const desktopSearchQuery = ref('')
-const desktopSearchPanelTop = ref(56)
 
 // Desktop dropdown — closes on any click outside this wrapper (button + panel together)
 const categoriesWrapper = ref<HTMLElement>()
 useClickOutside(categoriesWrapper, () => { categoriesDropdownOpen.value = false })
-const searchWrapper = ref<HTMLElement>()
-useClickOutside(searchWrapper, () => { desktopSearchOpen.value = false })
 
 function toggleCategories() {
   if (isDesktop.value) {
@@ -61,63 +60,28 @@ function submitDesktopSearch(query: string) {
   desktopSearchOpen.value = false
   navigateTo(`/products?search=${encodeURIComponent(query)}`)
 }
-
-function updateDesktopSearchPanelTop() {
-  const rect = searchWrapper.value?.getBoundingClientRect()
-  if (rect) desktopSearchPanelTop.value = rect.top
-}
-
-async function openDesktopSearch() {
-  desktopSearchOpen.value = true
-  await nextTick()
-  updateDesktopSearchPanelTop()
-}
-
-watch(width, () => {
-  if (desktopSearchOpen.value) updateDesktopSearchPanelTop()
-})
 </script>
 
 <template>
   <header class="sticky top-0 z-50 bg-surface/80 backdrop-blur-sm border-b border-divider">
-    <Transition enter-active-class="transition duration-200" enter-from-class="opacity-0" leave-active-class="transition duration-150" leave-to-class="opacity-0">
-      <div v-if="desktopSearchOpen && desktopSearchQuery.trim()" class="fixed inset-0 z-40 hidden bg-overlay backdrop-blur-[2px] md:block" />
-    </Transition>
-
     <!-- Top row -->
     <div class="max-w-full md:max-w-4/5 mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2 md:gap-4">
       <NuxtLink to="/" class="flex min-w-0 items-center gap-2 text-text-primary font-semibold tracking-wide md:shrink-0">
         <img v-if="shop.info?.logoImageUrl" :src="shop.info.logoImageUrl" :alt="`لوگوی ${shop.name}`" width="48" height="48" class="size-12 shrink-0 object-contain md:size-14" />
-        <span class="truncate text-sm md:text-base">{{ shop.name }}</span>
+        <span class="truncate text-sm md:text-base" :class="{ 'translate-y-0.5': shop.info?.logoImageUrl }">{{ shop.name }}</span>
       </NuxtLink>
 
-      <div ref="searchWrapper" class="relative z-50 hidden flex-1 md:block md:max-w-2xl">
-        <UiSearchBar
-          v-model="desktopSearchQuery"
-          :navigate-on-submit="false"
-          placeholder="جستجوی محصولات، برندها و خدمات..."
-          @focus="openDesktopSearch"
-          @submit="submitDesktopSearch"
-          @clear="desktopSearchOpen = false"
-        />
-
-        <Transition
-          enter-active-class="transition duration-200 ease-out"
-          enter-from-class="opacity-0 translate-y-2 scale-95"
-          leave-active-class="transition duration-150 ease-in"
-          leave-to-class="opacity-0 translate-y-2 scale-95"
-        >
-          <ProductSearchResultsPanel
-            v-if="desktopSearchOpen && desktopSearchQuery.trim()"
-            :query="desktopSearchQuery"
-            mode="desktop"
-            class="fixed left-1/2 z-50 w-[min(56rem,calc(100vw-2rem))] -translate-x-1/2"
-            :style="{ top: `${desktopSearchPanelTop}px` }"
-            @close="desktopSearchOpen = false"
-            @select="desktopSearchQuery = ''; desktopSearchOpen = false"
-          />
-        </Transition>
-      </div>
+      <button
+        type="button"
+        aria-label="جستجوی محصولات"
+        aria-haspopup="dialog"
+        :aria-expanded="desktopSearchOpen"
+        class="hidden min-w-0 flex-1 items-center gap-2 rounded-full border border-border-strong bg-surface/60 px-4 py-2 text-start text-sm text-text-muted focus-visible:outline-2 focus-visible:outline-primary md:flex md:max-w-2xl"
+        @click="desktopSearchOpen = true"
+      >
+        <UIcon name="solar:magnifer-linear" class="size-5 shrink-0" />
+        <span class="truncate">{{ desktopSearchQuery || 'جستجوی محصولات، برندها و خدمات...' }}</span>
+      </button>
 
       <div class="flex flex-row-reverse items-center gap-3 shrink-0 md:flex-row">
         <div class="order-2 flex flex-row-reverse items-center gap-1 md:order-1 md:flex-row md:gap-2">
@@ -214,4 +178,30 @@ watch(width, () => {
   </UiSidebar>
 
   <NavMobileSearchOverlay v-model="mobileSearchOpen" />
+
+  <UiModal v-model="desktopSearchOpen" title="جستجوی محصولات" class="md:max-w-4xl">
+    <template #header="{ titleId, close }">
+      <h2 :id="titleId" class="sr-only">جستجوی محصولات</h2>
+      <div class="mb-4 flex items-center gap-3">
+        <UiSearchBar
+          v-model="desktopSearchQuery"
+          autofocus
+          :navigate-on-submit="false"
+          placeholder="جستجوی محصولات، برندها و خدمات..."
+          class="min-w-0 flex-1"
+          @submit="submitDesktopSearch"
+        />
+        <button type="button" aria-label="بستن جستجو" class="flex size-6 shrink-0 items-center justify-center text-text-secondary focus-visible:outline-2 focus-visible:outline-primary" @click="close">
+          <UIcon name="solar:close-circle-broken" class="size-6" />
+        </button>
+      </div>
+    </template>
+    <ProductSearchResultsPanel
+      v-if="desktopSearchOpen"
+      :query="desktopSearchQuery"
+      mode="desktop"
+      @close="desktopSearchOpen = false"
+      @select="desktopSearchQuery = ''; desktopSearchOpen = false"
+    />
+  </UiModal>
 </template>
