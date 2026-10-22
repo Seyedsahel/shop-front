@@ -6,7 +6,10 @@ function fetchComments(force = false) {
   return commentStore.fetchComments(props.targetType, props.targetId, force)
 }
 
-await callOnce(`comments:${props.targetType}:${props.targetId}`, () => fetchComments(), { mode: 'navigation' })
+// Render immediately on navigation; SSR still waits for the initial comments.
+// The store already caches and deduplicates requests for each target.
+const initialComments = fetchComments()
+onServerPrefetch(() => initialComments)
 watch(() => [props.targetType, props.targetId], () => fetchComments())
 
 const comments = computed(() => {
