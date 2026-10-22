@@ -22,7 +22,7 @@ export async function startSsrBackend() {
         calls.push({ path, body, method: req.method, identity: req.headers.authorization?.replace('Bearer ', '') });
         if (controls.failures?.[path])
             return reply({ error: 'Fixture section unavailable' }, controls.failures[path]);
-        if (controls.malformedBrands && path === '/tbt/brands')
+        if (controls.malformedBrands && ['/tbt/brands', '/tbt/home/brands'].includes(path))
             return reply({ unexpected: true });
         if (controls.empty && !path.includes('/auth/') && (req.method === 'GET' || ['/tbt/products/list', '/tbt/products/filters', '/tbt/discounts/products'].includes(path)))
             return reply([]);
@@ -65,13 +65,17 @@ export async function startSsrBackend() {
                 return reply({ error: 'Unavailable' }, 503);
             return reply({ id: slug, slug, name: 'SSR ' + slug, description: 'SSR Product Description', base_price: 100, base_stock: 9, max_per_order: 9, categories: [{ id: 'leaf', name: 'Vitamins', slug: 'vitamins' }], images: [], specifications: [], purchase_variants: [] });
         }
+        if (path === '/tbt/home/categories')
+            return reply(categories.map(category => ({ ...category, image_url: 'categories/home.png' })));
         if (path === '/tbt/categories')
             return reply(categories);
+        if (path === '/tbt/home/brands')
+            return reply([{ id: 'home-brand', slug: 'home-brand', name: 'Home Brand', image_url: 'brands/home.png' }]);
         if (path === '/tbt/brands')
             return reply([{ id: 'brand', slug: 'canonical-brand', name: 'Brand' }]);
         if (path === '/tbt/products/filters')
             return reply({ attributes: [{ slug: 'size', name: 'Size', data_type: 'select', available_values: ['small', 'large'] }], brands: [], categories: categories, min_price: 0, max_price: 1000, total: 60, page: 1, limit: 20 });
-        if (path === '/tbt/products/list' || path === '/tbt/discounts/products') {
+        if (path === '/tbt/products/list' || path === '/tbt/discounts/products' || path === '/tbt/home/products') {
             if (body.search === 'slow')
                 return;
             if (body.search === 'slow-fail') {

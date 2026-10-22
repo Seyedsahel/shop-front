@@ -1,11 +1,11 @@
 <script setup lang="ts">
 const brandStore = useBrandStore()
-const brandsWithImages = computed(() => brandStore.items.filter(brand => brand.imageUrl?.trim()))
+const brandsWithImages = computed(() => brandStore.homeItems.filter(brand => brand.imageUrl?.trim()))
 </script>
 
 <template>
-  <UiOptionalSection :failed="!!brandStore.error">
-  <UiSlider v-bind="$attrs" v-if="brandsWithImages.length || brandStore.isLoading" title="محبوب‌ترین برندها" :is-loading="brandStore.isLoading" :skeleton-count="8" :item-width-px="112">
+  <UiOptionalSection :failed="!!brandStore.homeError">
+  <UiSlider v-bind="$attrs" v-if="brandsWithImages.length || brandStore.homeLoading" title="محبوب‌ترین برندها" :is-loading="brandStore.homeLoading" :skeleton-count="8" :item-width-px="112">
         
     <NuxtLink
             v-for="brand in brandsWithImages"

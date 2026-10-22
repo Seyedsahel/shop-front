@@ -1,6 +1,36 @@
 
 export const useProductListStore = defineStore('productList', () => {
   const api = useApi()
+
+  // Curated home collection is independent of catalog and filter state.
+  const homeItems = ref<Product[]>([])
+  const homeLoading = ref(false)
+  const homeLoaded = ref(false)
+  const homeError = ref('')
+  let homePending: Promise<boolean> | undefined
+
+  function fetchHomeProducts(force = false): Promise<boolean> {
+    if (homePending) return homePending
+    if (!force && homeLoaded.value && !homeError.value) return Promise.resolve(true)
+    homePending = loadHomeProducts().finally(() => { homePending = undefined })
+    return homePending
+  }
+
+  async function loadHomeProducts(): Promise<boolean> {
+    homeLoading.value = true
+    homeError.value = ''
+    try {
+      const res = await api.get<ProductListResponse>('/home/products')
+      homeItems.value = res.items
+      homeLoaded.value = true
+      return true
+    } catch (e) {
+      homeError.value = e instanceof ApiError ? e.message : 'خطا در دریافت محصولات.'
+      return false
+    } finally {
+      homeLoading.value = false
+    }
+  }
   const items = ref<Product[]>([])
   const total = ref(0)
   const page = ref(1)
@@ -260,6 +290,7 @@ export const useProductListStore = defineStore('productList', () => {
   }
 
   return {
+    homeItems, homeLoading, homeLoaded, homeError, fetchHomeProducts,
     items, total, page, limit, isLoading, isLoadingMore, loaded, error, errorStatus, sort, listSearch, browseRequest, lastPageSize, hasMore,
     hasDiscountedProducts, isDiscountedAvailabilityLoading, fetchDiscountedAvailability,
     fetchList, loadMore, retryList, cancelListRequests, invalidateListRequests, claimListOwner, ownsList,

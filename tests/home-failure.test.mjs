@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { readFile } from 'node:fs/promises'
 import ts from 'typescript'
-import { computed, reactive, ref, watch } from 'vue'
+import { ref } from 'vue'
 
 async function loadHome(stores, { server = true } = {}) {
   const mounted = []
@@ -33,7 +33,7 @@ test('client Home waits only for Hero banners and starts other sections after mo
   const hero = deferred(), heroStarted = deferred(), articles = deferred(), products = deferred()
   stores.Banner.fetchBanners = () => { calls.push('banners'); heroStarted.resolve(); return hero.promise }
   stores.Blog.fetchPosts = () => { calls.push('blog'); return articles.promise }
-  stores.ProductList.fetchPreview = () => { calls.push('products'); return products.promise }
+  stores.ProductList.fetchHomeProducts = () => { calls.push('products'); return products.promise }
   let ready = false
   const setup = loadHome(stores, { server: false }).then(page => { ready = true; return page })
   await heroStarted.promise
@@ -68,48 +68,13 @@ test('Hero failure still allows client Home and the other sections to load', asy
   assert.equal(page.pending.value.blog, false)
 })
 
-test('the featured slider mounts without waiting for its products and updates when they arrive', async () => {
-  const response = deferred()
-  const mounted = []
-  let requests = 0
-  const store = reactive({
-    previewsByCategory: {}, previewLoading: {}, previewError: {},
-    async fetchPreview(id) {
-      requests++
-      this.previewLoading[id] = true
-      this.previewsByCategory[id] = await response.promise
-      this.previewLoading[id] = false
-    },
-  })
-  Object.assign(globalThis, {
-    computed, watch, defineProps: () => ({ categoryId: 'featured' }),
-    useProductListStore: () => store, onMounted: callback => mounted.push(callback),
-    callOnce: (_key, load) => load(),
-  })
-  const source = (await readFile(new URL('../app/components/product/ProductSlider.vue', import.meta.url), 'utf8'))
-    .match(/<script setup lang="ts">([\s\S]*?)<\/script>/)[1]
-    .replaceAll('import.meta.server', 'false')
-  const code = ts.transpileModule(source + '\nexport { products, isLoading };', {
-    compilerOptions: { target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext },
-  }).outputText
-  const slider = await import('data:text/javascript;base64,' + Buffer.from(code).toString('base64'))
-  assert.equal(requests, 0, 'Async slider setup must not hold the page suspense boundary')
-  mounted.forEach(callback => callback())
-  assert.equal(requests, 1)
-  assert.equal(slider.isLoading.value, true)
-  response.resolve([{ id: 'featured-product' }])
-  await new Promise(resolve => setImmediate(resolve))
-  assert.equal(slider.isLoading.value, false)
-  assert.equal(slider.products.value[0].id, 'featured-product')
-})
-
 function fixtures() {
   const calls = []
   const action = name => async () => { calls.push(name) }
   return { calls, stores: {
     Banner: { fetchBanners: action('banners') }, Story: { fetchStories: action('stories') },
-    Category: { fetchCategories: action('categories') }, Brand: { fetchBrands: action('brands') },
-    ProductList: { previewError: {}, fetchPreview: action('products'), fetchDiscountedAvailability: action('discounts') },
+    Category: { fetchHomeCategories: action('categories') }, Brand: { fetchHomeBrands: action('brands') },
+    ProductList: { fetchHomeProducts: action('products'), fetchDiscountedAvailability: action('discounts') },
     Offer: { fetchOffer: action('offer') }, Blog: { fetchPosts: action('blog') }, Shop: {},
   } }
 }
@@ -117,9 +82,9 @@ function fixtures() {
 test('a brand failure stays local and retry only reloads brands', async () => {
   const { calls, stores } = fixtures()
   let failed = true
-  stores.Brand.fetchBrands = async () => {
+  stores.Brand.fetchHomeBrands = async () => {
     calls.push('brands')
-    stores.Brand.error = failed ? 'Brand service unavailable' : ''
+    stores.Brand.homeError = failed ? 'Brand service unavailable' : ''
     return !failed
   }
   const page = await loadHome(stores)
@@ -136,14 +101,14 @@ test('a brand failure stays local and retry only reloads brands', async () => {
 
 test('unexpected synchronous exceptions and rejected promises cannot stop other homepage sections', async () => {
   const { calls, stores } = fixtures()
-  stores.Brand.fetchBrands = () => { throw new Error('Unexpected failure') }
+  stores.Brand.fetchHomeBrands = () => { throw new Error('Unexpected failure') }
   stores.Blog.fetchPosts = async () => { throw new Error('Unexpected rejection') }
   const page = await loadHome(stores)
   assert.deepEqual(calls.sort(), ['banners', 'categories', 'discounts', 'offer', 'products', 'stories'])
   assert.ok(page.sectionError('brands'))
   assert.ok(page.sectionError('blog'))
   assert.ok(!page.sectionError('products'))
-  stores.Brand.fetchBrands = async () => true
+  stores.Brand.fetchHomeBrands = async () => true
   await page.loadSection('brands')
   assert.equal(page.sectionError('brands'), undefined)
   assert.ok(page.sectionError('blog'), 'An unrelated failed section remains independently retryable')
@@ -153,7 +118,7 @@ test('repeated retry clicks do not start concurrent requests for the same sectio
   const { stores } = fixtures()
   const page = await loadHome(stores)
   let resolve, count = 0
-  stores.Brand.fetchBrands = () => { count++; return new Promise(done => { resolve = done }) }
+  stores.Brand.fetchHomeBrands = () => { count++; return new Promise(done => { resolve = done }) }
   const first = page.loadSection('brands')
   await page.loadSection('brands')
   assert.equal(count, 1)

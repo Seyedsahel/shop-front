@@ -7,13 +7,12 @@ const products = useProductListStore()
 const offer = useOfferStore()
 const blog = useBlogStore()
 const shop = useShopStore()
-const featuredCategory = '8cf0153c-cc1a-541f-89d1-cfa702422eee'
 const sections = {
   banners: { title: 'بنرها', error: () => bannerStore.error, load: () => bannerStore.fetchBanners() },
   stories: { title: 'استوری‌ها', error: () => stories.error?.message, load: () => stories.fetchStories(true) },
-  categories: { title: 'دسته‌بندی‌ها', error: () => categories.error, load: () => categories.fetchCategories() },
-  brands: { title: 'برندها', error: () => brands.error, load: () => brands.fetchBrands() },
-  products: { title: 'محصولات ویژه', error: () => products.previewError[featuredCategory], load: () => products.fetchPreview(featuredCategory, true) },
+  categories: { title: 'دسته‌بندی‌ها', error: () => categories.homeError, load: () => categories.fetchHomeCategories(true) },
+  brands: { title: 'برندها', error: () => brands.homeError, load: () => brands.fetchHomeBrands(true) },
+  products: { title: 'محصولات ویژه', error: () => products.homeError, load: () => products.fetchHomeProducts(true) },
   blog: { title: 'مقالات', error: () => blog.error?.message, load: () => blog.fetchPosts(true) },
   discounts: { title: 'تخفیف‌ها', error: () => products.availabilityError, load: () => products.fetchDiscountedAvailability() },
   offer: { title: 'پیشنهاد شگفت‌انگیز', error: () => offer.error, load: () => offer.fetchOffer(true) },
@@ -70,7 +69,7 @@ usePageSeo(() => shop.name, () => shop.info?.description || 'محصولات، پ
     <BannerDuoBanner />
   </UiOptionalSection>
   <UiOptionalSection :failed="!!sectionError('products')">
-    <ProductSlider :category-id="featuredCategory" title="محصولات ویژه" variant="compact" />
+    <ProductSlider :products="products.homeItems" :is-loading="products.homeLoading" title="محصولات ویژه" variant="compact" />
   </UiOptionalSection>
   <UiOptionalSection :failed="!!sectionError('brands')">
     <BrandSlider />

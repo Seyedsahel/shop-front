@@ -11,10 +11,14 @@ const supplementsImage = {
   alt: 'مکمل‌های غذایی',
   href: '/products',
 }
-const fallbackImages = [skincareImage, supplementsImage, skincareImage, supplementsImage, skincareImage, supplementsImage]
+const fallbackImages = [skincareImage, supplementsImage, skincareImage, supplementsImage, skincareImage, supplementsImage, skincareImage]
 const heroImages = computed(() => bannerStore.homeHero.length
   ? bannerStore.homeHero.map(banner => ({ src: banner.imageUrl, alt: banner.title, href: banner.href }))
   : fallbackImages)
+const bottomHeroImages = computed(() => [6, 2].flatMap(index => {
+  const image = heroImages.value[index]
+  return image ? [image] : []
+}))
 </script>
 
 <template>
@@ -22,13 +26,12 @@ const heroImages = computed(() => bannerStore.homeHero.length
     <div class="flex w-2/5 flex-col gap-6 lg:gap-8 mx-7 lg:mx-14">
       <div class="flex flex-col gap-4">
         <span class="font-extrabold text-4xl lg:text-6xl text-danger-subtle">
-          سلامت و زیبایی شما
+         حامی دارو،
         </span>
         <span class="font-extrabold text-2xl lg:text-5xl text-primary">
-          در دستان ماست
-        </span>
+حامی سلامتی شما        </span>
         </div>
-      <div class="font-light text-sm lg:text-lg text-accent">به دنبال محصولاتی با کیفیت از دل طبیعت هستید؟ ما در تلاشیم آنهارا به دست شما برسانیم</div>
+      <div class="font-light text-sm lg:text-lg text-accent">با نسخه آنلاین <span class="font-bold">داروخانه شبانه روزی دکتر سالاری</span>، سریع‌تر و ساده‌تر به محصولات و خدمات موردنیاز خود دسترسی داشته باشید.</div>
       <div class="flex flex-col sm:flex-row gap-4 text-center text-sm sm:text-base ">
         <NuxtLink class="min-w-28 lg:w-50 px-1.5 py-2 rounded-xl  bg-primary text-primary-foreground hover:bg-primary-hover" 
         to="/products">
@@ -56,46 +59,54 @@ const heroImages = computed(() => bannerStore.homeHero.length
   ></div>
 
 
-  <!-- Main picture -->
-  <a
-    v-if="heroImages[0]"
-    :href="heroImages[0].href"
-    class="hidden lg:block relative z-10 h-150 w-70 shrink-0 overflow-hidden rounded-full"
-  >
-    <img
-      :src="heroImages[0].src"
-      :alt="heroImages[0].alt"
-      class="h-full w-full object-cover"
-    />
-  </a>
-
-
-  <!-- Middle pictures -->
-  <div class="hidden lg:flex relative z-10 flex-col gap-8 mx-6">
-
+  <!-- Horizontal capsules, with upright capsules entering from below. -->
+  <div class="absolute inset-y-0 right-0 z-10 hidden w-[66%] lg:block">
     <a
-      v-for="(image, index) in heroImages.slice(1, 3)"
-      :key="index"
-      :href="image.href"
-      class="h-70 w-62.5 overflow-hidden rounded-full"
+      v-if="heroImages[1]"
+      :href="heroImages[1].href"
+      class="absolute -top-[30%] right-0 h-[53%] w-full overflow-hidden rounded-full"
     >
       <img
-        :src="image.src"
-        :alt="image.alt"
+        :src="heroImages[1].src"
+        :alt="heroImages[1].alt"
         class="h-full w-full object-cover"
       />
     </a>
-
+    <a
+      v-if="heroImages[0]"
+      :href="heroImages[0].href"
+      class="absolute top-[25%] right-0 h-[55%] w-full overflow-hidden rounded-full"
+    >
+      <img
+        :src="heroImages[0].src"
+        :alt="heroImages[0].alt"
+        class="h-full w-full object-cover"
+      />
+    </a>
+    <div class="absolute top-[82%] right-0 grid h-[58%] w-full grid-cols-2 gap-5">
+      <a
+        v-for="(image, index) in bottomHeroImages"
+        :key="index"
+        :href="image.href"
+        class="overflow-hidden rounded-full"
+      >
+        <img
+          :src="image.src"
+          :alt="image.alt"
+          class="h-full w-full object-cover"
+        />
+      </a>
+    </div>
   </div>
 
 
   <!-- Left picture -->
-   <div class="relative z-10 flex flex-col gap-4 sm:mx-6">
+   <div class="relative z-10 flex flex-col gap-4 sm:mx-6 lg:absolute lg:left-0 lg:mx-0 lg:w-[28%]">
 
     <a
       v-if="heroImages[3]"
       :href="heroImages[3].href"
-      class="h-45 w-62.5 overflow-hidden rounded-b-full"
+      class="h-45 w-62.5 overflow-hidden rounded-b-full lg:w-full"
     >
       <img
         :src="heroImages[3].src"
@@ -106,7 +117,7 @@ const heroImages = computed(() => bannerStore.homeHero.length
     <a
       v-if="heroImages[4]"
       :href="heroImages[4].href"
-    class="relative z-10 h-60 w-45 sm:h-95 sm:w-62.5 overflow-hidden rounded-full"
+    class="relative z-10 h-60 w-45 sm:h-95 sm:w-62.5 overflow-hidden rounded-full lg:w-full"
   >
     <img
       :src="heroImages[4].src"
@@ -118,7 +129,7 @@ const heroImages = computed(() => bannerStore.homeHero.length
     <a
       v-if="heroImages[5]"
       :href="heroImages[5].href"
-      class="h-50 w-62.5 overflow-hidden rounded-t-full"
+      class="h-50 w-62.5 overflow-hidden rounded-t-full lg:w-full"
     >
       <img
         :src="heroImages[5].src"

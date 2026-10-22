@@ -1,12 +1,12 @@
 <script setup lang="ts">
 const categoryStore = useCategoryStore()
 const productListStore = useProductListStore()
-const displayedCategories = computed(() => categoryStore.items.filter(category => category.imageUrl?.trim()).slice(0, 15))
+const displayedCategories = computed(() => categoryStore.homeItems.filter(category => category.imageUrl?.trim()).slice(0, 15))
 </script>
 
 <template>
-  <UiOptionalSection :failed="!!categoryStore.error">
-  <section v-bind="$attrs" v-if="displayedCategories.length || productListStore.hasDiscountedProducts || categoryStore.isLoading" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+  <UiOptionalSection :failed="!!categoryStore.homeError">
+  <section v-bind="$attrs" v-if="displayedCategories.length || productListStore.hasDiscountedProducts || categoryStore.homeLoading" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
     <div class="flex justify-center items-center mb-7">
         <h2 class="text-lg sm:text-xl font-semibold text-text-primary mb-6 text-end">
           دسته‌بندی‌ها
@@ -14,7 +14,7 @@ const displayedCategories = computed(() => categoryStore.items.filter(category =
     </div>
 
     <div class="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-y-6 ">
-      <template v-if="categoryStore.isLoading">
+      <template v-if="categoryStore.homeLoading">
         <div v-for="n in 9" :key="n" class="flex flex-col items-center gap-2">
           <div class="size-16 rounded-full bg-loading animate-pulse" />
         </div>

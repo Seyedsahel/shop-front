@@ -1,5 +1,36 @@
 export const useBrandStore = defineStore('brand', () => {
   const api = useApi()
+
+  // Curated home collection is independent of catalog and filter state.
+  const homeItems = ref<Brand[]>([])
+  const homeLoading = ref(false)
+  const homeLoaded = ref(false)
+  const homeError = ref('')
+  let homePending: Promise<boolean> | undefined
+
+  function fetchHomeBrands(force = false): Promise<boolean> {
+    if (homePending) return homePending
+    if (!force && homeLoaded.value && !homeError.value) return Promise.resolve(true)
+    homePending = loadHomeBrands().finally(() => { homePending = undefined })
+    return homePending
+  }
+
+  async function loadHomeBrands(): Promise<boolean> {
+    homeLoading.value = true
+    homeError.value = ''
+    try {
+      const res = await api.get<BrandsResponse>('/home/brands')
+      homeItems.value = res.items
+      homeLoaded.value = true
+      return true
+    } catch (e) {
+      homeError.value = e instanceof ApiError ? e.message : 'خطا در دریافت برندها.'
+      return false
+    } finally {
+      homeLoading.value = false
+    }
+  }
+
   const items = ref<Brand[]>([])
   const isLoading = ref(false)
   const loaded = ref(false)
@@ -34,5 +65,8 @@ export const useBrandStore = defineStore('brand', () => {
     return slug ? items.value.find(brand => brand.slug === slug) : undefined
   }
 
-  return { items, isLoading, loaded, error, fetchBrands, findBySlug }
+  return {
+    homeItems, homeLoading, homeLoaded, homeError, fetchHomeBrands,
+    items, isLoading, loaded, error, fetchBrands, findBySlug,
+  }
 })

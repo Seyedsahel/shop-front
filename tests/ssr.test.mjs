@@ -45,6 +45,13 @@ test('production SSR renders content, statuses and isolated read-only sessions',
       ['/products?page=2', 'All Product 2-0'],
     ]) assert.ok((await read(path)).html.includes(content), path)
     const shopPage = await read('/')
+    for (const endpoint of ['brands', 'categories', 'products']) {
+      const calls = backend.calls.filter(call => call.path === '/tbt/home/' + endpoint)
+      assert.ok(calls.length, `Home uses its curated ${endpoint} endpoint`)
+      assert.ok(calls.every(call => call.method === 'GET' && !call.identity))
+    }
+    assert.ok(shopPage.html.includes('Home Brand'))
+    assert.ok(shopPage.html.includes('/api/images/categories/home.png'))
     for (const content of ['SSR Shop', 'SSR shop description', 'SSR shop address', 'tel:02112345678', 'mailto:shop@example.test', 'https://www.instagram.com/ssr_shop']) {
       assert.ok(shopPage.html.includes(content), content)
     }
@@ -87,21 +94,21 @@ test('production SSR renders content, statuses and isolated read-only sessions',
       '/tbt/products/list', '/tbt/products/filters', '/tbt/discounts/products', '/tbt/blogs', '/tbt/stories', '/tbt/shop',
     ].includes(call.path)), 'Public backend reads must be unauthenticated')
     for (const [endpoint, title, status] of [
-      ['brands', 'برندها', 502], ['brands', 'برندها', 503], ['brands', 'برندها', 504],
+      ['home/brands', 'برندها', 502], ['home/brands', 'برندها', 503], ['home/brands', 'برندها', 504],
       ['banners', 'بنرها', 502], ['stories', 'استوری‌ها', 502],
-      ['categories', 'دسته‌بندی‌ها', 502], ['blogs', 'مقالات', 502],
-      ['products/list', 'محصولات ویژه', 502], ['discounts/products', 'تخفیف‌ها', 502],
+      ['home/categories', 'دسته‌بندی‌ها', 502], ['blogs', 'مقالات', 502],
+      ['home/products', 'محصولات ویژه', 502], ['discounts/products', 'تخفیف‌ها', 502],
       ['discounts/home', 'پیشنهاد شگفت‌انگیز', 502],
     ]) {
       await fetch(new URL('/__control', backend.url), { method: 'POST', body: JSON.stringify({ failures: { ['/tbt/' + endpoint]: status } }) })
       const page = await read('/')
       assert.ok(!page.html.includes(`aria-label="${title}" role="status"`), `${endpoint}: failure stays silent`)
       assert.ok(!page.html.includes('تلاش دوباره'), `${endpoint}: no optional error banner`)
-      if (endpoint === 'brands') assert.ok(!page.html.includes('محبوب‌ترین برندها'), 'Failed brands are hidden')
+      if (endpoint === 'home/brands') assert.ok(!page.html.includes('محبوب‌ترین برندها'), 'Failed brands are hidden')
       assert.ok(page.html.includes('سلامت و زیبایی شما'), `${endpoint}: hero survives`)
       assert.ok(page.html.includes('<header') && page.html.includes('<footer'), `${endpoint}: navigation survives`)
       if (endpoint !== 'blogs') assert.ok(page.html.includes('SSR Article A'), `${endpoint}: blog survives`)
-      if (endpoint !== 'products/list') assert.ok(page.html.includes('All Product 1-0'), `${endpoint}: products survive`)
+      if (endpoint !== 'home/products') assert.ok(page.html.includes('All Product 1-0'), `${endpoint}: products survive`)
       if (endpoint !== 'stories') assert.ok(page.html.includes('SSR Story A'), `${endpoint}: stories survive`)
     }
     await fetch(new URL('/__control', backend.url), { method: 'POST', body: JSON.stringify({ failures: {}, malformedBrands: true }) })
