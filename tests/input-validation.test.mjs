@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises'
 import ts from 'typescript'
 import * as h3 from 'h3'
 import { ref, computed, watch, reactive } from 'vue'
+import { createPinia, setActivePinia, defineStore } from 'pinia'
 
 async function load(path, exports = '') {
   let source = await readFile(new URL('../' + path, import.meta.url), 'utf8')
@@ -111,10 +112,13 @@ test('valid product and blog comments preserve payload mapping and optional repl
 
 test('phone form blocks invalid input, normalizes pasted numbers and prevents duplicate submission', async () => {
   const calls = []
-  const auth = { isLoading: false, async requestOtp(phone) { calls.push(phone) } }
+  const auth = { phone: '9123456789', isLoading: false, async requestOtp(phone) { calls.push(phone) } }
   globalThis.useAuthStore = () => auth
   globalThis.useShopStore = () => ({})
   const form = await load('app/components/auth/PhoneStep.vue', '\nexport { submit, phone, validationError }')
+  assert.equal(form.phone.value, auth.phone)
+  form.phone.value = '9133456789'
+  assert.equal(auth.phone, '9123456789')
   form.phone.value = '123'
   await form.submit()
   assert.equal(calls.length, 0)
@@ -125,6 +129,64 @@ test('phone form blocks invalid input, normalizes pasted numbers and prevents du
   auth.isLoading = true
   await form.submit()
   assert.equal(calls.length, 1)
+})
+
+test('returning with the same phone preserves the OTP cooldown without another request', async (t) => {
+  let now = Date.parse('2026-10-24T12:00:00Z')
+  t.mock.method(Date, 'now', () => now)
+  setActivePinia(createPinia())
+  const calls = [], errors = []
+  let fail = false, finishRequest
+  Object.assign(globalThis, {
+    defineStore,
+    useSessionSync: () => () => {},
+    useApi: () => ({ async post(path, payload) {
+      calls.push([path, payload])
+      if (fail) throw new Error('Request failed')
+      if (finishRequest) await finishRequest.promise
+      return { message: 'Sent' }
+    } }),
+    useAppToast: () => ({ error: message => errors.push(message) }),
+    getUserFriendlyApiErrorMessage: error => error.message,
+  })
+  const { useAuthStore } = await load('app/stores/auth.store.ts')
+  const auth = useAuthStore()
+  await auth.requestOtp('9123456789')
+  const deadline = auth.otpResendAvailableAt
+  now += 10_000
+  auth.goBackToPhone()
+  assert.equal(auth.step, 'phone')
+  assert.equal(auth.otpResendAvailableAt, deadline)
+  await auth.requestOtp('9123456789')
+  assert.equal(auth.step, 'otp')
+  assert.equal(calls.length, 1)
+  assert.equal(auth.otpResendAvailableAt, deadline)
+  await auth.resendOtp()
+  assert.equal(calls.length, 1)
+
+  auth.goBackToPhone()
+  fail = true
+  await auth.requestOtp('9133456789')
+  assert.equal(auth.step, 'phone')
+  assert.equal(auth.phone, '9123456789')
+  assert.equal(auth.otpResendAvailableAt, deadline)
+  assert.deepEqual(errors, ['Request failed'])
+  fail = false
+  await auth.requestOtp('9133456789')
+  assert.equal(auth.phone, '9133456789')
+  assert.equal(auth.step, 'otp')
+  assert.equal(calls.length, 3)
+
+  now = Date.parse(auth.otpResendAvailableAt)
+  let resolve
+  finishRequest = { promise: new Promise(done => { resolve = done }) }
+  const resend = auth.resendOtp()
+  await auth.resendOtp()
+  assert.equal(calls.length, 4)
+  resolve()
+  await resend
+  assert.equal(auth.isLoading, false)
+  assert.equal(Date.parse(auth.otpResendAvailableAt), now + 60_000)
 })
 
 test('OTP form supports localized paste and rejects incomplete codes', async () => {

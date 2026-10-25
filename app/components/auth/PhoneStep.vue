@@ -1,7 +1,7 @@
 <script setup lang="ts">
 const authStore = useAuthStore()
 const shop = useShopStore()
-const phone = ref('')
+const phone = ref(authStore.phone)
 const validationError = ref('')
 
 function onPhoneInput(event: Event) {

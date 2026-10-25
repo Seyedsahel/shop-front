@@ -69,6 +69,11 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function requestOtp(value: string) {
+    if (isLoading.value) return
+    if (value === phone.value && otpResendAvailableAt.value && Date.parse(otpResendAvailableAt.value) > Date.now()) {
+      step.value = 'otp'
+      return
+    }
     isLoading.value = true
     try {
       await useApi().post<RequestOtpResponse>('/auth/otp/request', { phone: value } satisfies RequestOtpPayload)
@@ -162,7 +167,6 @@ export const useAuthStore = defineStore('auth', () => {
 
   function goBackToPhone() {
     step.value = 'phone'
-    otpResendAvailableAt.value = null
   }
 
   
