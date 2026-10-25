@@ -1,6 +1,9 @@
 FROM node:22-alpine AS build
 WORKDIR /app
 
+ARG NPM_REGISTRY=https://mirror.abrha.net/repository/npm/
+ENV npm_config_registry=${NPM_REGISTRY}
+
 COPY package.json package-lock.json ./
 RUN npm ci
 
