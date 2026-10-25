@@ -1,7 +1,10 @@
 services:
   front:
     image: shop-front:latest
-    build: .
+    build:
+      context: .
+      args:
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://mirror.abrha.net/repository/npm/}
     ports:
       - "127.0.0.1:${FRONT_PORT:-3001}:3000"
     environment:
