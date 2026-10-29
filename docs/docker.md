@@ -44,6 +44,7 @@ docker run -d --name shop-front --restart unless-stopped \
 ## Production routing
 
 - Terminate HTTPS at your reverse proxy and forward **all** paths (including `/api/`) to port 3000 in the container. The storefront uses `/`, not the admin's `/shop-admin/` prefix.
+- Preserve the query string at every proxy/CDN hop. `/products?category=...`, search, sorting, and pagination must reach Nuxt with their arguments intact. For Nginx, a plain `proxy_pass http://127.0.0.1:3001;` preserves the original URI; avoid constructing the upstream URL from `$uri` alone, which omits arguments. If a rewrite reconstructs the URL, retain `$is_args$args`. Configure the CDN to forward all query parameters and bypass HTML caching for these routes.
 - The host port binds to loopback by default. For direct access from other machines, change the mapping to `"${FRONT_PORT:-3001}:3000"` and configure your firewall.
 - For a containerized reverse proxy, join a shared Docker network and target `front:3000` instead of host loopback.
 - Use HTTPS for remote backend connections because they carry bearer tokens.
@@ -57,3 +58,5 @@ curl --fail http://localhost:3001/products >/dev/null
 ```
 
 These pages require a working backend. Then verify browsing, images and login in a browser; HTTP checks alone do not validate the complete shopping flow.
+
+Compare a category URL through the public domain and directly against the container port. Both HTML responses should contain the selected category title and products, before JavaScript runs. If the direct response is scoped but the public response says “همه محصولات”, inspect the reverse-proxy rewrites and CDN query forwarding settings. A browser can fetch the correct products afterward, masking incorrect SSR output.

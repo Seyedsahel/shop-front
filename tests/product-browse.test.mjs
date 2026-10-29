@@ -17,6 +17,7 @@ async function load(path, exports = '') {
 }
 
 Object.assign(globalThis, { computed, reactive, ref, watch, nextTick, defineStore, useState: (_key, initial) => ref(initial()), usePageResponse: () => () => {}, usePageSeo: () => {}, callOnce: async () => {} })
+globalThis.useNuxtApp = () => ({ isHydrating: false })
 globalThis.ApiError = class extends Error {}
 const errors = []
 globalThis.useAppToast = () => ({ error: message => errors.push(message) })
@@ -127,6 +128,36 @@ test('client setup exposes loading before an empty collection request finishes',
       } finally { p.close() }
     }
   } finally { globalThis.callOnce = originalCallOnce }
+})
+
+test('a different browser query preserves SSR filter state until hydration completes', async () => {
+  reset()
+  const filters = useFilterStore()
+  await filters.fetchFilters({ collection: { kind: 'catalog' } })
+  filters.resetAll()
+  const originalCallOnce = globalThis.callOnce
+  let ready
+  let p
+  globalThis.useNuxtApp = () => ({ isHydrating: true })
+  globalThis.onNuxtReady = callback => { ready = callback }
+  globalThis.callOnce = (_key, callback) => callback()
+  try {
+    calls.length = 0
+    p = await page({ category: 'medicine' })
+    assert.equal(calls.length, 0, 'Do not issue a replacement request during hydration')
+    assert.equal(filters.scopedMetadataAvailable, true, 'Keep the SSR sidebar mounted during hydration')
+    assert.deepEqual(filters.selectedCategoryIds, [])
+    await ready()
+    assert.deepEqual(filters.selectedCategoryIds, ['parent'])
+    assert.equal(filters.scopedMetadataAvailable, true)
+    assert.deepEqual(calls.find(call => call.path === '/products/list').body.categoryIds, ['parent', 'leaf'])
+    assert.equal(p.component.isResolving.value, false)
+  } finally {
+    p?.close()
+    globalThis.callOnce = originalCallOnce
+    globalThis.useNuxtApp = () => ({ isHydrating: false })
+    delete globalThis.onNuxtReady
+  }
 })
 
 test('query parsing preserves repeated facets and zero prices; invalid input never becomes an unfiltered query', () => {

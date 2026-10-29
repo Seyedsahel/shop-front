@@ -192,9 +192,14 @@ useInfiniteScroll(sentinel, () => {
   if (!isDisposed && matchesConfirmedRoute() && !isResolving.value && !browseError.value) productListStore.loadMore()
 }, { root: productScroll, rootMargin: '0px 0px 200px 0px' })
 usePageSeo(pageTitle, 'مشاهده محصولات فروشگاه و فیلتر دسته‌بندی‌ها و برندها.')
-const initialLoad = callOnce(`browse:${browsePath}:${getProductBrowseQueryKey(route.query)}`, loadProductsFromRoute, { mode: 'navigation' })
-// Await data for SSR, but let client navigation render the loading state immediately.
-if (import.meta.server) await initialLoad
+const initialLoad = () => callOnce(`browse:${browsePath}:${getProductBrowseQueryKey(route.query)}`, loadProductsFromRoute, { mode: 'navigation' })
+// Hydrate the server's store snapshot before reconciling a different browser URL.
+// Reloading during hydration removes filter fragments while Vue still adopts them,
+// leaving an orphaned sidebar when a proxy has stripped the SSR query string.
+if (import.meta.server) await initialLoad()
+else if (useNuxtApp().isHydrating) onNuxtReady(initialLoad)
+// Client navigation still renders its loading state immediately.
+else void initialLoad()
 // callOnce skips only the SSR hydration fetch; controller-local state is not serialized.
 if (!hasActiveLoad && (browseError.value || productListStore.loaded || productListStore.error || filterStore.error)) isResolving.value = false
 </script>
